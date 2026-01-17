@@ -1,0 +1,18 @@
+Arquivos JSON de tradução criados:
+✅ pt.json (Português) - COMPLETO
+✅ en.json (English) - COMPLETO  
+✅ es.json (Español) - COMPLETO
+
+Faltam criar:
+- fr.json (Français)
+- de.json (Deutsch)
+- it.json (Italiano)
+- ja.json (日本語)
+- ko.json (한국어)
+- zh.json (中文)
+- ru.json (Русский)
+- ar.json (العربية)
+- hi.json (हिन्दी)
+- tr.json (Türkçe)
+- pl.json (Polski)
+- nl.json (Nederlands)

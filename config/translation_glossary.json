@@ -1,0 +1,72 @@
+{
+  "_meta": {
+    "description": "Glossário personalizado para traduções técnicas de ROMs",
+    "version": "1.0.0",
+    "last_updated": "2025-12-28",
+    "author": "ROM Translation Framework"
+  },
+
+  "_instructions": {
+    "format": "Cada entrada é um par 'termo_original': 'tradução_forçada'",
+    "case_sensitive": false,
+    "apply_order": "Termos mais longos primeiro (evita substituições parciais)",
+    "examples": [
+      "Auto (Gemini → Ollama) = Automático (Gemini para Ollama)",
+      "target output = saída desejada"
+    ]
+  },
+
+  "glossary": {
+    "en_to_pt": {
+      "Auto (Gemini → Ollama)": "Automático (Gemini → Ollama)",
+      "Online Gemini (Google API)": "Gemini Online (API do Google)",
+      "Offline Rápido (Llama 3.2)": "Llama 3.2 Offline (Rápido)",
+      "Offline Alta Qualidade (Llama 3.1 8B)": "Llama 3.1 8B Offline (Alta Qualidade)",
+      "Online DeepL (API)": "DeepL Online (API)",
+      "target output": "saída desejada",
+      "source language": "idioma de origem",
+      "translation mode": "modo de tradução",
+      "API Key": "Chave de API",
+      "workers": "trabalhadores paralelos",
+      "timeout": "tempo limite",
+      "cache": "cache de traduções",
+      "ROM file": "arquivo ROM",
+      "extracted text": "texto extraído",
+      "optimized data": "dados otimizados",
+      "tile sniffer": "detector de tiles",
+      "entropy analysis": "análise de entropia",
+      "BPP": "BPP (Bits por Pixel)",
+      "offset": "deslocamento",
+      "palette": "paleta de cores",
+      "tile": "bloco gráfico",
+      "format": "formato gráfico",
+      "zoom": "ampliação",
+      "export PNG": "exportar como PNG",
+      "import PNG": "importar PNG",
+      "graphics lab": "laboratório gráfico"
+    },
+
+    "ja_to_pt": {
+      "ソース言語": "Idioma de Origem (ROM)",
+      "ターゲット言語": "Idioma de Destino",
+      "翻訳モード": "Modo de Tradução",
+      "APIキー": "Chave de API",
+      "ワーカー数": "Número de Workers",
+      "タイムアウト": "Tempo Limite (segundos)",
+      "翻訳キャッシュを使用": "Usar Cache de Traduções"
+    },
+
+    "proper_nouns": {
+      "Gemini": "Gemini",
+      "Ollama": "Ollama",
+      "DeepL": "DeepL",
+      "Llama": "Llama",
+      "Llama 3.1": "Llama 3.1",
+      "Google": "Google",
+      "SNES": "SNES",
+      "NES": "NES",
+      "Game Boy": "Game Boy",
+      "PlayStation": "PlayStation"
+    }
+  }
+}

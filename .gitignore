@@ -1,0 +1,192 @@
+# ================================================================================
+# NEUROROM AI V6.0 PRO SUITE - Git Ignore
+# ROM Translation Framework
+# ================================================================================
+
+# ==================== PYTHON ====================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# ==================== IDE ====================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ==================== OS ====================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+
+# ==================== PROJECT SPECIFIC ====================
+# ROMs (large binary files - users should add their own)
+ROMs/
+*.sfc
+*.smc
+*.nes
+*.gb
+*.gbc
+*.gba
+*.n64
+*.z64
+*.v64
+*.bin
+*.iso
+*.cue
+*.img
+*.rom
+
+# Cache and temp files
+cache/
+*.cache
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Logs
+logs/
+*.log
+translator_debug.log
+translator_errors.log
+
+# User projects
+projects/
+
+# Extracted data (generated)
+extracted_data/
+*_output/
+*_extracted/
+*_extracted.txt
+*_translated.txt
+textos_*.txt
+
+# Translation outputs
+*_translation.json
+*_translated.*
+translation_cache.json
+cache_translations.json
+cache_traducoes.json
+
+# Analysis reports (generated)
+*_analysis.json
+*_report.json
+*_report.txt
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# License files (user-specific)
+license.key
+
+# API keys and secrets (NEVER COMMIT)
+.env
+*.env
+api_key.txt
+*_key.txt
+secrets.json
+config.ini
+config.local.json
+
+# Gemini quota tracking (user-specific)
+gemini_quota.json
+
+# Large data files
+*.dat
+mapa_ponteiros.json
+
+# Fonts (large, should be downloaded separately)
+fonts/
+
+# Documentation build
+docs/_build/
+site/
+
+# Deprecated code
+_deprecated/
+
+# Test files
+dummy_pc_game/
+test_*.smc
+test_*.nes
+tests/__pycache__/
+
+# ==================== KEEP THESE ====================
+# Keep empty directories with .gitkeep
+!.gitkeep
+!**/logs/.gitkeep
+!**/cache/.gitkeep
+!**/projects/.gitkeep

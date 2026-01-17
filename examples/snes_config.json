@@ -1,0 +1,55 @@
+{
+  "platform": "Super Nintendo",
+  "platform_code": "SNES",
+  "description": "Example configuration for SNES games",
+  
+  "extraction": {
+    "encoding": "ascii",
+    "text_start_offset": "0x8000",
+    "text_end_offset": "0x100000",
+    "min_text_length": 3,
+    "null_terminated": true,
+    "pointer_table": {
+      "enabled": true,
+      "offset": "0x10000",
+      "count": 500,
+      "base_address": "0xC00000",
+      "pointer_size": 2,
+      "endianness": "little"
+    }
+  },
+  
+  "translation": {
+    "source_language": "English",
+    "target_language": "Portuguese",
+    "mode": "offline",
+    "batch_size": 100,
+    "max_line_length": 32,
+    "preserve_formatting": true
+  },
+  
+  "reinsertion": {
+    "encoding": "ascii",
+    "update_pointers": true,
+    "verify_checksums": true,
+    "backup_original": true,
+    "output_suffix": "_PT-BR"
+  },
+  
+  "special_characters": {
+    "control_codes": {
+      "<WAIT>": "\\xFF",
+      "<LINE>": "\\xFE",
+      "<END>": "\\x00"
+    },
+    "replacements": {
+      "á": "a",
+      "é": "e",
+      "í": "i",
+      "ó": "o",
+      "ú": "u"
+    }
+  },
+  
+  "notes": "SNES ROMs typically use simple ASCII encoding. Adjust for specific game table files if needed."
+}

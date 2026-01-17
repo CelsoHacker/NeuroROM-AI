@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python update_i18n_batch2.py:*)",
+      "Bash(python:*)",
+      "Bash(ollama serve:*)",
+      "Bash(taskkill:*)"
+    ]
+  }
+}

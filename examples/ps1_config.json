@@ -1,0 +1,55 @@
+{
+  "platform": "PlayStation 1",
+  "platform_code": "PS1",
+  "description": "Example configuration for PS1 games",
+  
+  "extraction": {
+    "encoding": "shift-jis",
+    "text_start_offset": "0x80000",
+    "text_end_offset": "0x200000",
+    "min_text_length": 4,
+    "null_terminated": true,
+    "pointer_table": {
+      "enabled": true,
+      "offset": "0x100000",
+      "count": 1000,
+      "base_address": "0x80000000",
+      "pointer_size": 4,
+      "endianness": "little"
+    }
+  },
+  
+  "translation": {
+    "source_language": "Japanese",
+    "target_language": "Portuguese",
+    "mode": "gemini",
+    "batch_size": 50,
+    "max_line_length": 64,
+    "preserve_formatting": true
+  },
+  
+  "reinsertion": {
+    "encoding": "shift-jis",
+    "update_pointers": true,
+    "verify_checksums": false,
+    "backup_original": true,
+    "output_suffix": "_translated"
+  },
+  
+  "special_characters": {
+    "control_codes": {
+      "[WAIT]": "\\x01",
+      "[NEWLINE]": "\\x02",
+      "[CLEAR]": "\\x03",
+      "[SPEED]": "\\x04"
+    },
+    "replacements": {
+      "・": "·",
+      "～": "~",
+      "！": "!",
+      "？": "?"
+    }
+  },
+  
+  "notes": "This is a template configuration. Adjust offsets and settings based on your specific ROM."
+}

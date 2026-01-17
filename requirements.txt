@@ -1,0 +1,73 @@
+# ================================================================================
+# NEUROROM AI V6.0 PRO SUITE - Requirements
+# ROM Translation Framework
+# ================================================================================
+
+# ==================== CORE DEPENDENCIES ====================
+# GUI Framework
+PyQt6>=6.6.0
+
+# Google Gemini API (Translation)
+google-genai>=0.3.0
+
+# HTTP Requests
+requests>=2.31.0
+
+# Character Encoding Detection
+chardet>=5.2.0
+
+# ==================== DATA PROCESSING ====================
+# Numerical Computing
+numpy>=1.24.0
+
+# Data Analysis
+pandas>=2.0.0
+
+# ==================== MACHINE LEARNING (Optional) ====================
+# ML Framework - for text classification
+scikit-learn>=1.3.0
+
+# Model Persistence
+joblib>=1.3.0
+
+# ==================== IMAGE PROCESSING (Optional) ====================
+# Computer Vision
+opencv-python>=4.8.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# OCR Engine (requires Tesseract installed separately)
+pytesseract>=0.3.10
+
+# ==================== SYSTEM UTILITIES ====================
+# System Monitoring
+psutil>=5.9.0
+
+# ==================== DEVELOPMENT (Optional) ====================
+# Code Formatting
+# black>=23.0.0
+
+# Type Checking
+# mypy>=1.0.0
+
+# Testing
+# pytest>=7.0.0
+
+# ================================================================================
+# INSTALLATION NOTES:
+# ================================================================================
+# 1. Install core dependencies:
+#    pip install -r requirements.txt
+#
+# 2. For Tesseract OCR on Windows:
+#    Download from: https://github.com/UB-Mannheim/tesseract/wiki
+#    Install to: C:\Program Files\Tesseract-OCR\
+#
+# 3. For CUDA support (optional, improves ML performance):
+#    pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+#
+# 4. For Ollama offline translation:
+#    Download from: https://ollama.ai
+#    Run: ollama pull gemma:2b
+# ================================================================================

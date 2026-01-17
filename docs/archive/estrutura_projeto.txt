@@ -1,0 +1,97 @@
+Listagem de caminhos de pasta
+O número de série do volume é 2E9B-C53E
+C:.
+|   .gitignore
+|   estrutura_projeto.txt
+|   LICENSE
+|   MANUAL_USO.pdf
+|   
++---core
+|       gemini_translator.py
+|       parallel_translator.py
+|       translation_engine.py
+|       translator_engine.py
+|       __init__.py
+|       
++---data
+|       mapa_ponteiros.json
+|       
++---docs
+|       00_START_HERE.md
+|       00_START_HERE.pdf
+|       7_DAY_ROADMAP.md
+|       7_DAY_ROADMAP.pdf
+|       BUG_FIX_DELIVERY.md
+|       BUG_FIX_DELIVERY.pdf
+|       CHANGELOG.md
+|       COMPLETE_GUIDE.txt
+|       GUIA_TESTES_LEGAL_SEGURO.md
+|       LAUNCH_STRATEGY.md
+|       LAUNCH_STRATEGY.pdf
+|       MANUAL_USO.md
+|       PROJECT_ANALYSIS_REPORT.md
+|       PROJECT_ANALYSIS_REPORT.pdf
+|       QUICK_REFERENCE.md
+|       QUICK_REFERENCE.pdf
+|       README.md
+|       README.txt
+|       RELATORIO_CORRECOES.md
+|       requirements.txt
+|       SOLUCAO_LEGAL_E_SEGURA.md
+|       TECHNICAL_ARCHITECTURE.md
+|       TECHNICAL_MANUAL.txt
+|       
++---examples
+|       ps1_config.json
+|       snes_config.json
+|       
++---files
+|       integration_patch.py
+|       
++---interface
+|   |   config.json
+|   |   gemini_translation_engine.py
+|   |   generic_snes_extractor.py
+|   |   gui_translator.py
+|   |   interface_customtkinter_fixed.py
+|   |   interface_tradutor_final.py
+|   |   salvar_info_jogo.json
+|   |   tempCodeRunnerFile.py
+|   |   translator_config.json
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           gemini_translation_engine.cpython-312.pyc
+|           
++---ROMs
+|   +---Playstation 1
+|   |       Legaia.bin
+|   |       
+|   \---Super Nintedo
+|           Donkey Kong Country 2.smc
+|           Legend Of Zelda.smc
+|           Lufia 2.smc
+|           Super Mario World.smc
+|           Super Mario World_extracted_texts.txt
+|           Super Mario World_optimized.txt
+|           Super Mario World_translated.txt
+|           translated_rom.smc
+|           
++---security
+|       license_guard.py
+|       __init__.py
+|       
++---tools
+|       entropy_analyzer.py
+|       memory_mapper.py
+|       pointer_scanner.py
+|       relative_searcher.py
+|       text_cleaner.py
+|       text_extractor.py
+|       __init__.py
+|       
+\---utils
+        cuda_optimizer.py
+        license_guard.py
+        system_diagnostics.py
+        
