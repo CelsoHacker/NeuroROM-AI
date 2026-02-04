@@ -4808,8 +4808,8 @@ class ProjectConfig:
     THEMES = {
         "Preto (Black)": {
             "window": "#000000",
-            "text": "#f2f2f2",
-            "button": "#000000",
+            "text": "#F2F2F2",
+            "button": "#1A1A1A",
             "accent": "#D4AF37",
         },
         "Cinza (Gray)": {
@@ -5126,8 +5126,8 @@ class ProjectConfig:
     THEMES = {
         "Preto (Black)": {
             "window": "#000000",
-            "text": "#f2f2f2",
-            "button": "#000000",
+            "text": "#F2F2F2",
+            "button": "#1A1A1A",
             "accent": "#D4AF37",
         },
         "Cinza (Gray)": {
@@ -6116,16 +6116,8 @@ class ThemeManager:
         text_muted = base_text.darker(140).name()
         text_disabled = "#9A9A9A"
         btn_bg = theme["button"]
-        btn_hover = (
-            base_button.lighter(110).name()
-            if theme_name != "Preto (Black)"
-            else theme["button"]
-        )
-        btn_pressed = (
-            base_button.darker(110).name()
-            if theme_name != "Preto (Black)"
-            else theme["button"]
-        )
+        btn_hover = base_button.lighter(110).name()
+        btn_pressed = base_button.darker(110).name()
         btn_border = (
             border_color
             if theme_name == "Preto (Black)"
@@ -6133,9 +6125,9 @@ class ThemeManager:
         )
         input_border = border_color
         disabled_bg = (
-            base_window.darker(110).name()
-            if theme_name != "Preto (Black)"
-            else theme["window"]
+            base_button.darker(110).name()
+            if theme_name == "Preto (Black)"
+            else base_window.darker(110).name()
         )
         disabled_border = border_color
         panel_bg = "#3A3A3A" if theme_name == "Cinza (Gray)" else theme["button"]
@@ -6197,6 +6189,12 @@ class ThemeManager:
         }}
         QMenuBar::item:disabled {{
             color: {text_disabled};
+        }}
+        QToolTip {{
+            background-color: {panel_bg};
+            color: {text};
+            border: 1px solid {border};
+            padding: 4px;
         }}
         QMenu::item:selected {{
             background-color: {button};
@@ -9149,11 +9147,7 @@ class MainWindow(QMainWindow):
         self.btn_toggle_api.pressed.connect(self._eye_show_key)
         self.btn_toggle_api.released.connect(self._eye_hide_key)
         theme = self._get_theme_colors()
-        btn_hover = (
-            QColor(theme["button"]).lighter(110).name()
-            if self.current_theme != "Preto (Black)"
-            else theme["button"]
-        )
+        btn_hover = QColor(theme["button"]).lighter(110).name()
         eye_btn_style = (
             neutral_button_style.replace("QPushButton", "QToolButton")
             + f"""
@@ -10317,11 +10311,7 @@ class MainWindow(QMainWindow):
 
         if hasattr(self, "eye_btn") and self.eye_btn:
             theme = self._get_theme_colors()
-            btn_hover = (
-                QColor(theme["button"]).lighter(110).name()
-                if self.current_theme != "Preto (Black)"
-                else theme["button"]
-            )
+            btn_hover = QColor(theme["button"]).lighter(110).name()
             eye_btn_style = (
                 neutral_button_style.replace("QPushButton", "QToolButton")
                 + f"""
@@ -13484,11 +13474,7 @@ class MainWindow(QMainWindow):
         # Aplica tema atual sem travar cores fixas
         theme = self._get_theme_colors()
         theme_border = self._get_theme_border_color()
-        btn_hover = (
-            QColor(theme["button"]).lighter(110).name()
-            if self.current_theme != "Preto (Black)"
-            else theme["button"]
-        )
+        btn_hover = QColor(theme["button"]).lighter(110).name()
         dialog.setStyleSheet(
             f"""
             QDialog {{ background-color: {theme['window']}; color: {theme['text']}; }}
@@ -13545,11 +13531,7 @@ class MainWindow(QMainWindow):
         # Aplica tema atual sem travar cores fixas
         theme = self._get_theme_colors()
         theme_border = self._get_theme_border_color()
-        btn_hover = (
-            QColor(theme["button"]).lighter(110).name()
-            if self.current_theme != "Preto (Black)"
-            else theme["button"]
-        )
+        btn_hover = QColor(theme["button"]).lighter(110).name()
         dialog.setStyleSheet(
             f"""
             QDialog {{ background-color: {theme['window']}; color: {theme['text']}; }}
