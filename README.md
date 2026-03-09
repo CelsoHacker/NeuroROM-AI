@@ -1,4 +1,4 @@
-# NEUROROM AI V6.0 PRO SUITE
+# NEUROROM AI V7 PRO SUITE
 ## Universal ROM & PC Game Translation Framework
 
 <div align="center">
