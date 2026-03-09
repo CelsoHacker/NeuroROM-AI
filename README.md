@@ -28,9 +28,9 @@
 - **File Formats**: .sfc, .smc, .nes, .bin, .iso, .exe, .dll, and more
 
 ### AI Translation
-- Google Gemini API (online, high quality)
-- Ollama (offline, unlimited, free)
-- Hybrid mode with automatic fallback
+- Google Gemini API (online, high quality, fast)
+- NLLB-200 offline (facebook/nllb-200-distilled-600M, no internet required)
+- AUTO mode: Gemini primary, NLLB fallback
 - Batch translation with quota management
 
 ### Professional Tools
@@ -94,7 +94,6 @@ rom-translation-framework/
 │   ├── interface_tradutor_final.py # Main window
 │   ├── gui_tabs/                   # Tab modules
 │   └── ...
-├── rtce_core/              # Runtime Text Capture Engine
 ├── tools/                  # Utility scripts
 │   ├── reinsert_sms_cli.py  # CLI segura de reinserção SMS
 ├── utils/                  # Helper functions
@@ -167,11 +166,13 @@ export GEMINI_API_KEY="your-api-key-here"
 
 Or configure in the application settings.
 
-### Offline Translation (Ollama)
+### Offline Translation (NLLB-200)
 
-1. Install Ollama: https://ollama.ai
-2. Pull a model: `ollama pull gemma:2b`
-3. Select "Offline Mode" in the application
+No internet required. Uses facebook/nllb-200-distilled-600M locally:
+
+1. The model downloads automatically on first use
+2. Or run: `python BAIXAR_MODELO.py` to pre-download
+3. Select "NLLB-200 (Offline)" in the application
 
 ---
 
@@ -179,9 +180,9 @@ Or configure in the application settings.
 
 - **Language**: Python 3.10+
 - **GUI**: PyQt6
-- **AI APIs**: Google Gemini, Ollama
-- **ML**: scikit-learn, NumPy, Pandas
-- **Image Processing**: OpenCV, Pillow, Tesseract
+- **AI APIs**: Google Gemini API
+- **Offline AI**: facebook/nllb-200 via HuggingFace Transformers + PyTorch
+- **Image Processing**: OpenCV, Pillow, Tesseract OCR
 - **Architecture**: Multi-threaded with QThread
 
 ---
@@ -224,7 +225,7 @@ For issues and questions, please check the [documentation](docs/) or open an iss
 
 ---
 
-**NEUROROM AI V6.0 PRO SUITE**
+**NEUROROM AI V7 PRO SUITE**
 **Made for ROM hackers and game translators**
 
 Developed by Celso | 2026
