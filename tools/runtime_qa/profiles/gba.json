@@ -1,0 +1,54 @@
+{
+  "schema": "neurorom.runtime_profile.v1",
+  "platform": "gba",
+  "cpu": "ARM7TDMI",
+  "pc_register": "R15",
+  "pointer_registers": [
+    "R0",
+    "R1",
+    "R2",
+    "R3",
+    "R4",
+    "R5"
+  ],
+  "buffer_registers": [
+    "R0",
+    "R1"
+  ],
+  "memory_domains": [
+    "IWRAM",
+    "EWRAM",
+    "System Bus"
+  ],
+  "default_terminators": [
+    0
+  ],
+  "max_bytes_per_capture": 224,
+  "autoplay_sequence": [
+    {
+      "button": "START",
+      "frames": 24
+    },
+    {
+      "button": "A",
+      "frames": 18
+    },
+    {
+      "button": "DOWN",
+      "frames": 18
+    },
+    {
+      "button": "A",
+      "frames": 20
+    },
+    {
+      "button": "RIGHT",
+      "frames": 26
+    },
+    {
+      "button": "LEFT",
+      "frames": 26
+    }
+  ]
+}
+

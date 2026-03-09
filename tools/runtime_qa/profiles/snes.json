@@ -1,0 +1,50 @@
+{
+  "schema": "neurorom.runtime_profile.v1",
+  "platform": "snes",
+  "cpu": "65816",
+  "pc_register": "PC",
+  "pointer_registers": [
+    "A",
+    "X",
+    "Y",
+    "DB",
+    "D"
+  ],
+  "buffer_registers": [],
+  "memory_domains": [
+    "System Bus",
+    "WRAM",
+    "CARTROM"
+  ],
+  "default_terminators": [
+    0
+  ],
+  "max_bytes_per_capture": 224,
+  "autoplay_sequence": [
+    {
+      "button": "START",
+      "frames": 30
+    },
+    {
+      "button": "A",
+      "frames": 18
+    },
+    {
+      "button": "B",
+      "frames": 16
+    },
+    {
+      "button": "DOWN",
+      "frames": 18
+    },
+    {
+      "button": "A",
+      "frames": 20
+    },
+    {
+      "button": "RIGHT",
+      "frames": 28
+    }
+  ]
+}
+

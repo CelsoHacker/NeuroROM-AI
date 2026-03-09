@@ -1,0 +1,17 @@
+{
+  "console": "super nintendo",
+  "generated_at": "2026-02-11T22:38:08.239345",
+  "rom_count": 1,
+  "items": [
+    {
+      "rom": "E:\\_roms_extruidas\\Super Nintendo\\3 Ninjas Kick Back (USA)\\3 Ninjas Kick Back (USA).smc",
+      "crc32": "754FFB81",
+      "output_dir": "export\\universal_batch_v2\\super nintendo\\3 Ninjas Kick Back (USA)_754FFB81",
+      "status": "ok",
+      "reason": "pure_jsonl_generated",
+      "returncode": 0,
+      "pure_jsonl_count": 1,
+      "report_count": 1
+    }
+  ]
+}

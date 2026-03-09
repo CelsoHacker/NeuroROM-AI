@@ -1,0 +1,137 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:19:45",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "7955EBFE",
+  "rom_size": 1048576,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\7955EBFE\\1_extracao\\7955EBFE_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\bmoney\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 14
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwithout\\b",
+      "dst": "with",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bsomewhere\\b",
+      "dst": "where",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbones\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 6
+    },
+    {
+      "mode": "regex",
+      "src": "\\bdone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\bpassword\\b",
+      "dst": "sword",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\brestart\\b",
+      "dst": "start",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcannot\\b",
+      "dst": "not",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwherever\\b",
+      "dst": "where",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\byourself\\b",
+      "dst": "your",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcare\\b",
+      "dst": "are",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bclone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\byours\\b",
+      "dst": "your",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bscan\\b",
+      "dst": "can",
+      "ignore_case": true,
+      "hits": 4
+    }
+  ],
+  "drop_words": [
+    "thanks",
+    "skyway"
+  ],
+  "extra_fragments": [
+    "one",
+    "are",
+    "where",
+    "with",
+    "your",
+    "time",
+    "can",
+    "start",
+    "our",
+    "sword",
+    "come",
+    "not",
+    "power"
+  ],
+  "stats": {
+    "items_total": 3132,
+    "rows_with_text": 3132,
+    "unique_tokens": 2428,
+    "replace_rules_total": 14,
+    "drop_words_total": 2,
+    "extra_fragments_total": 13
+  }
+}

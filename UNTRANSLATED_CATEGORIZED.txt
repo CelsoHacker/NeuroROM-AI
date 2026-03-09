@@ -1,0 +1,130 @@
+====================================================================================================
+DETAILED CATEGORIZATION OF 289 UNTRANSLATED ENTRIES
+====================================================================================================
+
+ACTIONS (11 entries):
+  - Board
+  - Camp
+  - Heal
+  - Open
+  - Rest
+  - Resurrect
+  - Save
+  - Search
+  - Talk
+  - Use
+  - View
+
+DIRECTIONS (5 entries):
+  - East
+  - East
+  - North
+  - North
+  - West
+
+GAME ELEMENTS (66 entries):
+  - !"#$%&'())*+,-./01*+23456789:;*+<=>?@>?A<=BCDEFGHIJKLMNOPQRSTUNOVWXYZ[\]^_``aabcdefghijklmnopqrs
+  - !"#$%&'())*+,-./01*+23456789:;*+<=>?@>?A<=BCDEFGHIJKLMNOPQRSTUNOVWXYZ[\]^_``aabcdefghijklmnopqrs
+  - &6IXY
+  - =UBUHUMUSUWest
+  - A B C D E
+  - Armour
+  - Armour
+  - Armour
+  - Armour
+  - Axe
+  - Axe
+  - Bomb
+  - Cove
+  - Covetous
+  - Equipment
+  - Equipment
+  - F G H I J
+  - Gems
+  - Ginseng
+  - HHx XX`
+  ... and 46 more
+
+NUMERIC GARBAGE (5 entries):
+  - 0 !FFD@
+  - 0|ff<
+  - 4-L1
+  - 4Inc.
+  - 5BYE
+
+PLAYER ATTRIBUTES (11 entries):
+  - B BJ COMPASSION MU
+  - DEX:
+  - H P:
+  - HPX:
+  - INT:
+  - L V:
+  - M P:
+  - MPX:
+  - SHP:
+  - STR:
+  - VpHP
+
+PROPER NAMES (174 entries):
+  - ABC
+  - ANDRAKE
+  - Aim!
+  - Alex
+  - Alkerion
+  - Arron
+  - Asemly
+  - BOW
+  - BYE
+  - Banter
+  - Bat
+  - Benjamin
+  - Bye.
+  - CABCI
+  - CBI
+  - Calm
+  - Charm
+  - Corkrin
+  - Corkrin
+  - DAG
+  ... and 154 more
+
+STATUS (4 entries):
+  - Dead
+  - Poisoned
+  - Ready
+  - Resting
+
+SYMBOLIC GARBAGE (13 entries):
+  - &f@@
+  - <ff<
+  - Ix!(
+  - W%'X}
+  - Y&??
+  - hic...
+  - hic...
+  - kk((
+  - x+o&
+  - {pxlb@@
+  - }x!@
+  - }x!@
+  - }x!@
+
+====================================================================================================
+SUMMARY BY PRIORITY:
+====================================================================================================
+
+HIGH PRIORITY (Clear English text that should be translated):
+  Count: 86
+  Includes: Directions, game items, action verbs, status conditions
+
+MEDIUM PRIORITY (Names and proper nouns):
+  Count: 174
+  These are character/location names - may need context
+
+LOWER PRIORITY (Attributes and codes):
+  Count: 11
+  Examples: B BJ COMPASSION MU, DEX:, H P:, HPX:, INT:
+
+QUESTIONABLE (Garbage/symbolic entries):
+  Count: 18
+  These likely aren't real text and should be marked for review

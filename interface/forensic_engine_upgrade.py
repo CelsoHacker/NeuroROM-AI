@@ -1525,10 +1525,14 @@ class EngineDetectionWorkerTier1(QThread):
 
         # ================================================================
         # DETECÇÃO DE PC GAMES (NOVA PRIORIDADE MÁXIMA)
+        # Ignora se extensão já indica console (ex: .sms com "New Game" no RPG)
         # ================================================================
+        CONSOLE_PLATFORMS = {'SEGA_MASTER', 'SEGA_GENESIS', 'NES', 'SNES',
+                             'GBA', 'GameBoy', 'GameBoy Color', 'N64', 'PS1'}
+        extension_platform = EXTENSION_MAP.get(file_ext, '')
         pc_game_detections = [d for d in detections if d['category'] == 'PC_GAME']
 
-        if pc_game_detections:
+        if pc_game_detections and extension_platform not in CONSOLE_PLATFORMS:
             # Se detectou PC_GAME, considerar como jogo (não instalador)
             game = pc_game_detections[0]
             game_name = game['description']

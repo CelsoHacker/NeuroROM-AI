@@ -1,0 +1,54 @@
+{
+  "schema": "neurorom.runtime_profile.v1",
+  "platform": "megadrive",
+  "cpu": "68000",
+  "pc_register": "PC",
+  "pointer_registers": [
+    "A0",
+    "A1",
+    "A2",
+    "A3",
+    "D0",
+    "D1"
+  ],
+  "buffer_registers": [
+    "A0",
+    "A1"
+  ],
+  "memory_domains": [
+    "68K RAM",
+    "Z80 RAM",
+    "System Bus"
+  ],
+  "default_terminators": [
+    0
+  ],
+  "max_bytes_per_capture": 224,
+  "autoplay_sequence": [
+    {
+      "button": "START",
+      "frames": 28
+    },
+    {
+      "button": "A",
+      "frames": 18
+    },
+    {
+      "button": "DOWN",
+      "frames": 18
+    },
+    {
+      "button": "A",
+      "frames": 20
+    },
+    {
+      "button": "RIGHT",
+      "frames": 28
+    },
+    {
+      "button": "LEFT",
+      "frames": 28
+    }
+  ]
+}
+

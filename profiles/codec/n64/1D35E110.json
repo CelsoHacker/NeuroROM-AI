@@ -1,0 +1,21 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:12:30",
+  "enabled": true,
+  "console_hint": "n64",
+  "rom_crc32": "1D35E110",
+  "rom_size": 8388608,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Nintedo 64\\1D35E110\\1_extracao\\1D35E110_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [],
+  "drop_words": [],
+  "extra_fragments": [],
+  "stats": {
+    "items_total": 12000,
+    "rows_with_text": 12000,
+    "unique_tokens": 5192,
+    "replace_rules_total": 0,
+    "drop_words_total": 0,
+    "extra_fragments_total": 0
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:12:23",
+  "enabled": true,
+  "console_hint": "generic",
+  "rom_crc32": "5BC5B794",
+  "rom_size": 524304,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Nintedinho\\5BC5B794\\1_extracao\\5BC5B794_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [],
+  "drop_words": [],
+  "extra_fragments": [],
+  "stats": {
+    "items_total": 1067,
+    "rows_with_text": 1067,
+    "unique_tokens": 572,
+    "replace_rules_total": 0,
+    "drop_words_total": 0,
+    "extra_fragments_total": 0
+  }
+}

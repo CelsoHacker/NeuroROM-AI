@@ -1,0 +1,281 @@
+{
+  "created_at": "2026-03-09T13:00:12.994055Z",
+  "console": "SMS",
+  "rom_crc32": "DE9F8517",
+  "rom_size": 524288,
+  "translation_input": {
+    "path": "..\\ROMs\\Master System\\DE9F8517\\2_traducao\\DE9F8517_translated.jsonl",
+    "format": "jsonl",
+    "exists": true,
+    "target_platform": "SMS",
+    "game_engineering_profile": {
+      "enabled": true,
+      "has_crc_profile": true,
+      "profile_id": "sms_crc_de9f8517",
+      "profile_name": "SMS CRC DE9F8517",
+      "profile_version": "1.0",
+      "profile_file": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\core\\profiles\\sms\\game_engineering_profiles.json"
+    },
+    "policy_defaults_active": true,
+    "guardrail_warnings": [],
+    "guardrail_warning_count": 0,
+    "glyph_injection_enabled": true,
+    "glyph_font": "C:/Windows/Fonts/verdana.ttf",
+    "size_bytes": 492116,
+    "sha256": "d69c089bdb1de34a290e725b27dd708ad3909e52d812d29826bfcad91656e06f",
+    "jsonl_declared_crc32": "DE9F8517",
+    "jsonl_declared_size": 524288,
+    "rom_crc32_runtime": "DE9F8517",
+    "rom_size_runtime": 524288,
+    "strict_ptbr_mode": false,
+    "strict_ptbr_rewritten": 0,
+    "strict_ptbr_overrides_loaded": 0,
+    "strict_ptbr_override_file": null,
+    "game_engineering_rewritten": 0,
+    "auto_preserve_charset_like": 2,
+    "auto_reject_llm_refusal": 0,
+    "auto_source_forced_overrides": 12,
+    "normalize_nfc": true,
+    "custom_dictionary_path": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\custom_dict.json",
+    "custom_dictionary_entries": 30,
+    "custom_dictionary_rewrites": 2,
+    "translation_api_fallback": true,
+    "translation_service": "google",
+    "translation_api_max_chars": 600,
+    "translation_api_calls": 1,
+    "translation_api_success": 1,
+    "translation_api_rewrites": 0,
+    "game_engineering_compression": {
+      "mode": "mixed",
+      "block_reinsertion": false,
+      "notes": "Pode haver blocos de script proprietario nao extraiveis por varredura estatica.",
+      "extractor_hint": "pointer_table+tilemap",
+      "requires_codec": ""
+    },
+    "glyph_injection_report": {
+      "success": true,
+      "injected_count": 14,
+      "missing_before": [
+        "Á",
+        "É",
+        "Ó",
+        "à",
+        "á",
+        "â",
+        "ã",
+        "ç",
+        "é",
+        "ê",
+        "í",
+        "ó",
+        "õ",
+        "ú"
+      ],
+      "missing_after": [],
+      "tbl_updates": {
+        "ã": "0x94",
+        "á": "0xA4",
+        "à": "0xB4",
+        "â": "0xB5",
+        "é": "0xB6",
+        "ê": "0xBB",
+        "í": "0xBD",
+        "ó": "0xC1",
+        "õ": "0xC2",
+        "ú": "0xC3",
+        "ç": "0xC4",
+        "Á": "0xD6",
+        "É": "0xD9",
+        "Ó": "0xDA"
+      },
+      "sha256_before": "50ed50e701600617bd9f57ac3d10c3c289f9cbfb88d441a0d9d793344f5e1c81",
+      "sha256_after": "9c0655819d5c95156cc5a4f46cd82283ed5cbc2d075f84e4e917bf720a54f4d1",
+      "error": "",
+      "injected_from_base_count": 14,
+      "injected_from_verdana_count": 0,
+      "source_font": "",
+      "injected_chars": [
+        "Á",
+        "É",
+        "Ó",
+        "à",
+        "á",
+        "â",
+        "ã",
+        "ç",
+        "é",
+        "ê",
+        "í",
+        "ó",
+        "õ",
+        "ú"
+      ]
+    },
+    "auto_pt_fragment_rewrites": 1,
+    "auto_non_pt_rewrites": 0,
+    "auto_english_cleanup_rewrites": 2,
+    "custom_dictionary_rewrites_post": 0,
+    "id_override_enabled": true,
+    "id_override_file": null,
+    "id_override_overrides_loaded": 0,
+    "id_override_matched": 0,
+    "id_override_rewritten": 0,
+    "id_override_propagated": 0,
+    "id_override_warning_count": 0,
+    "auto_ui_overlap_aliases": 0,
+    "auto_relocate_if_needed": true,
+    "force_repoint_oversize": true,
+    "tilemap_require_tbl": true,
+    "require_tilemap": true,
+    "tilemap_fail_fast_without_tbl": true,
+    "tilemap_entries_detected": 0,
+    "tilemap_tbl_available": true,
+    "offset_alias_groups": 0,
+    "relocation_requested_items": 6,
+    "relocation_applied_items": 2,
+    "relocation_forbidden_ranges_count": 1466,
+    "relocation_alignment": 2,
+    "relocation_pool": {
+      "start_hex": "0xF872",
+      "end_hex": "0xF903",
+      "bytes_used": 16,
+      "bytes_free": 129,
+      "alignment": 2,
+      "filler_byte": 255,
+      "expanded": false,
+      "forbidden_ranges_count": 1466,
+      "free_space_strategy": "tail_ff00_guarded"
+    },
+    "compressed_block_reinsertion": {
+      "enabled": true,
+      "blocks_total": 0,
+      "blocks_applied": 0,
+      "blocks_relocated": 0,
+      "candidates": 0,
+      "inserted_items": 0,
+      "truncated_items": 0,
+      "blocked_items": 0,
+      "roundtrip_baseline_fail_blocks": 0,
+      "roundtrip_fail_blocks": 0,
+      "unsupported_algorithm_blocks": 0
+    },
+    "auto_generate_diff_ranges": true,
+    "auto_generate_diff_ranges_generated": true,
+    "auto_generate_diff_ranges_count": 552,
+    "auto_generate_diff_ranges_written_paths": [
+      "Master System\\DE9F8517\\3_reinsercao\\DE9F8517_editable_ranges.json",
+      "Master System\\DE9F8517\\DE9F8517_editable_ranges.json",
+      "Master System\\DE9F8517\\DE9F8517_diff_ranges.json",
+      "Master System\\out\\DE9F8517_editable_ranges.json"
+    ],
+    "auto_generate_diff_ranges_skipped_existing": 2,
+    "auto_generate_diff_ranges_margin_start": 2,
+    "auto_generate_diff_ranges_margin_end": 16,
+    "auto_generate_diff_ranges_merge_gap": 16,
+    "auto_generate_diff_ranges_error": "",
+    "glyph_allowed_ranges_count": 19,
+    "external_allowed_ranges_count": 552,
+    "external_allowed_ranges_source": "..\\ROMs\\Master System\\DE9F8517\\DE9F8517_editable_ranges.json"
+  },
+  "gates": [
+    {
+      "name": "no_truncation",
+      "status": "fail",
+      "required": true,
+      "detail": "truncated_total=1"
+    },
+    {
+      "name": "no_blocked_items",
+      "status": "pass",
+      "required": true,
+      "detail": "blocked_total=0"
+    },
+    {
+      "name": "critical_issues_zero",
+      "status": "fail",
+      "required": true,
+      "detail": "critical_total=323"
+    },
+    {
+      "name": "english_likely_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "english_likely_count=0"
+    },
+    {
+      "name": "same_as_source_phrase_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "same_as_source_phrase_count=0"
+    },
+    {
+      "name": "displayed_trace_skip_displayed_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "displayed_trace_skip_displayed_count=0"
+    },
+    {
+      "name": "displayed_trace_english_residual_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "displayed_trace_english_residual_count=0"
+    },
+    {
+      "name": "runtime_missing_displayed_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "runtime_missing_displayed_text_count=0"
+    },
+    {
+      "name": "input_match",
+      "status": "pass",
+      "required": true,
+      "detail": "CRC/size de entrada e ROM selecionada"
+    },
+    {
+      "name": "ordering_consistent",
+      "status": "pass",
+      "required": true,
+      "detail": "ordem deterministica por seq/offset"
+    },
+    {
+      "name": "proprietary_codec_case",
+      "status": "pass",
+      "required": true,
+      "detail": "compression_mode=mixed; compression_notes=Pode haver blocos de script proprietario nao extraiveis por varredura estatica.; limitation=Perfil de engenharia indica script parcialmente comprimido/proprietário; cobertura completa depende de codec específico por jogo.; limitation=Compressao/perfil: Pode haver blocos de script proprietario nao extraiveis por varredura estatica."
+    },
+    {
+      "name": "emulator_smoke_test",
+      "status": "unknown",
+      "required": false,
+      "detail": "inicio/menu/dialogo validado no emulador"
+    }
+  ],
+  "required_failed": [
+    "no_truncation",
+    "critical_issues_zero"
+  ],
+  "required_unknown": [],
+  "overall_pass": false,
+  "quality_score_percent": 81.82,
+  "proprietary_codec_risk": {
+    "requires_special_engineering": false,
+    "reasons": [],
+    "hints": [
+      "compression_mode=mixed",
+      "compression_notes=Pode haver blocos de script proprietario nao extraiveis por varredura estatica.",
+      "limitation=Perfil de engenharia indica script parcialmente comprimido/proprietário; cobertura completa depende de codec específico por jogo.",
+      "limitation=Compressao/perfil: Pode haver blocos de script proprietario nao extraiveis por varredura estatica."
+    ]
+  },
+  "limitations": [
+    "Perfil de engenharia indica script parcialmente comprimido/proprietário; cobertura completa depende de codec específico por jogo.",
+    "Compressao/perfil: Pode haver blocos de script proprietario nao extraiveis por varredura estatica.",
+    "Ainda existem 1 truncamentos após abreviação/reformulação.",
+    "Persistem 323 divergências ROM vs texto traduzido."
+  ],
+  "next_actions": [
+    "Corrigir placeholders/terminadores/mismatch e repetir reinsercao.",
+    "Aplicar abreviacao/reformulacao com limite estrito de bytes."
+  ]
+}

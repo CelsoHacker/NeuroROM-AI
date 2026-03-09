@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 import os
+import sys
 import math
 import threading
 from collections import Counter
 from pathlib import Path
 from PyQt6.QtCore import QThread, pyqtSignal
+
+# Adiciona diretório core ao path
+_CORE_DIR = Path(__file__).parent.parent / "core"
+if str(_CORE_DIR) not in sys.path:
+    sys.path.insert(0, str(_CORE_DIR))
 
 # ================================================================
 # FORENSIC ERA DETECTION SYSTEM
@@ -101,9 +107,16 @@ class ExtractionWorker(QThread):
 
     def run(self):
         try:
-            self.progress.emit(1, f"🚀 Iniciando análise: {os.path.basename(self.rom_path)}")
+            self.progress.emit(1, f"Iniciando análise: {os.path.basename(self.rom_path)}")
 
-            # 1. Detectar Era e Shift
+            # ROTEAMENTO PRIORITÁRIO PARA SMS/GG/SG
+            file_ext = os.path.splitext(self.rom_path)[1].lower()
+            if file_ext in ['.sms', '.gg', '.sg']:
+                result = self._extract_sms_pro()
+                self.finished.emit(result)
+                return
+
+            # 1. Detectar Era e Shift (para outros formatos)
             self.era, _, _, self.rigor_level = ForensicEraDetector.detect_era(self.rom_path)
 
             with open(self.rom_path, 'rb') as f:
@@ -111,15 +124,74 @@ class ExtractionWorker(QThread):
             self.shift_key = self._auto_detect_encoding_shift(sample)
 
             if self.shift_key != 0:
-                self.progress.emit(10, f"🔓 Encriptação Quebrada: Shift {self.shift_key:+d} aplicado!")
+                self.progress.emit(10, f"Shift detectado: {self.shift_key:+d}")
 
             # 2. Executar extração universal com o Shift_Key
             result = self._extract_universal_elite()
             self.finished.emit(result)
 
         except Exception as e:
-            self.progress.emit(0, f"❌ ERRO: {str(e)}")
+            self.progress.emit(0, f"ERRO: {str(e)}")
             self.finished.emit({'strings': [], 'total': 0, 'error': str(e)})
+
+    def _extract_sms_pro(self):
+        """Extração SMS PRO com fail-fast e quality gates."""
+        try:
+            from sms_pro_extractor import SMSProExtractor
+        except ImportError:
+            try:
+                from core.sms_pro_extractor import SMSProExtractor
+            except ImportError:
+                self.progress.emit(0, "ERRO: SMS PRO Extractor não encontrado")
+                return {'strings': [], 'total': 0, 'error': 'SMS PRO não disponível'}
+
+        self.progress.emit(5, "SMS detectado - Usando SMS PRO Extractor")
+        self.progress.emit(10, "Descobrindo tabelas de ponteiros...")
+
+        try:
+            extractor = SMSProExtractor(self.rom_path)
+            self.progress.emit(20, f"CRC32: {extractor.crc32}")
+
+            result = extractor.extract()
+
+            if not result.success:
+                self.progress.emit(100, f"FAIL-FAST: {result.error_message}")
+                return {
+                    'strings': [],
+                    'total': 0,
+                    'error': result.error_message,
+                    'diagnostics': result.diagnostics,
+                    'safe_ratio': result.safe_ratio
+                }
+
+            self.progress.emit(80, f"Extraídos: {result.total_extracted} | Safe: {result.safe_ratio:.0%}")
+
+            # Converte para formato esperado pela UI
+            strings = []
+            for item in extractor.items:
+                strings.append({
+                    'id': item.id,
+                    'original': item.decoded_text,
+                    'translated': '',
+                    'snes_addr': f'0x{item.file_offset:06X}',
+                    'category': item.method.value,
+                    'confidence': item.confidence,
+                    'is_safe': item.is_decoded and item.confidence > 0.6
+                })
+
+            self.progress.emit(100, f"SMS PRO: {len(strings)} strings | Safe: {result.safe_ratio:.0%}")
+
+            return {
+                'strings': strings,
+                'total': len(strings),
+                'method': result.method.value,
+                'safe_ratio': result.safe_ratio,
+                'crc32': extractor.crc32
+            }
+
+        except Exception as e:
+            self.progress.emit(0, f"Erro SMS PRO: {str(e)}")
+            return {'strings': [], 'total': 0, 'error': str(e)}
 
     def _extract_ascii_from_chunk(self, chunk):
         strings = []

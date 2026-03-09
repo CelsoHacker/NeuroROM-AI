@@ -2,6 +2,13 @@
 """
 ULTIMATE EXTRACTOR V7.0 - ULTIMATE EXTRACTION SUITE
 ====================================================
+
+⚠️  DEPRECATED (V1) - Este módulo será removido em versões futuras.
+    Use: orchestrator.plugin_orchestrator.run_extraction()
+
+    Este extrator gera arquivos {rom_name}_V7_REPORT.txt que vazam
+    nomes de arquivo. A nova API usa CRC32 para naming neutro.
+
 Sistema de extração de texto definitivo com 3 motores em cascata:
 
 1. EXTRAÇÃO PRINCIPAL (ASCII + TBL) - V6.0

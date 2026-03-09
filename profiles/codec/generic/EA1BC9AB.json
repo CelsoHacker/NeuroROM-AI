@@ -1,0 +1,195 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:12:05",
+  "enabled": true,
+  "console_hint": "generic",
+  "rom_crc32": "EA1BC9AB",
+  "rom_size": 655360,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Mega\\EA1BC9AB\\1_extracao\\EA1BC9AB_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\bmoney\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 15
+    },
+    {
+      "mode": "regex",
+      "src": "\\byoung\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 12
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwelcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bsaved\\b",
+      "dst": "save",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bsomeone\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\beveryone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbecome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 6
+    },
+    {
+      "mode": "regex",
+      "src": "\\bpowerful\\b",
+      "dst": "power",
+      "ignore_case": true,
+      "hits": 6
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwithout\\b",
+      "dst": "with",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\barea\\b",
+      "dst": "are",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\bpoisoned\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\bprepare\\b",
+      "dst": "are",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\btoday\\b",
+      "dst": "day",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\btownspeople\\b",
+      "dst": "people",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bsometimes\\b",
+      "dst": "time",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bsomewhere\\b",
+      "dst": "where",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbecomes\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bgone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbeware\\b",
+      "dst": "are",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\byours\\b",
+      "dst": "your",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\btimes\\b",
+      "dst": "time",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\byouth\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 4
+    }
+  ],
+  "drop_words": [
+    "spells",
+    "crystal",
+    "thanks"
+  ],
+  "extra_fragments": [
+    "one",
+    "are",
+    "come",
+    "you",
+    "some",
+    "save",
+    "day",
+    "time",
+    "your",
+    "where",
+    "power",
+    "with",
+    "right",
+    "people"
+  ],
+  "stats": {
+    "items_total": 3314,
+    "rows_with_text": 3314,
+    "unique_tokens": 2502,
+    "replace_rules_total": 22,
+    "drop_words_total": 3,
+    "extra_fragments_total": 14
+  }
+}

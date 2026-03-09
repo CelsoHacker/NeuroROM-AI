@@ -94,6 +94,104 @@ class TextFilter:
         return True
 
 # ============================================================================
+# 2.5. ENCODING FIX SYSTEM (MOJIBAKE CORRECTION)
+# ============================================================================
+class EncodingFixer:
+    """
+    Corrige problemas de encoding (mojibake) onde UTF-8 foi lido como Latin-1/CP1252.
+    Exemplos: "Ã£" → "ã", "Ã©" → "é", "Ã§" → "ç"
+    """
+
+    # Mapeamento de sequências mojibake comuns para caracteres corretos
+    MOJIBAKE_MAP = {
+        # Vogais com acentos (português)
+        'Ã¡': 'á', 'Ã ': 'à', 'Ã¢': 'â', 'Ã£': 'ã', 'Ã¤': 'ä',
+        'Ã©': 'é', 'Ã¨': 'è', 'Ãª': 'ê', 'Ã«': 'ë',
+        'Ã­': 'í', 'Ã¬': 'ì', 'Ã®': 'î', 'Ã¯': 'ï',
+        'Ã³': 'ó', 'Ã²': 'ò', 'Ã´': 'ô', 'Ãµ': 'õ', 'Ã¶': 'ö',
+        'Ãº': 'ú', 'Ã¹': 'ù', 'Ã»': 'û', 'Ã¼': 'ü',
+        # Maiúsculas
+        'Ã': 'Á', 'Ã€': 'À', 'Ã‚': 'Â', 'Ãƒ': 'Ã', 'Ã„': 'Ä',
+        'Ã‰': 'É', 'Ãˆ': 'È', 'ÃŠ': 'Ê', 'Ã‹': 'Ë',
+        'Ã': 'Í', 'ÃŒ': 'Ì', 'ÃŽ': 'Î', 'Ã': 'Ï',
+        "Ã“": "Ó", "Ã’": "Ò", "Ã”": "Ô", "Ã•": "Õ", "Ã–": "Ö",
+        'Ãš': 'Ú', 'Ã™': 'Ù', 'Ã›': 'Û', 'Ãœ': 'Ü',
+        # Consoantes especiais
+        'Ã§': 'ç', 'Ã‡': 'Ç',
+        'Ã±': 'ñ', "Ã‘": "Ñ",
+        # Símbolos
+        'â€œ': '"', 'â€': '"', 'â€™': "'", 'â€˜': "'",
+        'â€"': '—', 'â€"': '–', 'â€¦': '…',
+        'Â°': '°', 'Â©': '©', 'Â®': '®', 'â„¢': '™',
+        'Â«': '«', 'Â»': '»',
+        'Â¡': '¡', 'Â¿': '¿',
+        # Outros caracteres comuns
+        'Ã½': 'ý', 'Ã¿': 'ÿ',
+        'Ã°': 'ð', 'Ã': 'Ð',
+        'Ã¦': 'æ', 'Ã†': 'Æ',
+        'Ã¸': 'ø', 'Ã˜': 'Ø',
+        'ÃŸ': 'ß',
+    }
+
+    @classmethod
+    def fix_encoding(cls, text: str) -> str:
+        """
+        Corrige mojibake no texto traduzido.
+        Usa duas estratégias:
+        1. Mapeamento direto de sequências conhecidas
+        2. Tentativa de decode/encode para casos não mapeados
+        """
+        if not text:
+            return text
+
+        result = text
+
+        # Estratégia 1: Substituição direta de sequências conhecidas
+        for bad, good in cls.MOJIBAKE_MAP.items():
+            if bad in result:
+                result = result.replace(bad, good)
+
+        # Estratégia 2: Tenta corrigir via encode/decode se ainda houver problemas
+        # Detecta se ainda há caracteres suspeitos (sequências Ã + outro char)
+        if 'Ã' in result or 'â€' in result:
+            try:
+                # Tenta converter de volta: Latin-1 → bytes → UTF-8
+                fixed = result.encode('latin-1').decode('utf-8')
+                # Verifica se o resultado é válido (não tem caracteres de controle)
+                if not any(ord(c) < 32 and c not in '\n\r\t' for c in fixed):
+                    result = fixed
+            except (UnicodeDecodeError, UnicodeEncodeError):
+                pass  # Mantém o resultado do mapeamento
+
+        return result
+
+    @classmethod
+    def fix_file(cls, file_path: str, output_path: str = None) -> int:
+        """
+        Corrige encoding de um arquivo inteiro.
+        Retorna o número de correções feitas.
+        """
+        if not output_path:
+            output_path = file_path  # Sobrescreve o original
+
+        with open(file_path, 'r', encoding='utf-8', errors='replace') as f:
+            content = f.read()
+
+        original = content
+        fixed = cls.fix_encoding(content)
+
+        if fixed != original:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(fixed)
+
+            # Conta aproximadamente quantas correções foram feitas
+            corrections = sum(1 for bad in cls.MOJIBAKE_MAP if bad in original)
+            safe_print(f"✅ Encoding corrigido: {corrections} substituições em {output_path}")
+            return corrections
+
+        return 0
+
+# ============================================================================
 # 3. CACHING SYSTEM
 # ============================================================================
 class TranslationCache:
@@ -133,11 +231,25 @@ class TranslationCache:
             return None
 
     def set(self, original: str, translation: str):
-        """Store translation in cache"""
+        """Store translation in cache - only if actually translated"""
         with self.lock:
+            # ANTI-CACHE FALSO: não salva se tradução == original
+            original_clean = original.strip().lower()
+            translation_clean = translation.strip().lower()
+
+            if original_clean == translation_clean:
+                logging.warning(f"Cache REJECTED (same as original): {original[:50]}")
+                return False  # Indica que não foi cacheado
+
+            # Não salva se tradução está vazia ou é muito curta
+            if not translation.strip() or len(translation.strip()) < 2:
+                logging.warning(f"Cache REJECTED (empty/short): {original[:50]}")
+                return False
+
             self.cache[original] = translation
             if len(self.cache) % 100 == 0:  # Auto-save every 100 entries
                 self.save()
+            return True
 
     def get_stats(self):
         """Get cache statistics"""
@@ -199,14 +311,20 @@ class OllamaEngine(TranslationEngine):
                 result = response.json().get("response", "").strip()
                 # Clean up common AI artifacts
                 result = re.sub(r'^(TRANSLATION:|Translation:)\s*', '', result, flags=re.IGNORECASE)
-                return result if result else text
+
+                # VALIDAÇÃO: se resultado == original, retorna None (falhou)
+                if not result or result.strip().lower() == text.strip().lower():
+                    logging.warning(f"Ollama returned same text: {text[:50]}")
+                    return None
+
+                return result
             else:
                 logging.error(f"Ollama error {response.status_code}: {response.text}")
-                return text
-                
+                return None
+
         except Exception as e:
             logging.error(f"Ollama exception: {str(e)}")
-            return text
+            return None
 
 class GeminiEngine(TranslationEngine):
     """Online translation using Google Gemini API"""
@@ -234,14 +352,20 @@ class GeminiEngine(TranslationEngine):
             if response.status_code == 200:
                 data = response.json()
                 result = data['candidates'][0]['content']['parts'][0]['text'].strip()
-                return result if result else text
+
+                # VALIDAÇÃO: se resultado == original, retorna None
+                if not result or result.strip().lower() == text.strip().lower():
+                    logging.warning(f"Gemini returned same text: {text[:50]}")
+                    return None
+
+                return result
             else:
                 logging.error(f"Gemini error {response.status_code}: {response.text}")
-                return text
-                
+                return None
+
         except Exception as e:
             logging.error(f"Gemini exception: {str(e)}")
-            return text
+            return None
 
 class DeepLEngine(TranslationEngine):
     """Professional translation using DeepL API"""
@@ -269,14 +393,20 @@ class DeepLEngine(TranslationEngine):
             
             if response.status_code == 200:
                 result = response.json()['translations'][0]['text']
-                return result if result else text
+
+                # VALIDAÇÃO: se resultado == original, retorna None
+                if not result or result.strip().lower() == text.strip().lower():
+                    logging.warning(f"DeepL returned same text: {text[:50]}")
+                    return None
+
+                return result
             else:
                 logging.error(f"DeepL error {response.status_code}: {response.text}")
-                return text
-                
+                return None
+
         except Exception as e:
             logging.error(f"DeepL exception: {str(e)}")
-            return text
+            return None
 
 # ============================================================================
 # 5. FILE FORMAT HANDLERS
@@ -347,24 +477,40 @@ class ROMTranslator:
         }
         return engines.get(self.mode, OllamaEngine)
     
-    def translate_text(self, text: str) -> str:
-        """Translate single text with caching"""
+    def translate_text(self, text: str, max_retries: int = 2) -> tuple:
+        """
+        Translate single text with caching.
+        Returns: (translation, success_flag)
+        """
         # Check cache first
         cached = self.cache.get(text)
         if cached:
-            return cached
-        
+            return (cached, True)
+
         # Filter untranslatable text
         if not TextFilter.should_translate(text):
-            return text
-        
-        # Translate
-        translation = self.engine.translate(text)
-        
-        # Cache result
-        self.cache.set(text, translation)
-        
-        return translation
+            return (text, True)  # Não precisa traduzir, mas não é falha
+
+        # Tenta traduzir com retries
+        translation = None
+        for attempt in range(max_retries):
+            translation = self.engine.translate(text)
+
+            if translation is not None:
+                # Aplica correção de encoding (mojibake)
+                translation = EncodingFixer.fix_encoding(translation)
+
+                # Tradução bem-sucedida - salva no cache
+                if self.cache.set(text, translation):
+                    return (translation, True)
+                else:
+                    # Cache rejeitou (igual ao original) - tenta novamente
+                    logging.warning(f"Retry {attempt+1}: translation same as original")
+                    continue
+
+        # Todas tentativas falharam
+        logging.error(f"FAILED after {max_retries} attempts: {text[:50]}")
+        return (text, False)  # Retorna original + flag de falha
     
     def translate_file(self, input_file: str, output_file: str = None):
         """Translate entire file"""
@@ -386,50 +532,204 @@ class ROMTranslator:
         safe_print(f"📋 Detected format: {format_type}")
         
         translated_lines = []
+        failed_lines = []  # Rastreia linhas que falharam
         total = len(lines)
+        success_count = 0
+        fail_count = 0
         start_time = time.time()
-        
+
         for i, line in enumerate(lines, 1):
             line = line.strip()
             if not line:
                 translated_lines.append('')
                 continue
-            
+
             # Parse line
             data = FileFormatHandler.parse_line(line, format_type)
             if not data:
                 translated_lines.append(line)
                 continue
-            
-            # Translate
+
+            # Translate - agora retorna (texto, sucesso)
             original_text = data.get('text', '')
-            translated_text = self.translate_text(original_text)
-            
+            translated_text, success = self.translate_text(original_text)
+
+            if success:
+                success_count += 1
+            else:
+                fail_count += 1
+                failed_lines.append({'line': i, 'text': original_text})
+
             # Rebuild line
             new_line = FileFormatHandler.rebuild_line(data, translated_text, format_type)
             translated_lines.append(new_line)
-            
+
             # Progress
             if i % 100 == 0 or i == total:
                 elapsed = time.time() - start_time
                 rate = i / elapsed if elapsed > 0 else 0
                 safe_print(f"Progress: {i}/{total} ({i/total*100:.1f}%) | {rate:.1f} texts/s", end='\r')
-        
+
         # Save result
         with open(output_file, 'w', encoding='utf-8') as f:
             f.write('\n'.join(translated_lines))
-        
+
+        # Save failed lines report (se houver falhas)
+        if failed_lines:
+            fail_report = output_file.replace('.txt', '_FAILED.txt')
+            with open(fail_report, 'w', encoding='utf-8') as f:
+                f.write(f"# Translation Failures Report\n")
+                f.write(f"# Total: {len(failed_lines)} lines failed\n")
+                f.write(f"# These lines were NOT translated and need manual review\n")
+                f.write("=" * 60 + "\n\n")
+                for item in failed_lines:
+                    f.write(f"Line {item['line']}: {item['text']}\n")
+            safe_print(f"\n⚠️  {len(failed_lines)} lines failed - see {fail_report}")
+
         # Final stats
         self.cache.save()
         stats = self.cache.get_stats()
         elapsed = time.time() - start_time
-        
+
         safe_print(f"\n\n{'='*60}")
         safe_print(f"✅ Translation Complete!")
+        safe_print(f"📊 Success: {success_count} | Failed: {fail_count}")
         safe_print(f"⏱️  Time: {elapsed:.1f}s | Rate: {total/elapsed:.1f} texts/s")
         safe_print(f"💾 Cache: {stats['total_cached']} entries | Hit rate: {stats['hit_rate']:.1f}%")
         safe_print(f"📁 Output: {output_file}")
         safe_print(f"{'='*60}\n")
+
+
+def strip_accents_for_rom(text: str) -> str:
+    """Remove acentos para ROMs/fontes sem suporte PT-BR."""
+    if not isinstance(text, str) or not text:
+        return ""
+    replacements = {
+        "ã": "a",
+        "ê": "e",
+        "ç": "c",
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ú": "u",
+        "â": "a",
+        "õ": "o",
+        "à": "a",
+        "Ã": "A",
+        "Ê": "E",
+        "Ç": "C",
+        "Á": "A",
+        "É": "E",
+        "Í": "I",
+        "Ó": "O",
+        "Ú": "U",
+        "Â": "A",
+        "Õ": "O",
+        "À": "A",
+    }
+    out = text
+    for src, dst in replacements.items():
+        out = out.replace(src, dst)
+    return out
+
+
+def _safe_json_load(path: str) -> dict:
+    try:
+        if not path or not os.path.isfile(path):
+            return {}
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            obj = json.load(f)
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
+
+
+def _extract_font_has_pt_br(payload: dict) -> bool | None:
+    if not isinstance(payload, dict):
+        return None
+    candidates = [
+        payload.get("font_has_pt_br"),
+        (payload.get("font_profile") or {}).get("font_has_pt_br") if isinstance(payload.get("font_profile"), dict) else None,
+        (payload.get("font_profile") or {}).get("has_pt_br") if isinstance(payload.get("font_profile"), dict) else None,
+        (payload.get("profile") or {}).get("font_has_pt_br") if isinstance(payload.get("profile"), dict) else None,
+        (payload.get("profile") or {}).get("has_pt_br") if isinstance(payload.get("profile"), dict) else None,
+    ]
+    for val in candidates:
+        if isinstance(val, bool):
+            return bool(val)
+    return None
+
+
+def _should_strip_accents_for_context(input_path: str | None = None) -> bool:
+    """
+    Retorna True quando o perfil não declara font_has_pt_br=true.
+    Regras:
+    - env NEUROROM_FONT_HAS_PT_BR tem prioridade;
+    - depois tenta JSON via env NEUROROM_PROFILE_JSON;
+    - depois tenta sidecars perto do arquivo de entrada;
+    - ausente => assume sem suporte PT-BR (strip ativo).
+    """
+    env_flag = str(os.environ.get("NEUROROM_FONT_HAS_PT_BR", "") or "").strip().lower()
+    if env_flag in {"1", "true", "yes", "on"}:
+        return False
+    if env_flag in {"0", "false", "no", "off"}:
+        return True
+
+    profile_env = str(os.environ.get("NEUROROM_PROFILE_JSON", "") or "").strip()
+    if profile_env:
+        flag = _extract_font_has_pt_br(_safe_json_load(profile_env))
+        if isinstance(flag, bool):
+            return not flag
+
+    candidates = []
+    if isinstance(input_path, str) and input_path.strip():
+        p = os.path.abspath(input_path)
+        root, _ = os.path.splitext(p)
+        candidates.extend(
+            [
+                f"{root}.profile.json",
+                f"{root}_profile.json",
+                f"{root}.meta.json",
+                f"{root}_meta.json",
+            ]
+        )
+    for c in candidates:
+        flag = _extract_font_has_pt_br(_safe_json_load(c))
+        if isinstance(flag, bool):
+            return not flag
+
+    # Sem flag explícita => aplica strip por segurança.
+    return True
+
+
+def _install_romtranslator_font_policy_wrapper() -> None:
+    """Instala wrapper em runtime sem editar os métodos originais."""
+    if getattr(ROMTranslator, "_neurorom_font_policy_installed", False):
+        return
+
+    original_translate_text = ROMTranslator.translate_text
+    original_translate_file = ROMTranslator.translate_file
+
+    def _patched_translate_file(self, input_file: str, output_file: str = None):
+        self._neurorom_input_file = input_file
+        return original_translate_file(self, input_file, output_file)
+
+    def _patched_translate_text(self, text: str, max_retries: int = 2) -> tuple:
+        translated, success = original_translate_text(self, text, max_retries=max_retries)
+        if not success:
+            return translated, success
+        context_path = getattr(self, "_neurorom_input_file", None)
+        if _should_strip_accents_for_context(context_path):
+            translated = strip_accents_for_rom(str(translated or ""))
+        return translated, success
+
+    ROMTranslator.translate_file = _patched_translate_file
+    ROMTranslator.translate_text = _patched_translate_text
+    ROMTranslator._neurorom_font_policy_installed = True
+
+
+_install_romtranslator_font_policy_wrapper()
 
 # ============================================================================
 # 7. COMMAND LINE INTERFACE

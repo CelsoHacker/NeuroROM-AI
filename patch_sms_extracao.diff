@@ -1,0 +1,294 @@
+diff --git a/extraction_tab.py b/extraction_tab.py
+index 0000000..1111111 100644
+--- a/extraction_tab.py
++++ b/extraction_tab.py
+@@ -1,15 +1,18 @@
+ # -*- coding: utf-8 -*-
+ import os
+ import json
+ import math
+ import numpy as np
+ import threading
++import struct
+ from collections import Counter
+ from pathlib import Path
+ from PyQt6.QtCore import QThread, pyqtSignal
+ from PyQt6.QtWidgets import (
+     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+     QTextEdit, QFileDialog, QMessageBox, QCheckBox
+ )
+
++# ============================================================================
++# SMS POINTER EXTRACTOR (Master System) - Auto (tabelas + banco + terminador)
++# ============================================================================
++class SmsPointerExtractorLite:
++    """
++    Extrator pragmático para Sega Master System:
++      - Varre o ROM procurando "runs" de ponteiros 16-bit plausíveis.
++      - Para cada tabela candidata, tenta inferir o banco e o terminador (ex.: 0x1C).
++      - Extrai bytes até o terminador e converte para uma string "estável" (printáveis + '.').
++
++    Objetivo: produzir offsets corretos (re-inserção) e texto extraível mesmo quando
++    a validação linguística falha (comum em SMS por charset custom).
++    """
++
++    def __init__(self, rom_path, cancel_flag=None):
++        self.rom_path = rom_path
++        self.cancel_flag = cancel_flag or threading.Event()
++
++    @staticmethod
++    def _is_plausible_ptr(ptr):
++        # SMS tipicamente referencia texto nas janelas 0x4000–0x7FFF e às vezes 0x8000–0xBFFF
++        return (0x4000 <= ptr <= 0x7FFF) or (0x8000 <= ptr <= 0xBFFF)
++
++    @staticmethod
++    def _cpu_to_file(ptr, bank):
++        # Mapeamento simples por banco (16KB).
++        # A heurística de banco é inferida separadamente.
++        if 0x4000 <= ptr <= 0x7FFF:
++            return bank * 0x4000 + (ptr - 0x4000)
++        if 0x8000 <= ptr <= 0xBFFF:
++            return bank * 0x4000 + (ptr - 0x8000)
++        return None
++
++    @staticmethod
++    def _decode_bytes(buf):
++        # Mantém estabilidade: imprime ASCII e troca o resto por '.'
++        out = []
++        for b in buf:
++            if 32 <= b <= 126:
++                out.append(chr(b))
++            elif b in (9, 10, 13):
++                out.append(" ")
++            else:
++                out.append(".")
++        return "".join(out).strip()
++
++    def _find_pointer_tables(self, rom, min_entries=8, max_entries=64):
++        candidates = []
++        limit = len(rom) - 2 * min_entries
++        i = 0
++
++        while i < limit:
++            if self.cancel_flag.is_set():
++                break
++
++            ok = 0
++            for j in range(min_entries):
++                ptr = rom[i + 2*j] | (rom[i + 2*j + 1] << 8)
++                if self._is_plausible_ptr(ptr):
++                    ok += 1
++
++            if ok >= int(min_entries * 0.9):
++                # estende até quebrar
++                j = min_entries
++                while j < max_entries and (i + 2*j + 1) < len(rom):
++                    ptr = rom[i + 2*j] | (rom[i + 2*j + 1] << 8)
++                    if not self._is_plausible_ptr(ptr):
++                        break
++                    j += 1
++
++                candidates.append({
++                    "offset": i,
++                    "entries": j,
++                    "confidence": ok / float(min_entries),
++                })
++                i += 2 * j
++            else:
++                i += 2
++
++        # ordena e remove duplicatas próximas
++        candidates.sort(key=lambda x: (x["confidence"], x["entries"]), reverse=True)
++        uniq = []
++        for c in candidates:
++            if all(abs(c["offset"] - u["offset"]) > 0x40 for u in uniq):
++                uniq.append(c)
++        return uniq[:12]
++
++    def _infer_bank_and_terminator(self, rom, table_off, entries):
++        # bancos possíveis
++        banks = max(1, len(rom) // 0x4000)
++        terms = [0x1C, 0x00, 0xFF]
++        sample_n = min(entries, 24)
++
++        ptrs = [
++            struct.unpack_from("<H", rom, table_off + 2*i)[0]
++            for i in range(sample_n)
++        ]
++
++        best = (0, 0x1C, -1)  # bank, term, score
++
++        for bank in range(banks):
++            if self.cancel_flag.is_set():
++                break
++
++            for term in terms:
++                hits = 0
++                for ptr in ptrs:
++                    off = self._cpu_to_file(ptr, bank)
++                    if off is None or off < 0 or off >= len(rom):
++                        continue
++                    end = rom.find(bytes([term]), off, min(len(rom), off + 256))
++                    if end != -1 and end > off:
++                        hits += 1
++
++                if hits > best[2]:
++                    best = (bank, term, hits)
++
++        # fallback seguro
++        if best[2] < max(3, int(sample_n * 0.25)):
++            return (0, 0x1C)
++
++        return (best[0], best[1])
++
++    def extract(self, progress_callback=None):
++        def emit(pct, msg):
++            if progress_callback:
++                progress_callback(pct, msg)
++
++        rom = Path(self.rom_path).read_bytes()
++        emit(5, "[SMS] Varredura: procurando tabelas de ponteiros…")
++
++        tables = self._find_pointer_tables(rom)
++        emit(15, f"[SMS] Tabelas candidatas encontradas: {len(tables)}")
++
++        if not tables:
++            return {"strings": [], "total": 0, "metadata": {"sms_tables": []}}
++
++        out = {}
++        for ti, t in enumerate(tables, start=1):
++            if self.cancel_flag.is_set():
++                break
++
++            emit(15 + int(70 * ti / max(1, len(tables))),
++                 f"[SMS] Tabela {ti}/{len(tables)} off={t['offset']:#06x} entries={t['entries']}")
++
++            bank, term = self._infer_bank_and_terminator(rom, t["offset"], t["entries"])
++
++            for i in range(t["entries"]):
++                ptr = struct.unpack_from("<H", rom, t["offset"] + 2*i)[0]
++                off = self._cpu_to_file(ptr, bank)
++                if off is None or off < 0 or off >= len(rom):
++                    continue
++
++                end = rom.find(bytes([term]), off, min(len(rom), off + 512))
++                if end == -1 or end <= off:
++                    continue
++
++                raw = rom[off:end]
++                text = self._decode_bytes(raw)
++                if not text:
++                    continue
++
++                # dedupe por offset (mesmo texto pode aparecer em tabelas diferentes)
++                if off not in out:
++                    out[off] = {
++                        "original": text,
++                        "offset": off,
++                        "category": "phrase" if " " in text else "word",
++                        "confidence": float(t.get("confidence", 0.6)),
++                        "method": "POINTER_SMS",
++                        "pointer_table_offset": t["offset"],
++                        "pointer_value": ptr,
++                        "bank_inferred": bank,
++                        "terminator": term,
++                    }
++
++        strings = [out[k] for k in sorted(out.keys())]
++        emit(95, f"[SMS] Extração concluída: {len(strings)} strings (dedup).")
++        emit(100, "[OK] SMS pronto para exportação.")
++
++        return {
++            "strings": strings,
++            "total": len(strings),
++            "metadata": {
++                "sms_tables": tables,
++                "sms_mode": True,
++            },
++        }
++
+@@ class ExtractionWorker(QThread):
+     def run(self):
+         try:
+             self.progress.emit(1, f"[SISTEMA] Arquivo: {os.path.basename(self.rom_path)}")
+             self.progress.emit(2, f"[SISTEMA] Modo: {'Linguístico' if self.linguistic_mode else 'Tradicional'}")
+
+             # SMART ROUTER aprimorado
+             file_ext = os.path.splitext(self.rom_path)[1].lower()
+
++            # Rota 0: Master System (SMS) - auto ponteiros
++            if file_ext == ".sms":
++                self.progress.emit(3, "[ROTA] SMS detectado → caça automática de tabelas/ponteiros")
++                result = self._extract_sms_pointer_auto()
++
+             # Rota 1: SNES com validação linguística
+-            if file_ext in ['.smc', '.sfc'] and self.linguistic_mode:
++            elif file_ext in ['.smc', '.sfc'] and self.linguistic_mode:
+                 self.progress.emit(3, "[ROTA] SNES detectado → Ativando motor linguístico")
+                 result = self._extract_with_linguistic()
+
+             # Rota 2: Scanner universal com heurística
+             else:
+                 self.progress.emit(3, "[ROTA] Usando scanner universal com heurística")
+                 result = self._extract_universal()
+
+             self.finished.emit(result)
+
+         except Exception as e:
+             self.progress.emit(0, f"ERRO: {str(e)}")
+             self.finished.emit({'strings': [], 'total': 0, 'error': str(e)})
+
++    def _extract_sms_pointer_auto(self):
++        extractor = SmsPointerExtractorLite(self.rom_path, cancel_flag=self.cancel_flag)
++        return extractor.extract(progress_callback=self.progress.emit)
++
+@@ class ExtractionTab(QWidget):
+     def select_rom(self):
+         file_path, _ = QFileDialog.getOpenFileName(
+-            self, "Selecionar ROM", "", "SNES Files (*.smc *.sfc);;NES Files (*.nes);;ROM Files (*.rom);;All Files (*)"
++            self, "Selecionar ROM", "", "SNES Files (*.smc *.sfc);;NES Files (*.nes);;Master System Files (*.sms);;ROM Files (*.rom);;All Files (*)"
+         )
+
+         if file_path:
+             self.rom_path = file_path
+             self.rom_label.setText(f"📁 ROM: {os.path.basename(file_path)}")
+
+
+diff --git a/extraction_worker_elite.py b/extraction_worker_elite.py
+index 0000000..2222222 100644
+--- a/extraction_worker_elite.py
++++ b/extraction_worker_elite.py
+@@ class NeuralScorer:
+     @staticmethod
+     def calculate_score(text, era, rigor_level):
+         if not text or len(text) < 2: # Aceita "UP", "ON"
+             return False
+
+         # Bônus para palavras curtas alfanuméricas (Mario)
+         if 2 <= len(text) <= 4 and text.isalnum():
+             return True
+
++        # Retro-safe: se for quase tudo imprimível, não bloqueia (SMS charset costuma parecer "estranho")
++        printable_ratio = sum(1 for c in text if c.isprintable()) / max(1, len(text))
++        if printable_ratio >= 0.90:
++            base_threshold = 0.20 if rigor_level <= 0.75 else 0.35
++            return True if base_threshold <= 0.35 else True
++
+         score = 0.0
+         # Bônus para Maiúsculas (S-Type Systems)
+         if text.isupper(): score += 0.3
+
+         # Vogais relaxadas
+         vowels = set('aeiouAEIOUáéíóúyY')
+         v_count = sum(1 for c in text if c in vowels)
+         if v_count > 0 or len(text) < 5: score += 0.3
+
+         # Entropia de Shannon Básica
+         counts = Counter(text)
+         entropy = -sum((count/len(text)) * math.log2(count/len(text)) for count in counts.values())
+         if entropy < 5.0: score += 0.2
+
+-        return score >= 0.35
++        # Em rigor baixo (retro), diminui o corte para não jogar fora texto válido
++        threshold = 0.20 if rigor_level <= 0.75 else 0.35
++        return score >= threshold

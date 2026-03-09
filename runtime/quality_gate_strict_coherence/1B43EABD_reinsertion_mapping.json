@@ -1,0 +1,26 @@
+[
+  {
+    "segment_id": "U_00001",
+    "original_offset": 512,
+    "final_offset": 512,
+    "original_size": 64,
+    "final_size": 27,
+    "relocated": false,
+    "updated_pointers": 0,
+    "terminator_preserved": true,
+    "tokens_preserved": true,
+    "fallback_applied": false,
+    "layout_ok": true,
+    "technical_score": 40,
+    "visual_score": 25,
+    "linguistic_score": 23,
+    "quality_score": 88.0,
+    "quality_mode": "strict",
+    "quality_threshold_used": 90.0,
+    "absolute_block_reasons": [],
+    "final_audit_pass": false,
+    "blocked_by_quality_gate": true,
+    "status": "ABORTED_QUALITY",
+    "failure_reason": "quality_gate_failed:score:88.00<90.00;mode=strict"
+  }
+]

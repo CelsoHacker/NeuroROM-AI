@@ -1,0 +1,40 @@
+{
+  "schema": "neurorom.quality_profile.v1",
+  "enabled": true,
+  "quality_mode": "standard",
+  "register_policy": "voce",
+  "semantic": {
+    "strict_mode": true,
+    "min_semantic_score_standard": 70.0,
+    "min_semantic_score_strict": 82.0,
+    "autofix_max_rounds": 8,
+    "glossary": {
+      "HP": {
+        "target": "PV",
+        "category": "interface",
+        "preserve": false,
+        "allow_translation": true,
+        "enforce": false
+      },
+      "MP": {
+        "target": "PM",
+        "category": "interface",
+        "preserve": false,
+        "allow_translation": true,
+        "enforce": false
+      },
+      "LV": {
+        "target": "NV",
+        "category": "interface",
+        "preserve": false,
+        "allow_translation": true,
+        "enforce": false
+      }
+    }
+  },
+  "audit": {
+    "require_coverage_complete": true,
+    "require_semantic_gate_pass": true,
+    "require_semantic_english_residue_zero": true
+  }
+}

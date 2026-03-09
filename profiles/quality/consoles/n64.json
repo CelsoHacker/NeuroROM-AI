@@ -1,0 +1,28 @@
+{
+  "schema": "neurorom.quality_profile.v1",
+  "enabled": true,
+  "console": "N64",
+  "register_policy": "voce",
+  "semantic": {
+    "strict_mode": true,
+    "min_semantic_score_standard": 72.0,
+    "min_semantic_score_strict": 84.0,
+    "autofix_max_rounds": 10,
+    "glossary": {
+      "Controller Pak": {
+        "target": "Controller Pak",
+        "category": "interface",
+        "preserve": true,
+        "allow_translation": false,
+        "enforce": true
+      },
+      "Rumble Pak": {
+        "target": "Rumble Pak",
+        "category": "interface",
+        "preserve": true,
+        "allow_translation": false,
+        "enforce": true
+      }
+    }
+  }
+}

@@ -1333,6 +1333,8 @@ class UltimateExtractorV9:
                 table['offset'],
                 min(table['count'], 30)  # Máximo 30 por tabela
             )
+            if not isinstance(texts, list):
+                texts = []
             all_texts.extend(texts)
             print(f"   Tabela 0x{table['offset']:X}: {len(texts)} textos extraídos")
 

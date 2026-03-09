@@ -1,0 +1,10 @@
+{
+  "crc32": "DE9F8517",
+  "method": "TILEMAP",
+  "terminator": 0,
+  "bank_rule": "TILEMAP",
+  "safe_ratio": 1.0,
+  "total_extracted": 10,
+  "pointer_tables_found": 0,
+  "saved_at": "2026-02-02T21:18:53.978926+00:00"
+}

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3:*)",
+      "Bash(python core/deep_analysis.py)",
+      "Bash(cd:*)",
+      "Bash(python:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\celso\\\\OneDrive\\\\Área de Trabalho\\\\PROJETO_V5_OFICIAL\\\\rom-translation-framework\" -Recurse -File -Exclude \"*.pyc\")",
+      "Bash(Where-Object { $_FullName -notmatch \"__pycache__\" -and $_FullName -notmatch \"ROMs\" -and $_FullName -notmatch \"\\\\.git\\\\\" })",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)",
+      "Bash(\"./Tradutor_PRO.exe\" --log-only)",
+      "Bash(echo \"EXIT: $?\")"
+    ],
+    "additionalDirectories": [
+      "d:\\Tradutor de documentos"
+    ]
+  }
+}

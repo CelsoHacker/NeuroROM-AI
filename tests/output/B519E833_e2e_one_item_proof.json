@@ -1,0 +1,95 @@
+{
+  "schema": "e2e_reinsertion_proof.v1",
+  "timestamp_utc": "2026-01-23T23:27:11.743733+00:00",
+  "console_type": "SMS",
+  "test_type": "single_item_relocation",
+  "source_rom": {
+    "name": "Sonic The Hedgehog (USA, Europe).sms",
+    "crc32": "B519E833",
+    "sha256": "6ad738965ece231427ee046b9905cfee470d5c01220afdd934da4673e4a2458b",
+    "size": 262144
+  },
+  "output_rom": {
+    "name": "B519E833_e2e_one_item.sms",
+    "crc32": "56BF27CC",
+    "sha256": "44e6cc578a69fb7b9b7b14a683dcf4ea00cb8a20ff1306e35e0f1f9161f25ff1",
+    "size": 262144
+  },
+  "test_item": {
+    "id": 2,
+    "original_offset": "0x011695",
+    "text_src": "aabqqqr",
+    "text_dst": "THIS_IS_A_MUCH_LARGER_TEXT_FOR_RELOCATION_TEST",
+    "max_len_bytes": 7,
+    "pointer_refs": [
+      {
+        "ptr_offset": "0x011148",
+        "ptr_size": 2,
+        "endianness": "little",
+        "addressing_mode": "BANKED_SLOT2",
+        "bank_addend": "0x08000",
+        "table_start": "0x011144"
+      }
+    ]
+  },
+  "reinsertion_result": {
+    "success": true,
+    "method": "relocated",
+    "original_offset": "0x011695",
+    "new_offset": "0x0107BB",
+    "bytes_written": 47,
+    "pointers_updated": 1,
+    "pointer_updates": [
+      {
+        "ptr_ref": {
+          "ptr_offset": "0x011148",
+          "ptr_size": 2,
+          "endianness": "little",
+          "addressing_mode": "BANKED_SLOT2",
+          "bank_addend": "0x08000",
+          "table_start": "0x011144"
+        },
+        "new_offset": "0x0107BB",
+        "success": true,
+        "new_ptr": "0x87BB",
+        "roundtrip_passed": true,
+        "bytes_written": "bb87"
+      }
+    ]
+  },
+  "validations": {
+    "text_at_new_offset": {
+      "passed": true,
+      "details": "Text found at 0x0107BB: \"THIS_IS_A_MUCH_LARGE...\""
+    },
+    "terminator_present": {
+      "passed": true,
+      "details": "Terminator 0x00 at 0x0107E9"
+    },
+    "pointer_0_updated": {
+      "passed": true,
+      "details": "Pointer at 0x011148 = 0x87BB -> 0x0107BB"
+    },
+    "method_is_relocated": {
+      "passed": true,
+      "details": "Method: relocated"
+    },
+    "all_pointer_updates_success": {
+      "passed": true,
+      "details": "1/1 pointers updated"
+    }
+  },
+  "all_validations_passed": true,
+  "file_proofs": [
+    {
+      "name": "B519E833_e2e_one_item.sms",
+      "sha256": "44e6cc578a69fb7b9b7b14a683dcf4ea00cb8a20ff1306e35e0f1f9161f25ff1",
+      "size": 262144
+    },
+    {
+      "name": "B519E833_e2e_one_item_validation_report.txt",
+      "sha256": "6c9be600b6978f3b0dc2d9fd9319f61cefab66285deac49d9740832269e8e99d",
+      "size": 1479
+    }
+  ]
+}

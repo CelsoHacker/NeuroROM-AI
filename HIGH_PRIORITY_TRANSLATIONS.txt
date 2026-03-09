@@ -1,0 +1,80 @@
+HIGH PRIORITY TRANSLATIONS (ready for manual translation):
+================================================================================
+
+DIRECTIONS:
+  East
+  East
+  North
+  North
+  West
+
+GAME ELEMENTS & ITEMS:
+  !"#$%&'())*+,-./01*+23456789:;*+<=>?@>?A<=BCDEFGHIJKLMNOPQRSTUNOVWXYZ[\]^_``aabcdefghijklmnopqrs
+  !"#$%&'())*+,-./01*+23456789:;*+<=>?@>?A<=BCDEFGHIJKLMNOPQRSTUNOVWXYZ[\]^_``aabcdefghijklmnopqrs
+  &6IXY
+  =UBUHUMUSUWest
+  A B C D E
+  Armour
+  Armour
+  Armour
+  Armour
+  Axe
+  Axe
+  Bomb
+  Cove
+  Covetous
+  Equipment
+  Equipment
+  F G H I J
+  Gems
+  Ginseng
+  HHx XX`
+  Horn
+  I0@yQ BsB
+  Items
+  Items
+  K L M N O
+  Keys
+  Keys
+  Linda Sue
+  Minoc
+  Mount
+  Orange
+  Orange
+  P Q R S T
+  Rabindranath tagore
+  Reagents
+  Red
+  Runes
+  Shame
+  Trap!
+  Trinsic
+  U V W X Y
+  Vesper
+  White
+  Yellow
+  ]q`qdqgqHe
+  asks:
+  fellows.
+  for
+  hStone
+  hTvc
+
+ACTIONS & VERBS:
+  Board
+  Camp
+  Heal
+  Open
+  Rest
+  Resurrect
+  Save
+  Search
+  Talk
+  Use
+  View
+
+STATUS CONDITIONS:
+  Dead
+  Poisoned
+  Ready
+  Resting

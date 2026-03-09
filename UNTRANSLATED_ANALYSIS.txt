@@ -1,0 +1,390 @@
+====================================================================================================
+COMPREHENSIVE ANALYSIS: 289 UNTRANSLATED SAFE ENTRIES
+====================================================================================================
+
+SUMMARY:
+  Total untranslated safe entries: 289
+  - SCRIPT_OPCODE_AUTO: 155 entries
+  - POINTER: 134 entries
+
+SCRIPT_OPCODE_AUTO BREAKDOWN:
+  Clean (no flags): 102
+  With GARBAGE flag: 28
+  With SYMBOLIC flag: 31
+  With LOW_PLAUSIBILITY flag: 39
+
+SCRIPT_OPCODE CLEAN ENTRIES (No flags - 102 total):
+    1. "TAim!" (len=7, offset=0x376F)
+    2. "A B C D E" (len=10, offset=0x4DCE)
+    3. "F G H I J" (len=10, offset=0x4DDA)
+    4. "K L M N O" (len=10, offset=0x4DE6)
+    5. "P Q R S T" (len=10, offset=0x4DF2)
+    6. "U V W X Y" (len=10, offset=0x4DFE)
+    7. "hStone" (len=7, offset=0x6891)
+    8. "Equipment" (len=10, offset=0x7902)
+    9. "Items" (len=6, offset=0x790E)
+   10. "Reagents" (len=9, offset=0x7916)
+   11. "zTorches" (len=9, offset=0x7A97)
+   12. "TMixing" (len=8, offset=0x8827)
+   13. "Armour" (len=7, offset=0x95F2)
+   14. "FOOD" (len=5, offset=0x9F34)
+   15. "Mount" (len=7, offset=0xB1C5)
+   16. "Iolo" (len=5, offset=0xD819)
+   17. "Geoffrey" (len=9, offset=0xD836)
+   18. "Dupre" (len=6, offset=0xD88D)
+   19. "Shamino" (len=8, offset=0xD8AA)
+   20. "HXIYiJZj" (len=9, offset=0x5CA49)
+   21. "XHiYIjZJ" (len=9, offset=0x6188C)
+   22. "XHhYIiJj" (len=9, offset=0x619BC)
+   23. "reward?" (len=8, offset=0x621F4)
+   24. "fellows." (len=9, offset=0x62AF9)
+   25. "heirs?" (len=7, offset=0x63244)
+   26. "XHhYIiJj" (len=9, offset=0x65947)
+   27. "XHhYIiJj" (len=9, offset=0x65D80)
+   28. "XHhYIiJj" (len=9, offset=0x65E1C)
+   29. "XHhYIiJj" (len=9, offset=0x66840)
+   30. "WGXHhYIi" (len=9, offset=0x66B67)
+   31. "HXhIYiJj" (len=9, offset=0x671FC)
+   32. "XHhYIiJj" (len=9, offset=0x678F7)
+   33. "VFfWGgHh" (len=9, offset=0x67CBF)
+   34. "Zorin" (len=6, offset=0x6C6ED)
+   35. "Shawn" (len=6, offset=0x6C9E6)
+   36. "Sheila" (len=7, offset=0x6CDBD)
+   37. "Palamar" (len=8, offset=0x6D2B8)
+   38. "Scatu" (len=6, offset=0x6D5C5)
+   39. "Estro" (len=6, offset=0x6D6CA)
+   40. "Zajac" (len=6, offset=0x6DBB9)
+   41. "Diane" (len=6, offset=0x6E785)
+   42. "Benjamin" (len=9, offset=0x6E87E)
+   43. "Lastro" (len=7, offset=0x6EB7E)
+   44. "Sentri" (len=7, offset=0x6EF9E)
+   45. "Durham" (len=7, offset=0x6F873)
+   46. "Lori" (len=5, offset=0x6F969)
+   47. "Samuel" (len=7, offset=0x6FA27)
+   48. "Noxum" (len=6, offset=0x6FCE5)
+   49. "Michelle" (len=9, offset=0x6FDE7)
+   50. "Mariah" (len=7, offset=0x70029)
+   51. "Tracie" (len=7, offset=0x70106)
+   52. "Shazom" (len=7, offset=0x705B2)
+   53. "Dekker" (len=7, offset=0x70C7A)
+   54. "William" (len=8, offset=0x70D5A)
+   55. "Tyrone" (len=7, offset=0x70E58)
+   56. "Iolo" (len=5, offset=0x70F7C)
+   57. "Gweno" (len=6, offset=0x7107B)
+   58. "Shapero" (len=8, offset=0x71B14)
+   59. "Sprite" (len=7, offset=0x71E16)
+   60. "Geoffrey" (len=9, offset=0x71F37)
+   61. "Gravnor" (len=8, offset=0x726BD)
+   62. "Timrod" (len=7, offset=0x72D78)
+   63. "Flamis" (len=7, offset=0x7338B)
+   64. "Frida" (len=6, offset=0x7395C)
+   65. "Michelle" (len=9, offset=0x73DE7)
+   66. "Linda Sue" (len=10, offset=0x74316)
+   67. "Gimble" (len=7, offset=0x743FC)
+   68. "Jude" (len=5, offset=0x744F4)
+   69. "Alkerion" (len=9, offset=0x745F9)
+   70. "Alex" (len=5, offset=0x747FF)
+   71. "Damon" (len=6, offset=0x74AEB)
+   72. "Dupre" (len=6, offset=0x74F9F)
+   73. "Terrin" (len=7, offset=0x75586)
+   74. "Quix" (len=5, offset=0x75D0E)
+   75. "Shamino" (len=8, offset=0x75E5F)
+   76. "Emerson" (len=8, offset=0x75F63)
+   77. "Presto" (len=7, offset=0x76166)
+   78. "Granted" (len=8, offset=0x76263)
+   79. "Mitre" (len=6, offset=0x76360)
+   80. "Heywood" (len=8, offset=0x77257)
+   81. "Banter" (len=7, offset=0x77452)
+   82. "Demitry" (len=8, offset=0x7754B)
+   83. "Wierdrum" (len=9, offset=0x77647)
+   84. "Ruskin" (len=7, offset=0x77A25)
+   85. "Virtuebane" (len=11, offset=0x77C14)
+   86. "Michelle" (len=9, offset=0x77DE7)
+   87. "Francesca" (len=10, offset=0x7812B)
+   88. "Sven" (len=5, offset=0x7822C)
+   89. "Asemly" (len=7, offset=0x78B81)
+   90. "Sailor" (len=7, offset=0x78F4A)
+   91. "Ragnar" (len=7, offset=0x79203)
+   92. "Marsor" (len=7, offset=0x79907)
+   93. "Plain" (len=6, offset=0x7A065)
+   94. "Randal" (len=7, offset=0x7A565)
+   95. "Shazbot" (len=8, offset=0x7A766)
+   96. "Corkrin" (len=8, offset=0x7A94E)
+   97. "Dyka" (len=5, offset=0x7AA49)
+   98. "Rabindranath tagore" (len=20, offset=0x7B553)
+   99. "Charm" (len=6, offset=0x7B922)
+  100. "Virtuebane" (len=11, offset=0x7BC14)
+  101. "Michelle" (len=9, offset=0x7BDE7)
+  102. "Corkrin" (len=8, offset=0x7E94E)
+
+SCRIPT_OPCODE WITH GARBAGE/SYMBOLIC FLAGS (questionable):
+  "4-L1" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "SHP:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "MDj&" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "=UBUHUMUSUWest" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "x+o&" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "]q`qdqgqHe" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "t<t1" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "}x!@" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "}x!@" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "}x!@" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "L V:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "STR:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "M P:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "MPX:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "H P:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "HPX:" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "{Awaken" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "TT!d" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "l$l*l" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "Y&??" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "qXC!" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "0 !FFD@" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "oonlh`" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "&f@@" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "<ff<" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "0|ff<" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "hh /" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "kk((" - flags: SCRIPT_OPCODE_GARBAGE,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "p0@@D" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "HHx XX`" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "VpHP" - flags: SCRIPT_OPCODE_GARBAGE
+  "|MLD" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "{pxlb@@" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "hTvc" - flags: SCRIPT_OPCODE_GARBAGE
+  "IJKLMNOPQRSTUVWIJLMXYZ[\]^_`abcdefghi[\^_jklmnopqrstuvwxyz{mnpq|}~" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "PpP`HX(" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "!"#$%&'())*+,-./01*+23456789:;*+<=>?@>?A<=BCDEFGHIJKLMNOPQRSTUNOVWXYZ[\]^_``aabcdefghijklmnopqrs" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "ip``p" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "W%'X}" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_GARBAGE
+  "PpP`HX(" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "!"#$%&'())*+,-./01*+23456789:;*+<=>?@>?A<=BCDEFGHIJKLMNOPQRSTUNOVWXYZ[\]^_``aabcdefghijklmnopqrs" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "I0@yQ BsB" - flags: SCRIPT_OPCODE_SYMBOLIC
+  "&6IXY" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "GFE765'%" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+  "GFE765'%" - flags: SCRIPT_OPCODE_SYMBOLIC,SCRIPT_OPCODE_LOW_PLAUSIBILITY
+
+POINTER ENTRIES (All 134 - should be manually translated):
+    1. "Doz"
+    2. "BYE"
+    3. "JOB"
+    4. "JOIN"
+    5. "Aim!"
+    6. "Pit!"
+    7. "North"
+    8. "East"
+    9. "Calm"
+   10. "Trap!"
+   11. "Bomb"
+   12. "Ie:"
+   13. "Ie:p"
+   14. "U:p"
+   15. "Key"
+   16. "Keys"
+   17. "Horn"
+   18. "Valor"
+   19. "Honor"
+   20. "Orange"
+   21. "Iq!"
+   22. "Iq!"
+   23. "Bye."
+   24. "just"
+   25. "spiritual"
+   26. "VALOR"
+   27. "TICE"
+   28. "FICE"
+   29. "HUMILITY"
+   30. "SHADE"
+   31. "DRAKE"
+   32. "MARS"
+   33. "ENUS"
+   34. "PTON"
+   35. "LORANTHA"
+   36. "SHAME"
+   37. "Armour"
+   38. "Poisoned"
+   39. "Dead"
+   40. "Runes"
+   41. "Axe"
+   42. "Gems"
+   43. "Keys"
+   44. "Ginseng"
+   45. "U:W"
+   46. "Done."
+   47. "Talk"
+   48. "Magic"
+   49. "Use"
+   50. "Ready"
+   51. "Search"
+   52. "Camp"
+   53. "Equipment"
+   54. "Items"
+   55. "Rest"
+   56. "Save"
+   57. "SEXTANT"
+   58. "ANDRAKE"
+   59. "IGHTSHADE"
+   60. "EALING"
+   61. "ORCH"
+   62. "EXTANT"
+   63. "Board"
+   64. "O:T"
+   65. "moves"
+   66. "Mariah"
+   67. "North"
+   68. "West"
+   69. "East"
+   70. "Resting"
+   71. "CBI"
+   72. "FAK"
+   73. "ECK"
+   74. "DCI"
+   75. "CABCI"
+   76. "DCI"
+   77. "ECH"
+   78. "DCI"
+   79. "S,o"
+   80. "GFE"
+   81. "FAGE"
+   82. "DEFG"
+   83. "Rat"
+   84. "Bat"
+   85. "Phantom"
+   86. "Skeleton"
+   87. "Ettin"
+   88. "Zorn"
+   89. "Axe"
+   90. "DAG"
+   91. "MAC"
+   92. "BOW"
+   93. "Merchant"
+   94. "Dispell"
+   95. "Energy"
+   96. "Negate"
+   97. "Open"
+   98. "Resurrect"
+   99. "View"
+  100. "Minoc"
+  101. "Trinsic"
+  102. "Vesper"
+  103. "Cove"
+  104. "Covetous"
+  105. "Shame"
+  106. "Yellow"
+  107. "Red"
+  108. "Orange"
+  109. "White"
+  110. "UTZ"
+  111. "Armour"
+  112. "Armour"
+  113. "Heal"
+  114. "Harmony"
+  115. "Spiran"
+  116. "Quat"
+  117. "asks:"
+  118. "Estro"
+  119. "Zajac"
+  120. "Sasha"
+  121. "Terran"
+  122. "Arron"
+  123. "sextant"
+  124. "Winston"
+  125. "ABC"
+  126. "GEOFFREY"
+  127. "JULIA"
+  128. "DUPRE"
+  129. "MARIAH"
+  130. "SHAMINO"
+  131. "B BJ COMPASSION MU"
+  132. "ITE"
+  133. "HhYIiJj"
+  134. "for"
+
+POINTER ENTRIES THAT ARE CLEARLY ENGLISH WORDS:
+  Count: 80
+  "North"
+  "East"
+  "Calm"
+  "Bomb"
+  "Key"
+  "Keys"
+  "Horn"
+  "Valor"
+  "Honor"
+  "Orange"
+  "just"
+  "spiritual"
+  "VALOR"
+  "HUMILITY"
+  "SHADE"
+  "DRAKE"
+  "MARS"
+  "Armour"
+  "Poisoned"
+  "Dead"
+  "Runes"
+  "Axe"
+  "Gems"
+  "Keys"
+  "Ginseng"
+  "Talk"
+  "Magic"
+  "Use"
+  "Ready"
+  "Search"
+  "Camp"
+  "Equipment"
+  "Items"
+  "Rest"
+  "Save"
+  "Board"
+  "moves"
+  "Mariah"
+  "North"
+  "West"
+  "East"
+  "Resting"
+  "Rat"
+  "Bat"
+  "Phantom"
+  "Skeleton"
+  "Ettin"
+  "Zorn"
+  "Axe"
+  "Merchant"
+  "Dispell"
+  "Energy"
+  "Negate"
+  "Open"
+  "Resurrect"
+  "View"
+  "Minoc"
+  "Trinsic"
+  "Vesper"
+  "Cove"
+  "Covetous"
+  "Shame"
+  "Yellow"
+  "Red"
+  "Orange"
+  "White"
+  "Armour"
+  "Armour"
+  "Heal"
+  "Harmony"
+  "Spiran"
+  "sextant"
+  "Winston"
+  "ABC"
+  "GEOFFREY"
+  "JULIA"
+  "DUPRE"
+  "MARIAH"
+  "SHAMINO"
+  "for"
+
+KEY STATISTICS:
+  Clearly translatable POINTER entries: 128/134
+  Non-translatable POINTER entries: 6/134
+  Clean SCRIPT_OPCODE entries (no flags): 102/155
+  Flagged SCRIPT_OPCODE entries: 67/155

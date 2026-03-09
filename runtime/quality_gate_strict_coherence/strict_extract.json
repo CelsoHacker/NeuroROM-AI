@@ -1,0 +1,20 @@
+{
+  "console": "SMS",
+  "quality_mode": "strict",
+  "accent_policy": {
+    "allow_fallback": false,
+    "explicit_map": {}
+  },
+  "mappings": [
+    {
+      "uid": "U_00001",
+      "offset_dec": 512,
+      "length": 64,
+      "terminator": 0,
+      "pointer_refs": [],
+      "source": "Press start to continue",
+      "box_width": 40,
+      "max_lines": 3
+    }
+  ]
+}

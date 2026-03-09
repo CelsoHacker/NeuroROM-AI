@@ -1,0 +1,62 @@
+{
+  "SNES": {
+    "bank_size": 32768,
+    "default_regions": [],
+    "expansion_allowed": true,
+    "max_expansion_banks": 8,
+    "fill_byte": 255,
+    "alignment": 2,
+    "addressing_modes": ["LOROM_16", "HIROM_16", "LOROM_24", "HIROM_24"],
+    "notes": "LoROM: 32KB banks, addr $8000-$FFFF. HiROM: 64KB banks, full range."
+  },
+  "NES": {
+    "bank_size": 16384,
+    "default_regions": [],
+    "expansion_allowed": true,
+    "max_expansion_banks": 16,
+    "fill_byte": 255,
+    "alignment": 2,
+    "addressing_modes": ["NES_8000", "NES_C000"],
+    "notes": "PRG banks 16KB. $8000-$BFFF switchable, $C000-$FFFF often fixed."
+  },
+  "SMS": {
+    "bank_size": 16384,
+    "default_regions": [],
+    "expansion_allowed": true,
+    "max_expansion_banks": 8,
+    "fill_byte": 255,
+    "alignment": 1,
+    "addressing_modes": ["SMS_BASE8000", "SMS_BASE4000", "SMS_ABSOLUTE"],
+    "notes": "16KB banks. Slot 2 at $8000-$BFFF most common for text."
+  },
+  "MD": {
+    "bank_size": 65536,
+    "default_regions": [],
+    "expansion_allowed": false,
+    "max_expansion_banks": 0,
+    "fill_byte": 255,
+    "alignment": 2,
+    "addressing_modes": ["MD_ABSOLUTE", "MD_RELATIVE"],
+    "notes": "Mega Drive: 64KB banks, big-endian. Expansion usually not safe."
+  },
+  "GB": {
+    "bank_size": 16384,
+    "default_regions": [],
+    "expansion_allowed": true,
+    "max_expansion_banks": 64,
+    "fill_byte": 0,
+    "alignment": 1,
+    "addressing_modes": ["GB_BANK0", "GB_BANKED"],
+    "notes": "Game Boy: 16KB banks. Bank 0 at $0000-$3FFF, switchable at $4000-$7FFF."
+  },
+  "GBA": {
+    "bank_size": 65536,
+    "default_regions": [],
+    "expansion_allowed": true,
+    "max_expansion_banks": 32,
+    "fill_byte": 255,
+    "alignment": 4,
+    "addressing_modes": ["GBA_ROM", "GBA_THUMB"],
+    "notes": "GBA: Linear ROM at $08000000. ARM/Thumb addressing."
+  }
+}

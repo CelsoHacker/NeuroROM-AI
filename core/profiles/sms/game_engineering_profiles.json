@@ -1,0 +1,353 @@
+{
+  "schema": "neurorom.sms.game_engineering.v1",
+  "version": "1.0.0",
+  "updated_at": "2026-02-28T14:18:03.359777Z",
+  "default_profile": {
+    "id": "default_sms",
+    "name": "Default SMS",
+    "version": "1.0",
+    "extractor_overrides": {},
+    "script_rules": {
+      "common": [
+        {
+          "op": "replace",
+          "src": " ",
+          "dst": " "
+        },
+        {
+          "op": "regex_sub",
+          "pattern": "[\\t\\r]+",
+          "repl": " "
+        }
+      ],
+      "extract": [
+        {
+          "op": "strip"
+        }
+      ],
+      "reinsert": [
+        {
+          "op": "replace",
+          "src": "…",
+          "dst": "..."
+        },
+        {
+          "op": "replace",
+          "src": "’",
+          "dst": "'"
+        },
+        {
+          "op": "replace",
+          "src": "“",
+          "dst": "\""
+        },
+        {
+          "op": "replace",
+          "src": "”",
+          "dst": "\""
+        }
+      ]
+    },
+    "charset": {
+      "strip_accents": true,
+      "normalize_whitespace": true,
+      "preserve_newlines": true
+    },
+    "compression": {
+      "mode": "unknown",
+      "block_reinsertion": false,
+      "notes": ""
+    }
+  },
+  "profiles_by_crc": {
+    "0390C93F": {
+      "id": "sms_crc_0390c93f",
+      "name": "SMS CRC 0390C93F",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.35,
+        "min_pointer_confidence": 0.45,
+        "min_text_length": 2,
+        "max_text_length": 240,
+        "min_pointers_for_table": 4,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "73705C02": {
+      "id": "sms_crc_73705c02",
+      "name": "SMS CRC 73705C02",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "887D9F6B": {
+      "id": "sms_crc_887d9f6b",
+      "name": "SMS CRC 887D9F6B",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "953F42E1": {
+      "id": "sms_crc_953f42e1",
+      "name": "SMS CRC 953F42E1",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.35,
+        "min_pointer_confidence": 0.45,
+        "min_text_length": 2,
+        "max_text_length": 240,
+        "min_pointers_for_table": 4,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "97E0F44F": {
+      "id": "sms_crc_97e0f44f",
+      "name": "SMS CRC 97E0F44F",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "A6FA42D0": {
+      "id": "sms_crc_a6fa42d0",
+      "name": "SMS CRC A6FA42D0",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.8,
+        "min_pointer_confidence": 0.6,
+        "min_text_length": 3,
+        "max_text_length": 256,
+        "min_pointers_for_table": 6,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "B519E833": {
+      "id": "sms_crc_b519e833",
+      "name": "SMS CRC B519E833",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "B67A1603": {
+      "id": "sms_crc_b67a1603",
+      "name": "SMS CRC B67A1603",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.8,
+        "min_pointer_confidence": 0.6,
+        "min_text_length": 3,
+        "max_text_length": 256,
+        "min_pointers_for_table": 6,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "B9FDF6D9": {
+      "id": "sms_crc_b9fdf6d9",
+      "name": "SMS CRC B9FDF6D9",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.8,
+        "min_pointer_confidence": 0.6,
+        "min_text_length": 3,
+        "max_text_length": 256,
+        "min_pointers_for_table": 6,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "C4CC0637": {
+      "id": "sms_crc_c4cc0637",
+      "name": "SMS CRC C4CC0637",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "D91B340D": {
+      "id": "sms_crc_d91b340d",
+      "name": "SMS CRC D91B340D",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    },
+    "DE9F8517": {
+      "id": "sms_crc_de9f8517",
+      "name": "SMS CRC DE9F8517",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.35,
+        "min_pointer_confidence": 0.45,
+        "min_text_length": 2,
+        "max_text_length": 240,
+        "min_pointers_for_table": 4,
+        "candidate_terminators": [
+          "0x00",
+          "0x1C",
+          "0xFF"
+        ]
+      },
+      "script_rules": {
+        "extract": [
+          {
+            "op": "regex_sub",
+            "pattern": "\\s+",
+            "repl": " "
+          }
+        ],
+        "reinsert": [
+          {
+            "op": "replace",
+            "src": "º",
+            "dst": "o"
+          },
+          {
+            "op": "replace",
+            "src": "ª",
+            "dst": "a"
+          }
+        ]
+      },
+      "charset": {
+        "strip_accents": false,
+        "normalize_whitespace": true,
+        "preserve_newlines": true
+      },
+      "compression": {
+        "mode": "mixed",
+        "block_reinsertion": false,
+        "extractor_hint": "pointer_table+tilemap",
+        "notes": "Pode haver blocos de script proprietario nao extraiveis por varredura estatica."
+      }
+    },
+    "F0F35C22": {
+      "id": "sms_crc_f0f35c22",
+      "name": "SMS CRC F0F35C22",
+      "version": "1.0",
+      "extractor_overrides": {
+        "min_safe_ratio": 0.55,
+        "min_pointer_confidence": 0.5,
+        "min_text_length": 2,
+        "max_text_length": 256,
+        "min_pointers_for_table": 5,
+        "candidate_terminators": [
+          "0x00"
+        ]
+      },
+      "compression": {
+        "mode": "unknown",
+        "block_reinsertion": false,
+        "notes": ""
+      }
+    }
+  }
+}

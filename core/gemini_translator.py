@@ -11,9 +11,21 @@ License: MIT
 """
 
 import os
+import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
+
+
+def _sanitize_error(msg) -> str:
+    """Remove possíveis API keys / tokens de mensagens de erro."""
+    s = str(msg)
+    s = re.sub(r'AIza[0-9A-Za-z\-_]{10,}', '[REDACTED]', s)
+    s = re.sub(r'([?&]key=)[^&\s]+', r'\1[REDACTED]', s)
+    s = re.sub(r'(Bearer\s+)[A-Za-z0-9\-_\.]{10,}', r'\1[REDACTED]', s)
+    s = re.sub(r'sk-[A-Za-z0-9]{10,}', 'sk-[REDACTED]', s)
+    return s
 
 # Third-party imports - Qt6
 try:
@@ -40,7 +52,10 @@ except ImportError:
             return False, "Module not available", ""
 
         class ProjectConfig:
-            BASE_DIR = Path(".")
+            BASE_DIR = Path('.')
+            FRAMEWORK_DIR = BASE_DIR
+            CORE_DIR = FRAMEWORK_DIR / 'core'
+            EXTRACTION_DIR = CORE_DIR
 
         class ThemeManager:
             pass
@@ -80,7 +95,7 @@ def translate_with_gemini(self):
         with open(self.extracted_file, "r", encoding="utf-8", errors="ignore") as f:
             original_text = f.read()
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha ao ler arquivo:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha ao ler arquivo:\n{_sanitize_error(e)}")
         return
 
     # Get source and target languages from UI (if available)
@@ -114,7 +129,7 @@ def translate_with_gemini(self):
     try:
         client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha ao inicializar Gemini:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha ao inicializar Gemini:\n{_sanitize_error(e)}")
         return
 
     self.log("[GEMINI] Iniciando tradução online...")
@@ -128,7 +143,7 @@ def translate_with_gemini(self):
         )
         translated_text = response.text
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha ao traduzir com Gemini:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha ao traduzir com Gemini:\n{_sanitize_error(e)}")
         return
 
     # Save translated text
@@ -137,7 +152,7 @@ def translate_with_gemini(self):
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(translated_text)
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha ao salvar arquivo:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha ao salvar arquivo:\n{_sanitize_error(e)}")
         return
 
     # Update GUI state
@@ -191,7 +206,7 @@ def translate_texts(self):
         with open(self.extracted_file, "r", encoding="utf-8", errors="ignore") as f:
             extracted_text = f.read()
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha ao ler arquivo extraído:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha ao ler arquivo extraído:\n{_sanitize_error(e)}")
         return
 
     # Split into individual texts for translation
@@ -233,7 +248,7 @@ def translate_texts(self):
     try:
         translated_lines = translator.translate_batch(text_lines)
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha na tradução:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha na tradução:\n{_sanitize_error(e)}")
         return
 
     # Save results
@@ -242,7 +257,7 @@ def translate_texts(self):
         with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(translated_lines))
     except Exception as e:
-        QMessageBox.critical(self, "Erro", f"Falha ao salvar tradução:\n{e}")
+        QMessageBox.critical(self, "Erro", f"Falha ao salvar tradução:\n{_sanitize_error(e)}")
         return
 
     # Update GUI
@@ -258,6 +273,162 @@ def translate_texts(self):
         f"Textos processados: {len(translated_lines)}\n"
         f"Arquivo salvo: {output_path.name}"
     )
+
+
+def strip_accents_for_rom(text: str) -> str:
+    """Remove acentos quando a fonte da ROM não suporta PT-BR."""
+    if not isinstance(text, str) or not text:
+        return ""
+    replacements = {
+        "ã": "a",
+        "ê": "e",
+        "ç": "c",
+        "á": "a",
+        "é": "e",
+        "í": "i",
+        "ó": "o",
+        "ú": "u",
+        "â": "a",
+        "õ": "o",
+        "à": "a",
+        "Ã": "A",
+        "Ê": "E",
+        "Ç": "C",
+        "Á": "A",
+        "É": "E",
+        "Í": "I",
+        "Ó": "O",
+        "Ú": "U",
+        "Â": "A",
+        "Õ": "O",
+        "À": "A",
+    }
+    out = text
+    for src, dst in replacements.items():
+        out = out.replace(src, dst)
+    return out
+
+
+def _safe_json_load(path: str) -> dict:
+    try:
+        if not path or not os.path.isfile(path):
+            return {}
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            obj = json.load(f)
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
+
+
+def _extract_font_has_pt_br(payload: dict) -> bool | None:
+    if not isinstance(payload, dict):
+        return None
+    candidates = [
+        payload.get("font_has_pt_br"),
+        (payload.get("font_profile") or {}).get("font_has_pt_br") if isinstance(payload.get("font_profile"), dict) else None,
+        (payload.get("font_profile") or {}).get("has_pt_br") if isinstance(payload.get("font_profile"), dict) else None,
+        (payload.get("profile") or {}).get("font_has_pt_br") if isinstance(payload.get("profile"), dict) else None,
+        (payload.get("profile") or {}).get("has_pt_br") if isinstance(payload.get("profile"), dict) else None,
+    ]
+    for val in candidates:
+        if isinstance(val, bool):
+            return bool(val)
+    return None
+
+
+def _should_strip_accents_for_context(input_path: str | None = None) -> bool:
+    env_flag = str(os.environ.get("NEUROROM_FONT_HAS_PT_BR", "") or "").strip().lower()
+    if env_flag in {"1", "true", "yes", "on"}:
+        return False
+    if env_flag in {"0", "false", "no", "off"}:
+        return True
+
+    profile_env = str(os.environ.get("NEUROROM_PROFILE_JSON", "") or "").strip()
+    if profile_env:
+        flag = _extract_font_has_pt_br(_safe_json_load(profile_env))
+        if isinstance(flag, bool):
+            return not flag
+
+    candidates = []
+    if isinstance(input_path, str) and input_path.strip():
+        p = os.path.abspath(input_path)
+        root, _ = os.path.splitext(p)
+        candidates.extend(
+            [
+                f"{root}.profile.json",
+                f"{root}_profile.json",
+                f"{root}.meta.json",
+                f"{root}_meta.json",
+            ]
+        )
+    for c in candidates:
+        flag = _extract_font_has_pt_br(_safe_json_load(c))
+        if isinstance(flag, bool):
+            return not flag
+
+    # Sem declaração explícita, considera sem suporte PT-BR.
+    return True
+
+
+def _apply_strip_accents_to_file_if_needed(
+    output_path: str | None,
+    context_path: str | None = None,
+) -> bool:
+    if not isinstance(output_path, str) or not output_path.strip():
+        return False
+    if not os.path.isfile(output_path):
+        return False
+    if not _should_strip_accents_for_context(context_path):
+        return False
+    try:
+        with open(output_path, "r", encoding="utf-8", errors="ignore") as f:
+            original = f.read()
+        stripped = strip_accents_for_rom(original)
+        if stripped == original:
+            return False
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(stripped)
+        return True
+    except Exception:
+        return False
+
+
+_ORIGINAL_TRANSLATE_WITH_GEMINI = translate_with_gemini
+_ORIGINAL_TRANSLATE_TEXTS = translate_texts
+
+
+def translate_with_gemini(self):
+    """
+    Wrapper runtime: mantém comportamento original e aplica política de acentos
+    conforme suporte de fonte da ROM.
+    """
+    result = _ORIGINAL_TRANSLATE_WITH_GEMINI(self)
+    out_file = getattr(self, "translated_file", None)
+    ctx_file = getattr(self, "extracted_file", None)
+    changed = _apply_strip_accents_to_file_if_needed(out_file, ctx_file)
+    if changed and hasattr(self, "log"):
+        try:
+            self.log("[GEMINI] Pós-processamento: strip_accents_for_rom aplicado.")
+        except Exception:
+            pass
+    return result
+
+
+def translate_texts(self):
+    """
+    Wrapper runtime: mantém comportamento original e aplica política de acentos
+    após tradução online/offline.
+    """
+    result = _ORIGINAL_TRANSLATE_TEXTS(self)
+    out_file = getattr(self, "translated_file", None)
+    ctx_file = getattr(self, "extracted_file", None)
+    changed = _apply_strip_accents_to_file_if_needed(out_file, ctx_file)
+    if changed and hasattr(self, "log"):
+        try:
+            self.log("[TRADUÇÃO] Pós-processamento: strip_accents_for_rom aplicado.")
+        except Exception:
+            pass
+    return result
 
 
 # =============================================================

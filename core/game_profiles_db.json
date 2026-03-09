@@ -1,0 +1,646 @@
+{
+  "schema": "game_profiles_db.v1",
+  "version": "1.0.0",
+  "updated_at": "2026-02-18T22:42:12.715832+00:00",
+  "total_games": 35,
+  "games": [
+    {
+      "crc32": "0229D193",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "0390C93F",
+      "console": "SMS",
+      "region": "EU",
+      "encoding": "tilemap",
+      "tbl_path": "core/profiles/sms/0390C93F.tbl",
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [
+        {
+          "offset": "0x001F00",
+          "size": 832,
+          "tiles": 26,
+          "score": 1.0
+        },
+        {
+          "offset": "0x002300",
+          "size": 832,
+          "tiles": 26,
+          "score": 1.0
+        },
+        {
+          "offset": "0x003100",
+          "size": 832,
+          "tiles": 26,
+          "score": 1.0
+        }
+      ],
+      "text_regions": [
+        {
+          "start": 98312,
+          "end": 100032,
+          "label": "story_intro"
+        },
+        {
+          "start": 225416,
+          "end": 225784,
+          "label": "ending"
+        }
+      ],
+      "compression": null
+    },
+    {
+      "crc32": "0CB4B18D",
+      "console": "PS1",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "1D35E110",
+      "console": "N64",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "481BB3DA",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "5A786D4F",
+      "console": "NES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "5BC5B794",
+      "console": "NES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "73705C02",
+      "console": "SMS",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "754FFB81",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "7955EBFE",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "887D9F6B",
+      "console": "SMS",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "8A2CC850",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "953F42E1",
+      "console": "SMS",
+      "region": "EU",
+      "encoding": "tilemap",
+      "tbl_path": "core/profiles/sms/953F42E1.tbl",
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [
+        {
+          "offset": "0x001F00",
+          "size": 832,
+          "tiles": 26,
+          "score": 1.0
+        },
+        {
+          "offset": "0x002300",
+          "size": 832,
+          "tiles": 26,
+          "score": 1.0
+        },
+        {
+          "offset": "0x003100",
+          "size": 832,
+          "tiles": 26,
+          "score": 1.0
+        }
+      ],
+      "text_regions": [
+        {
+          "start": 98312,
+          "end": 100160,
+          "label": "story_intro"
+        },
+        {
+          "start": 111913,
+          "end": 114653,
+          "label": "credits_dialogue"
+        },
+        {
+          "start": 194397,
+          "end": 194755,
+          "label": "menu"
+        },
+        {
+          "start": 225362,
+          "end": 225844,
+          "label": "ending"
+        }
+      ],
+      "compression": null
+    },
+    {
+      "crc32": "97E0F44F",
+      "console": "SMS",
+      "region": "US",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "A31BEAD4",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "A6FA42D0",
+      "console": "SMS",
+      "region": "US",
+      "encoding": "ascii",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "B0256101",
+      "console": "N64",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "B519E833",
+      "console": "SMS",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "B67A1603",
+      "console": "SMS",
+      "region": "US",
+      "encoding": "ascii",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "B9FDF6D9",
+      "console": "SMS",
+      "region": "US",
+      "encoding": "ascii",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT2_8000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [
+        {
+          "start": "0x01A300",
+          "end": "0x01C000",
+          "type": "dialogue"
+        },
+        {
+          "start": "0x01C000",
+          "end": "0x01E000",
+          "type": "menus"
+        }
+      ],
+      "compression": null
+    },
+    {
+      "crc32": "C495E490",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "C4CC0637",
+      "console": "SMS",
+      "region": "US",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "CC790214",
+      "console": "NES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "D17B86F0",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "D91B340D",
+      "console": "SMS",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "DD42510E",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "DE9F8517",
+      "console": "SMS",
+      "region": "EU",
+      "encoding": "ascii",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [
+        {
+          "offset": "0x03FA58",
+          "size": 2048,
+          "tiles": 256,
+          "bpp": 1,
+          "ascii_base_offset": 32,
+          "score": 1.0,
+          "note": "Standard ASCII font, tile[0x20]=space, tile[0x41]=A"
+        }
+      ],
+      "text_regions": [
+        {
+          "start": 50720,
+          "end": 50832,
+          "label": "INTRO_MENU_ASCII"
+        },
+        {
+          "start": 53632,
+          "end": 53720,
+          "label": "INTRO_GENDER_ASCII"
+        },
+        {
+          "start": 353980,
+          "end": 356500,
+          "label": "INTRO_NARRATIVE_ASCII"
+        }
+      ],
+      "protected_regions": [
+        [
+          "0x0000",
+          "0x7FFF"
+        ]
+      ],
+      "compression": null
+    },
+    {
+      "crc32": "E71F6596",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "EA1BC9AB",
+      "console": "GENESIS",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "F0F35C22",
+      "console": "SMS",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "F7AD1744",
+      "console": "SNES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "FD42F6C8",
+      "console": "NES",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "611535DC",
+      "console": "GBA",
+      "region": "unknown",
+      "encoding": "auto",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "TEMPLATE1",
+      "console": "SMS",
+      "region": "US",
+      "encoding": "ascii",
+      "tbl_path": null,
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    },
+    {
+      "crc32": "TEMPLATE2",
+      "console": "SMS",
+      "region": "JP",
+      "encoding": "tbl",
+      "tbl_path": "tables/GAMECRC32.tbl",
+      "terminators": [
+        0
+      ],
+      "bank_rule": "SLOT1_4000",
+      "pointer_tables": [],
+      "font_regions": [],
+      "text_regions": [],
+      "compression": null
+    }
+  ]
+}

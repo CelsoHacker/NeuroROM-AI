@@ -1,4 +1,7 @@
+"""Aba de extração e utilidades de análise para o módulo GUI."""
 # -*- coding: utf-8 -*-
+# pylint: disable=C0301,C0302,C0304,C0103,C0114,C0115,C0116,C0411,C0415,R0902,R0903,R0911,R0912,R0913,R0914,R0915,R0917,R1705,W0130,W0201,W0718,W1309
+# Motivo: arquivo legado e extenso; ajustes estruturais serão feitos em refatorações futuras.
 import os
 import json
 import struct
@@ -802,7 +805,8 @@ class ExtractionTab(QWidget):
         """Seleciona arquivo ROM."""
         file_path, _ = QFileDialog.getOpenFileName(
             self, "Selecionar Arquivo", "",
-            "ROMs de Console (*.smc *.sfc *.nes *.gba *.gb *.md);;"
+            "Sega Master System (*.sms *.gg *.sg);;"
+            "ROMs de Console (*.smc *.sfc *.nes *.gba *.gb *.md *.gen *.bin);;"
             "PC Games (*.exe *.wad *.dat);;"
             "Todos os Arquivos (*.*)"
         )
@@ -1023,7 +1027,7 @@ class ExtractionTab(QWidget):
                 f.write("=== TEXTO PARA TRADUÇÃO POR IA ===\n\n")
                 f.write(f"Arquivo fonte: {os.path.basename(self.rom_path)}\n")
                 f.write(f"Total de strings: {len(high_confidence)}\n")
-                f.write(f"Extrator: Heurística Linguística\n")
+                f.write("Extrator: Heurística Linguística\n")
                 f.write("=" * 50 + "\n\n")
 
                 for i, s in enumerate(high_confidence, 1):

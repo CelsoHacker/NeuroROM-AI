@@ -1,0 +1,14 @@
+{
+  "console": "nintendinho",
+  "generated_at": "2026-02-11T22:20:28.018890",
+  "rom_count": 1,
+  "items": [
+    {
+      "rom": "E:\\NINTEDINHO\\Advanced Dungeons & Dragons - Dragon Strike (U) [h1]_emulabr.com\\Advanced Dungeons & Dragons - Dragon Strike (U) [h1].nes",
+      "crc32": "5A786D4F",
+      "output_dir": "export\\universal_batch\\nintendinho\\Advanced Dungeons _ Dragons - Dragon Strike (U) _h1__5A786D4F",
+      "status": "ok",
+      "returncode": 0
+    }
+  ]
+}

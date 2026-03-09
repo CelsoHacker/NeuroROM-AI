@@ -1,0 +1,28 @@
+{
+  "console": "Master System",
+  "generated_at": "2026-02-03T00:07:36.810897",
+  "rom_count": 3,
+  "items": [
+    {
+      "rom": "E:\\_roms_extruidas\\Master System\\20 em 1 (Brazil)\\20 em 1 (Brazil).sms",
+      "crc32": "F0F35C22",
+      "output_dir": "export\\universal_batch\\Master System\\20 em 1 (Brazil)_F0F35C22",
+      "status": "ok",
+      "returncode": 0
+    },
+    {
+      "rom": "E:\\_roms_extruidas\\Master System\\Ace of Aces (Europe)\\Ace of Aces (Europe).sms",
+      "crc32": "887D9F6B",
+      "output_dir": "export\\universal_batch\\Master System\\Ace of Aces (Europe)_887D9F6B",
+      "status": "ok",
+      "returncode": 0
+    },
+    {
+      "rom": "E:\\_roms_extruidas\\Master System\\Action Fighter (Japan) (v1.1)\\Action Fighter (Japan) (v1.1).sms",
+      "crc32": "D91B340D",
+      "output_dir": "export\\universal_batch\\Master System\\Action Fighter (Japan) (v1.1)_D91B340D",
+      "status": "ok",
+      "returncode": 0
+    }
+  ]
+}

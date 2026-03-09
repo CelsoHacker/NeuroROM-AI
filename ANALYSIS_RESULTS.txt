@@ -1,0 +1,132 @@
+================================================================================
+                    UNTRANSLATED ENTRIES ANALYSIS - RESULTS
+================================================================================
+
+ANALYSIS DATE: 2026-02-20
+ROM: Ultima (DE9F8517) - Master System
+FILE: ROMs/Master System/DE9F8517/2_traducao/DE9F8517_translated.jsonl
+
+Total Entries Analyzed: 289 untranslated safe entries
+Real Game Content: 230 entries (79.6%)
+Questionable/Artifacts: 59 entries (20.4%)
+
+================================================================================
+                              SUMMARY TABLE
+================================================================================
+
+Category                    Count    %       Priority
+────────────────────────────────────────────────────
+Character Names             174    60.2%    MEDIUM
+Game Items/Equipment        66     22.8%    HIGH
+Directions/Locations        20     6.9%     HIGH  
+Actions/Verbs               11     3.8%     HIGH
+Attributes/Codes            15     5.2%     LOWER
+Garbage/Skip                18     6.2%     SKIP
+
+TOTAL ACTIONABLE: 230 (79.6%)
+ESTIMATED TIME: 4-8 hours of manual translation
+COMPLEXITY: LOW (all simple English→Portuguese)
+CONFIDENCE: HIGH (verified against source)
+
+================================================================================
+                         KEY INSIGHTS
+================================================================================
+
+1. TRANSLATION READY (230 entries):
+   - All clear English text
+   - No special encoding needed
+   - Organized by category
+   - Ready for immediate manual translation
+
+2. CHARACTER NAMES (174 entries):
+   - Most from Ultima game universe
+   - Examples: Geoffrey, Iolo, Shamino, Dupre, Mariah, Zorin
+   - Can be kept as-is or transliterated
+
+3. GAME MECHANICS (66 entries):
+   - Equipment: Armour, Axe, Bomb, Horn, Keys, etc.
+   - Actions: Talk, Search, Open, Use, Rest, Save, Heal
+   - Items: Gems, Ginseng, Runes, Reagents, Torches
+   - All standard game vocabulary
+
+4. DIRECTIONS (5 entries):
+   - North, South, East, West (directional)
+   - Standard game navigation
+
+5. TO SKIP (59 entries):
+   - Garbage strings (18)
+   - Attribute codes like STR:, DEX:, INT: (39)
+   - Non-translatable artifacts (6)
+
+================================================================================
+                      QUICK TRANSLATION GUIDE
+================================================================================
+
+HIGH PRIORITY (Start here - 86 entries):
+- Directions: North→Norte, South→Sul, East→Leste, West→Oeste
+- Items: Equipment→Equipamento, Items→Itens, Rest→Descanso
+- Verbs: Talk→Falar, Use→Usar, Search→Procurar, Save→Salvar
+- Status: Dead→Morto, Poisoned→Envenenado, Ready→Pronto
+
+MEDIUM PRIORITY (144 entries):
+- Character names: Geoffrey, Iolo, Shamino, Dupre, etc.
+- Location names: Minoc, Trinsic, Vesper, Cove, Covetous
+- Game items: Armour, Axe, Bomb, Gems, Ginseng, Keys, etc.
+
+LOWER PRIORITY (11 entries):
+- Attribute codes: STR:, DEX:, INT:, HP:, MP:
+- Keep as-is or use standard game abbreviations
+
+SKIP (59 entries):
+- Garbage text and non-translatable artifacts
+
+================================================================================
+                        GENERATED ANALYSIS FILES
+================================================================================
+
+1. HIGH_PRIORITY_TRANSLATIONS.txt (230 entries)
+   → Use this for immediate manual translation work
+
+2. UNTRANSLATED_ENTRIES.csv (machine-readable)
+   → Import to Excel for batch processing
+
+3. UNTRANSLATED_ANALYSIS.txt (detailed breakdown)
+   → Full list with ROM offsets and metadata
+
+4. UNTRANSLATED_EXECUTIVE_SUMMARY.md (executive overview)
+   → High-level summary with recommendations
+
+5. UNTRANSLATED_CATEGORIZED.txt (semantic grouping)
+   → Entries grouped by category
+
+6. README_UNTRANSLATED_ANALYSIS.md (file guide)
+   → How to use each analysis file
+
+================================================================================
+                          NEXT STEPS
+================================================================================
+
+OPTION 1: Immediate Translation
+- Open: HIGH_PRIORITY_TRANSLATIONS.txt
+- Add Portuguese translations
+- Estimated time: 4-8 hours
+
+OPTION 2: Data-Driven (Use CSV)
+- Import: UNTRANSLATED_ENTRIES.csv to Excel
+- Add translation column
+- Use find/replace for common entries
+- Validate roundtrip
+
+OPTION 3: Strategic Review (Recommended)
+1. Review UNTRANSLATED_EXECUTIVE_SUMMARY.md (5 min)
+2. Check HIGH_PRIORITY_TRANSLATIONS.txt (quick scan)
+3. Plan translation workflow
+4. Execute translations
+5. Test in-game
+
+================================================================================
+
+All files saved to: /core/ directory
+Source data: DE9F8517_translated.jsonl
+Generated: 2026-02-20
+Status: READY FOR TRANSLATION

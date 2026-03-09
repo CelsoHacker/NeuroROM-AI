@@ -1,0 +1,12 @@
+{
+  "schema": "neurorom.snes.post_reinsertion_crc_profiles.v1",
+  "version": 1,
+  "description": "Perfis de hotfix pós-reinserção por CRC para SNES (base inicial).",
+  "notes": [
+    "Este arquivo segue o mesmo formato operacional do profile SMS.",
+    "Cada perfil deve casar por source_crc32 + source_rom_size.",
+    "Use operations com offsets hex e expected bytes/text para hotfix determinístico.",
+    "Quando um perfil não existir para o CRC, o pós-patch é ignorado sem erro."
+  ],
+  "profiles": []
+}

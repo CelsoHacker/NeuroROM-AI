@@ -1,0 +1,22 @@
+{
+  "DE9F8517|524288": {
+    "engine": "ULTIMA4_SMS",
+    "year": "1990",
+    "type": "ROM",
+    "platform": "SEGA MASTER (perfil CRC)",
+    "platform_code": "SMS",
+    "game": "Ultima IV: Quest of the Avatar",
+    "confidence": "Alta (CRC32/ROM_SIZE)",
+    "notes": "Perfil forense CRC confirmado para extração segura SMS."
+  },
+  "953F42E1|262144": {
+    "engine": "SMS_TILEMAP",
+    "year": "1991",
+    "type": "ROM",
+    "platform": "SEGA MASTER (perfil CRC)",
+    "platform_code": "SMS",
+    "game": "Castle of Illusion Starring Mickey Mouse",
+    "confidence": "Alta (CRC32/ROM_SIZE)",
+    "notes": "Perfil forense CRC confirmado para extração segura SMS."
+  }
+}

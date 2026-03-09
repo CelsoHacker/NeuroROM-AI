@@ -1,0 +1,58 @@
+{
+  "schema": "neurorom.runtime_profile.v1",
+  "platform": "segacd",
+  "cpu": "68000+SubCPU",
+  "pc_register": "PC",
+  "pointer_registers": [
+    "A0",
+    "A1",
+    "A2",
+    "A3",
+    "D0",
+    "D1",
+    "SUB_A0",
+    "SUB_A1"
+  ],
+  "buffer_registers": [
+    "A0",
+    "A1",
+    "SUB_A0"
+  ],
+  "memory_domains": [
+    "68K RAM",
+    "SubCPU RAM",
+    "PRG RAM",
+    "System Bus"
+  ],
+  "default_terminators": [
+    0
+  ],
+  "max_bytes_per_capture": 256,
+  "autoplay_sequence": [
+    {
+      "button": "START",
+      "frames": 30
+    },
+    {
+      "button": "A",
+      "frames": 18
+    },
+    {
+      "button": "DOWN",
+      "frames": 18
+    },
+    {
+      "button": "A",
+      "frames": 20
+    },
+    {
+      "button": "RIGHT",
+      "frames": 30
+    },
+    {
+      "button": "LEFT",
+      "frames": 30
+    }
+  ]
+}
+

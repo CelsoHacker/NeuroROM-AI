@@ -1,0 +1,21 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:20:01",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "C495E490",
+  "rom_size": 2097664,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\C495E490\\1_extracao\\C495E490_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [],
+  "drop_words": [],
+  "extra_fragments": [],
+  "stats": {
+    "items_total": 6277,
+    "rows_with_text": 6277,
+    "unique_tokens": 3435,
+    "replace_rules_total": 0,
+    "drop_words_total": 0,
+    "extra_fragments_total": 0
+  }
+}

@@ -1,0 +1,46 @@
+# TBL for SMS ROM CRC32: 953F42E1
+# 2-byte VDP tilemap encoding: [tile_low_byte][attribute_byte]
+# Attribute = 0x09 (priority=1, palette=0, tile_bank=1)
+# Font tiles: A-N at 0x192-0x19F, P-Z at 0x1A0-0x1AA, O at 0x188
+#
+# Format: HHHH=CHAR (2-byte entry)
+
+# Letter O (special position - tile 0x188)
+8809=O
+
+# Letters A-N (tiles 0x192-0x19F, sequential)
+9209=A
+9309=B
+9409=C
+9509=D
+9609=E
+9709=F
+9809=G
+9909=H
+9A09=I
+9B09=J
+9C09=K
+9D09=L
+9E09=M
+9F09=N
+
+# Letters P-Z (tiles 0x1A0-0x1AA, sequential)
+A009=P
+A109=Q
+A209=R
+A309=S
+A409=T
+A509=U
+A609=V
+A709=W
+A809=X
+A909=Y
+AA09=Z
+
+# Punctuation
+AB09=!
+AC09=.
+AD09=,
+
+# Space (tile 0x1B0)
+B009= 

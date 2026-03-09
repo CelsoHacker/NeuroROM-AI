@@ -1,0 +1,60 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:19:41",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "481BB3DA",
+  "rom_size": 1049088,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\481BB3DA\\1_extracao\\481BB3DA_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\barmour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcannot\\b",
+      "dst": "not",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhoney\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwelcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 4
+    }
+  ],
+  "drop_words": [],
+  "extra_fragments": [
+    "one",
+    "our",
+    "are",
+    "can",
+    "not",
+    "come",
+    "some",
+    "with",
+    "there"
+  ],
+  "stats": {
+    "items_total": 4459,
+    "rows_with_text": 4459,
+    "unique_tokens": 2973,
+    "replace_rules_total": 4,
+    "drop_words_total": 0,
+    "extra_fragments_total": 9
+  }
+}

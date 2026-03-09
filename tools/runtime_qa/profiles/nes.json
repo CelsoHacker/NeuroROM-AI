@@ -1,0 +1,48 @@
+{
+  "schema": "neurorom.runtime_profile.v1",
+  "platform": "nes",
+  "cpu": "6502",
+  "pc_register": "PC",
+  "pointer_registers": [
+    "A",
+    "X",
+    "Y"
+  ],
+  "buffer_registers": [],
+  "memory_domains": [
+    "System Bus",
+    "RAM",
+    "WRAM"
+  ],
+  "default_terminators": [
+    0
+  ],
+  "max_bytes_per_capture": 192,
+  "autoplay_sequence": [
+    {
+      "button": "START",
+      "frames": 30
+    },
+    {
+      "button": "A",
+      "frames": 20
+    },
+    {
+      "button": "DOWN",
+      "frames": 18
+    },
+    {
+      "button": "A",
+      "frames": 20
+    },
+    {
+      "button": "RIGHT",
+      "frames": 24
+    },
+    {
+      "button": "LEFT",
+      "frames": 24
+    }
+  ]
+}
+

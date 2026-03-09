@@ -22,17 +22,18 @@ class TBLLoader:
     Carregador de tabelas .tbl (formato padrão de romhacking).
 
     Formato TBL:
-    HEX=CHAR
+    HEX=CHAR          (1 byte:  00=0, 0A=A, FF= )
+    HHHH=CHAR          (2 bytes: 9209=A, 8809=O)
+    HHHHHH=CHAR        (3 bytes, se necessário)
 
-    Exemplo:
-    00=0
-    0A=A
-    24=a
-    FF=
+    Multi-byte é padrão em romhacking: hex com 4+ dígitos = 2+ bytes.
     """
 
     def __init__(self, tbl_path: Optional[str] = None):
-        self.char_map: Dict[int, str] = {}
+        self.char_map: Dict[int, str] = {}          # byte_value -> char (1-byte)
+        self.multi_byte_map: Dict[bytes, str] = {}   # byte_seq -> char (multi-byte)
+        self.max_entry_len: int = 1                   # Maior sequência no mapa
+        self.reverse_map: Dict[str, bytes] = {}       # char -> byte_seq (para encode)
 
         if tbl_path:
             self.load_tbl(tbl_path)
@@ -44,18 +45,20 @@ class TBLLoader:
         Formato aceito:
         - Linhas vazias são ignoradas
         - Linhas começando com # são comentários
-        - Formato: HEXVALUE=CHARACTER
+        - Formato: HEXVALUE=CHARACTER (HH=1byte, HHHH=2bytes, etc.)
         """
-        print(f"📂 Carregando tabela: {Path(tbl_path).name}")
+        print(f"Carregando tabela: {Path(tbl_path).name}")
 
         with open(tbl_path, 'r', encoding='utf-8') as f:
             line_num = 0
             for line in f:
                 line_num += 1
-                line = line.strip()
+                # Strip only newline/carriage-return, preserve spaces in char value
+                line = line.rstrip('\n\r')
+                check = line.strip()
 
                 # Ignora vazias e comentários
-                if not line or line.startswith('#'):
+                if not check or check.startswith('#'):
                     continue
 
                 # Processa linha
@@ -63,48 +66,108 @@ class TBLLoader:
                     try:
                         hex_val, char = line.split('=', 1)
                         hex_val = hex_val.strip()
+                        # Keep char as-is: empty string = end-of-line marker,
+                        # single space = space character (standard TBL convention)
 
-                        # Converte hex para int
+                        # Determina tamanho da entrada (2 hex digits = 1 byte)
+                        byte_len = (len(hex_val) + 1) // 2
                         byte_value = int(hex_val, 16)
 
-                        # Armazena mapeamento
-                        self.char_map[byte_value] = char
+                        if byte_len == 1:
+                            # Entrada de 1 byte (formato clássico)
+                            self.char_map[byte_value] = char
+                        else:
+                            # Entrada multi-byte (2+ bytes)
+                            byte_seq = byte_value.to_bytes(byte_len, 'big')
+                            self.multi_byte_map[byte_seq] = char
+                            if byte_len > self.max_entry_len:
+                                self.max_entry_len = byte_len
 
-                    except ValueError as e:
-                        print(f"⚠️  Linha {line_num} inválida: {line}")
+                        # Mapa reverso para encode
+                        byte_seq_r = byte_value.to_bytes(byte_len, 'big')
+                        self.reverse_map[char] = byte_seq_r
+
+                    except ValueError:
+                        print(f"Linha {line_num} invalida: {line}")
                         continue
 
-        print(f"✅ {len(self.char_map)} caracteres mapeados\n")
+        total = len(self.char_map) + len(self.multi_byte_map)
+        print(f"{total} caracteres mapeados (max_entry_len={self.max_entry_len})\n")
 
     def decode_bytes(self, data: bytes, max_length: int = 200) -> str:
         """
         Decodifica sequência de bytes usando tabela.
+        Suporta entradas multi-byte (tenta match mais longo primeiro).
 
         Args:
             data: Bytes para decodificar
-            max_length: Tamanho máximo da string
+            max_length: Tamanho máximo de caracteres na string resultado
 
         Returns:
             String decodificada
         """
         result = []
+        i = 0
+        data_len = len(data)
 
-        for i, byte in enumerate(data):
-            if i >= max_length:
+        while i < data_len and len(result) < max_length:
+            # Terminadores comuns (só checa primeiro byte)
+            if data[i] in (0x00, 0xFF):
                 break
 
-            # Terminadores comuns
-            if byte in [0x00, 0xFF]:
-                break
+            matched = False
 
-            # Mapeia byte
-            if byte in self.char_map:
-                result.append(self.char_map[byte])
+            # Tenta match mais longo primeiro (multi-byte)
+            for entry_len in range(min(self.max_entry_len, data_len - i), 1, -1):
+                seq = data[i:i + entry_len]
+                if seq in self.multi_byte_map:
+                    result.append(self.multi_byte_map[seq])
+                    i += entry_len
+                    matched = True
+                    break
+
+            if matched:
+                continue
+
+            # Fallback: match de 1 byte
+            if data[i] in self.char_map:
+                result.append(self.char_map[data[i]])
+                i += 1
             else:
                 # Byte desconhecido - para aqui
                 break
 
         return ''.join(result)
+
+    def encode_text(self, text: str) -> Optional[bytes]:
+        """
+        Codifica texto de volta para bytes usando mapa reverso.
+
+        Args:
+            text: String para codificar
+
+        Returns:
+            Bytes codificados ou None se algum char não tem mapeamento
+        """
+        result = bytearray()
+        for ch in text:
+            if ch in self.reverse_map:
+                result.extend(self.reverse_map[ch])
+            else:
+                return None
+        return bytes(result)
+
+    def merge_entries(self, new_entries: Dict[int, str]):
+        """
+        Integra novos mapeamentos (ex: caracteres acentuados do Font Editor).
+
+        Args:
+            new_entries: Dict[byte_value, char] para adicionar/sobrescrever
+        """
+        for byte_val, char in new_entries.items():
+            self.char_map[byte_val] = char
+            byte_seq = byte_val.to_bytes(1, 'big')
+            self.reverse_map[char] = byte_seq
 
     def build_default_table(self) -> Dict[int, str]:
         """

@@ -1,0 +1,168 @@
+{
+  "schema": "universal_translator.mapping.v1",
+  "file_crc32": "953F42E1",
+  "console": "SMS",
+  "encoding": "tilemap",
+  "method": "TILEMAP",
+  "statistics": {
+    "total_items": 14,
+    "safe_items": 14,
+    "coverage": 1.0
+  },
+  "text_blocks": [
+    {
+      "id": 0,
+      "offset": 98312,
+      "max_length": 74,
+      "terminator": 0,
+      "source": "TILEMAP_story_intro",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 1,
+      "offset": 98428,
+      "max_length": 1604,
+      "terminator": 0,
+      "source": "TILEMAP_story_intro",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 2,
+      "offset": 111913,
+      "max_length": 1364,
+      "terminator": 0,
+      "source": "TILEMAP_credits_dialogue",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 3,
+      "offset": 113303,
+      "max_length": 1302,
+      "terminator": 0,
+      "source": "TILEMAP_credits_dialogue",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 4,
+      "offset": 194463,
+      "max_length": 28,
+      "terminator": 0,
+      "source": "TILEMAP_menu",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 5,
+      "offset": 194527,
+      "max_length": 28,
+      "terminator": 0,
+      "source": "TILEMAP_menu",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 6,
+      "offset": 194621,
+      "max_length": 120,
+      "terminator": 0,
+      "source": "TILEMAP_menu",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 7,
+      "offset": 225416,
+      "max_length": 20,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 8,
+      "offset": 225470,
+      "max_length": 50,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 9,
+      "offset": 225524,
+      "max_length": 30,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 10,
+      "offset": 225578,
+      "max_length": 50,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 11,
+      "offset": 225632,
+      "max_length": 50,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 12,
+      "offset": 225686,
+      "max_length": 50,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 13,
+      "offset": 225740,
+      "max_length": 44,
+      "terminator": 0,
+      "source": "TILEMAP_ending",
+      "encoding": "tilemap",
+      "pointer_table_offset": null,
+      "pointer_entry_offset": null,
+      "reinsertion_safe": true
+    }
+  ]
+}

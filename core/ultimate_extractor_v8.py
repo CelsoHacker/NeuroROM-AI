@@ -2,6 +2,13 @@
 """
 ULTIMATE EXTRACTOR V8.0 - DTE/MTE COMPRESSION SOLVER
 =====================================================
+
+⚠️  DEPRECATED (V1) - Este módulo será removido em versões futuras.
+    Use: orchestrator.plugin_orchestrator.run_extraction()
+
+    Este extrator gera arquivos {rom_name}_V8_REPORT.txt que vazam
+    nomes de arquivo. A nova API usa CRC32 para naming neutro.
+
 Sistema definitivo com suporte a compressão de texto por dicionário.
 
 Pipeline de 4 Etapas com Proteção:

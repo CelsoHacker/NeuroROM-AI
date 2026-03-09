@@ -1,0 +1,17 @@
+{
+  "console": "nintendo 64",
+  "generated_at": "2026-02-11T22:38:09.175375",
+  "rom_count": 1,
+  "items": [
+    {
+      "rom": "E:\\N64\\Roms\\1080 Snowboarding (E) [!].v64",
+      "crc32": "B0256101",
+      "output_dir": "export\\universal_batch_v2\\nintendo 64\\1080 Snowboarding (E) ____B0256101",
+      "status": "ok",
+      "reason": "pure_jsonl_generated",
+      "returncode": 0,
+      "pure_jsonl_count": 1,
+      "report_count": 1
+    }
+  ]
+}

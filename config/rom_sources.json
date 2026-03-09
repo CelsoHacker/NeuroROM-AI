@@ -1,0 +1,37 @@
+{
+  "extraction_root": "E:\\\\_roms_extruidas",
+  "sources": [
+    {
+      "name": "Master System",
+      "path": "E:\\\\MASTER SYSTEM"
+    },
+    {
+      "name": "GBA",
+      "path": "E:\\\\GBA"
+    },
+    {
+      "name": "Nintendinho",
+      "path": "E:\\\\NINTEDINHO"
+    },
+    {
+      "name": "Super Nintendo",
+      "path": "E:\\\\Roms"
+    },
+    {
+      "name": "Nintendo 64",
+      "path": "E:\\\\N64"
+    },
+    {
+      "name": "PS1 - Tomb Raider III",
+      "path": "E:\\\\Tomb Raider III - Adventures of Lara Croft (USA) (v1.2)"
+    },
+    {
+      "name": "PS1 - Legend of Legaia",
+      "path": "E:\\\\Legaia"
+    },
+    {
+      "name": "PS1 - Vagrant Story",
+      "path": "E:\\\\V Story"
+    }
+  ]
+}

@@ -39,6 +39,7 @@
 - Graphics Lab for tile editing
 - Runtime Text Capture Engine (RTCE)
 - Safe reinsertion with automatic backups
+- Auto relocation (free-space + repoint) for overflow text blocks
 
 ---
 
@@ -95,6 +96,7 @@ rom-translation-framework/
 │   └── ...
 ├── rtce_core/              # Runtime Text Capture Engine
 ├── tools/                  # Utility scripts
+│   ├── reinsert_sms_cli.py  # CLI segura de reinserção SMS
 ├── utils/                  # Helper functions
 ├── examples/               # Usage examples
 ├── docs/                   # Documentation
@@ -111,6 +113,33 @@ rom-translation-framework/
 3. **Optimization**: Deduplication and filtering (up to 80% reduction)
 4. **Translation**: AI-powered translation with context awareness
 5. **Reinsertion**: Safe insertion with backup and validation
+   - Overflow com ponteiro: realoca em área livre (0xFF/0x00) e atualiza ponteiros automaticamente
+
+### Reinserção segura (SMS)
+
+CLI recomendado para reinserção com segurança total:
+
+```bash
+python tools/reinsert_sms_cli.py ROM.sms traducao.txt --output ROM_PTBR.sms
+```
+
+Opções importantes:
+- `--strict`: aborta se algum texto exceder o limite.
+- `--dry-run`: simula sem gravar ROM.
+- `--no-backup`: desativa backup automático (.bak, .bak2…).
+- `--report`: caminho do relatório JSON.
+
+O relatório `reinsert_report.json` é gerado com checksums e detalhes por bloco.
+Ele também inclui `relocated_texts` e `relocation_pool` quando houver repoint automático.
+
+Config padrão relevante (`interface/translator_config.json`):
+
+```json
+{
+  "auto_relocate_if_needed": true,
+  "auto_generate_diff_ranges": true
+}
+```
 
 ---
 
@@ -154,6 +183,32 @@ Or configure in the application settings.
 - **ML**: scikit-learn, NumPy, Pandas
 - **Image Processing**: OpenCV, Pillow, Tesseract
 - **Architecture**: Multi-threaded with QThread
+
+---
+
+## Qualidade e Testes (dev)
+
+Crie um ambiente virtual e instale dependências de desenvolvimento:
+
+```bash
+python -m venv .venv
+.venv\\Scripts\\activate
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
+```
+
+Rodar testes:
+```bash
+pytest
+```
+
+Linters/formatters:
+```bash
+ruff check .
+black .
+isort .
+mypy .
+```
 
 ---
 

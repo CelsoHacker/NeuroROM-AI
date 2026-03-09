@@ -1,0 +1,17 @@
+{
+  "console": "gba",
+  "generated_at": "2026-02-11T22:38:06.122892",
+  "rom_count": 1,
+  "items": [
+    {
+      "rom": "E:\\_roms_extruidas\\GBA\\WARIO LANDE 4 fase\\0169 - Wario Land 4 (U)(Mode 7).gba",
+      "crc32": "89F7FBBD",
+      "output_dir": "export\\universal_batch_v2\\gba\\0169 - Wario Land 4 (U)(Mode 7)_89F7FBBD",
+      "status": "ok",
+      "reason": "pure_jsonl_generated",
+      "returncode": 0,
+      "pure_jsonl_count": 1,
+      "report_count": 1
+    }
+  ]
+}

@@ -74,6 +74,8 @@ env/
 
 # ==================== OS ====================
 # Windows
+nul
+core/nul
 Thumbs.db
 ehthumbs.db
 Desktop.ini
@@ -160,6 +162,8 @@ api_key.txt
 secrets.json
 config.ini
 config.local.json
+translator_config.json
+interface/translator_config.json
 
 # Gemini quota tracking (user-specific)
 gemini_quota.json

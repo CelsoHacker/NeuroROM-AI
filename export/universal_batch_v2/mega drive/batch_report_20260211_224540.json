@@ -1,0 +1,17 @@
+{
+  "console": "mega drive",
+  "generated_at": "2026-02-11T22:45:40.300949",
+  "rom_count": 1,
+  "items": [
+    {
+      "rom": "ROMs\\Mega\\Sword of Vermilion (U) [!].bin",
+      "crc32": "EA1BC9AB",
+      "output_dir": "export\\universal_batch_v2\\mega drive\\Sword of Vermilion (U) ____EA1BC9AB",
+      "status": "ok",
+      "reason": "pure_jsonl_generated",
+      "returncode": 0,
+      "pure_jsonl_count": 1,
+      "report_count": 1
+    }
+  ]
+}

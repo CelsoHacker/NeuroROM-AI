@@ -1,0 +1,23 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:20:07",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "DD42510E",
+  "rom_size": 1049088,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\DD42510E\\1_extracao\\DD42510E_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [],
+  "drop_words": [
+    "jjjj"
+  ],
+  "extra_fragments": [],
+  "stats": {
+    "items_total": 2981,
+    "rows_with_text": 2981,
+    "unique_tokens": 1737,
+    "replace_rules_total": 0,
+    "drop_words_total": 1,
+    "extra_fragments_total": 0
+  }
+}

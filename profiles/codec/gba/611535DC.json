@@ -1,0 +1,923 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:09:01",
+  "enabled": true,
+  "console_hint": "gba",
+  "rom_crc32": "611535DC",
+  "rom_size": 8388608,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\GBA\\611535DC\\1_extracao\\611535DC_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\bcctime\\b",
+      "dst": "time",
+      "ignore_case": true,
+      "hits": 103
+    },
+    {
+      "mode": "regex",
+      "src": "\\baoeour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 96
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 70
+    },
+    {
+      "mode": "regex",
+      "src": "\\bccaqdour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 67
+    },
+    {
+      "mode": "regex",
+      "src": "\\biihas\\b",
+      "dst": "has",
+      "ignore_case": true,
+      "hits": 62
+    },
+    {
+      "mode": "regex",
+      "src": "\\bxcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 54
+    },
+    {
+      "mode": "regex",
+      "src": "\\bqabcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 53
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbayou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 48
+    },
+    {
+      "mode": "regex",
+      "src": "\\bvavysome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 45
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 39
+    },
+    {
+      "mode": "regex",
+      "src": "\\bgoeour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 39
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcaanot\\b",
+      "dst": "not",
+      "ignore_case": true,
+      "hits": 39
+    },
+    {
+      "mode": "regex",
+      "src": "\\basome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 38
+    },
+    {
+      "mode": "regex",
+      "src": "\\bpcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 37
+    },
+    {
+      "mode": "regex",
+      "src": "\\baomour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 36
+    },
+    {
+      "mode": "regex",
+      "src": "\\biitheir\\b",
+      "dst": "their",
+      "ignore_case": true,
+      "hits": 33
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhoeour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 31
+    },
+    {
+      "mode": "regex",
+      "src": "\\bscome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 29
+    },
+    {
+      "mode": "regex",
+      "src": "\\bmcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 29
+    },
+    {
+      "mode": "regex",
+      "src": "\\bfoeour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 29
+    },
+    {
+      "mode": "regex",
+      "src": "\\bycome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 28
+    },
+    {
+      "mode": "regex",
+      "src": "\\baogour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 27
+    },
+    {
+      "mode": "regex",
+      "src": "\\bgsome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 25
+    },
+    {
+      "mode": "regex",
+      "src": "\\baobour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 25
+    },
+    {
+      "mode": "regex",
+      "src": "\\baoqour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 25
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 23
+    },
+    {
+      "mode": "regex",
+      "src": "\\bicome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 22
+    },
+    {
+      "mode": "regex",
+      "src": "\\bargour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 22
+    },
+    {
+      "mode": "regex",
+      "src": "\\byqcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 22
+    },
+    {
+      "mode": "regex",
+      "src": "\\baclixcan\\b",
+      "dst": "can",
+      "ignore_case": true,
+      "hits": 21
+    },
+    {
+      "mode": "regex",
+      "src": "\\bdcardour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 21
+    },
+    {
+      "mode": "regex",
+      "src": "\\batwo\\b",
+      "dst": "two",
+      "ignore_case": true,
+      "hits": 21
+    },
+    {
+      "mode": "regex",
+      "src": "\\byday\\b",
+      "dst": "day",
+      "ignore_case": true,
+      "hits": 20
+    },
+    {
+      "mode": "regex",
+      "src": "\\bqaaehmjcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 20
+    },
+    {
+      "mode": "regex",
+      "src": "\\bammore\\b",
+      "dst": "more",
+      "ignore_case": true,
+      "hits": 20
+    },
+    {
+      "mode": "regex",
+      "src": "\\bajyjyoubykhave\\b",
+      "dst": "have",
+      "ignore_case": true,
+      "hits": 20
+    },
+    {
+      "mode": "regex",
+      "src": "\\bkyour\\b",
+      "dst": "your",
+      "ignore_case": true,
+      "hits": 20
+    },
+    {
+      "mode": "regex",
+      "src": "\\baawill\\b",
+      "dst": "will",
+      "ignore_case": true,
+      "hits": 18
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcurrencythe\\b",
+      "dst": "currency",
+      "ignore_case": true,
+      "hits": 18
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 18
+    },
+    {
+      "mode": "regex",
+      "src": "\\bgcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 18
+    },
+    {
+      "mode": "regex",
+      "src": "\\baonour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 17
+    },
+    {
+      "mode": "regex",
+      "src": "\\baouour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 16
+    },
+    {
+      "mode": "regex",
+      "src": "\\blcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 16
+    },
+    {
+      "mode": "regex",
+      "src": "\\bgbyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 16
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhbdcurrency\\b",
+      "dst": "currency",
+      "ignore_case": true,
+      "hits": 16
+    },
+    {
+      "mode": "regex",
+      "src": "\\behcould\\b",
+      "dst": "could",
+      "ignore_case": true,
+      "hits": 15
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwhow\\b",
+      "dst": "who",
+      "ignore_case": true,
+      "hits": 15
+    },
+    {
+      "mode": "regex",
+      "src": "\\baosour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 15
+    },
+    {
+      "mode": "regex",
+      "src": "\\baoaour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 14
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 14
+    },
+    {
+      "mode": "regex",
+      "src": "\\bjlhave\\b",
+      "dst": "have",
+      "ignore_case": true,
+      "hits": 14
+    },
+    {
+      "mode": "regex",
+      "src": "\\bzcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 14
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbowhow\\b",
+      "dst": "who",
+      "ignore_case": true,
+      "hits": 14
+    },
+    {
+      "mode": "regex",
+      "src": "\\bnraoeour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 13
+    },
+    {
+      "mode": "regex",
+      "src": "\\bfbyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 13
+    },
+    {
+      "mode": "regex",
+      "src": "\\bncome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 13
+    },
+    {
+      "mode": "regex",
+      "src": "\\bjcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 13
+    },
+    {
+      "mode": "regex",
+      "src": "\\bacome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 13
+    },
+    {
+      "mode": "regex",
+      "src": "\\byvasome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 13
+    },
+    {
+      "mode": "regex",
+      "src": "\\basmore\\b",
+      "dst": "more",
+      "ignore_case": true,
+      "hits": 12
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbobour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 12
+    },
+    {
+      "mode": "regex",
+      "src": "\\bkcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 12
+    },
+    {
+      "mode": "regex",
+      "src": "\\baqgour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 12
+    },
+    {
+      "mode": "regex",
+      "src": "\\boeinto\\b",
+      "dst": "into",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bqccwcxycome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbiwill\\b",
+      "dst": "will",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bycgwbxmcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bycgwbxccome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bycgwbxscome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bycgwbxicome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\barfour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\baopour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bxaaaacurrency\\b",
+      "dst": "currency",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhwsome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bqcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bascan\\b",
+      "dst": "can",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bbszyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\baartifact\\b",
+      "dst": "artifact",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bandgsome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bdartifact\\b",
+      "dst": "artifact",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhishould\\b",
+      "dst": "should",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bzopinto\\b",
+      "dst": "into",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bnoiinto\\b",
+      "dst": "into",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bghcould\\b",
+      "dst": "could",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcchas\\b",
+      "dst": "has",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\biiwould\\b",
+      "dst": "would",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bysome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bonour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\beoeour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bvacome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\biobinto\\b",
+      "dst": "into",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bakihcould\\b",
+      "dst": "could",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\basour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\byiycould\\b",
+      "dst": "could",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bmxyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 9
+    },
+    {
+      "mode": "regex",
+      "src": "\\bidjyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\boxwill\\b",
+      "dst": "will",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bmmnymore\\b",
+      "dst": "more",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bghave\\b",
+      "dst": "have",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\becmore\\b",
+      "dst": "more",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bopour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bxiwill\\b",
+      "dst": "will",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bzoiour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bmxtheir\\b",
+      "dst": "their",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bycurrency\\b",
+      "dst": "currency",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\bucome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\brtwo\\b",
+      "dst": "two",
+      "ignore_case": true,
+      "hits": 8
+    },
+    {
+      "mode": "regex",
+      "src": "\\baodour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bybcan\\b",
+      "dst": "can",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bfcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\biour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\beckxthem\\b",
+      "dst": "them",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bjajysome\\b",
+      "dst": "some",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bitemai\\b",
+      "dst": "item",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\baigccwaxtime\\b",
+      "dst": "time",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bdacurrency\\b",
+      "dst": "currency",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\byoucome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwcand\\b",
+      "dst": "can",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bdgbyou\\b",
+      "dst": "you",
+      "ignore_case": true,
+      "hits": 7
+    }
+  ],
+  "drop_words": [
+    "bagcyw",
+    "hjdthe",
+    "mbmxthe",
+    "ccqher",
+    "jymthe",
+    "exycywzcixs",
+    "hbdcurrency",
+    "wcww",
+    "gwpcit",
+    "hhhh",
+    "gxwcywxcixs",
+    "yyzb",
+    "pwarkyq",
+    "qccwcxycome",
+    "ycgwbx",
+    "ycgwbxmcome",
+    "ycgwbxccome",
+    "ycgwbxscome",
+    "kxpyhow",
+    "zbby",
+    "wcpc",
+    "kxgcah",
+    "gcxc",
+    "ccwpcis",
+    "dbby",
+    "sxwyhow"
+  ],
+  "extra_fragments": [
+    "our",
+    "come",
+    "you",
+    "some",
+    "time",
+    "has",
+    "currency",
+    "will",
+    "could",
+    "can",
+    "more",
+    "their",
+    "artifact",
+    "into",
+    "not",
+    "two",
+    "have",
+    "your",
+    "who",
+    "day",
+    "people",
+    "should",
+    "would",
+    "there",
+    "are",
+    "them",
+    "one",
+    "down",
+    "item",
+    "sacred",
+    "with",
+    "which",
+    "when"
+  ],
+  "stats": {
+    "items_total": 9326,
+    "rows_with_text": 6755,
+    "unique_tokens": 3357,
+    "replace_rules_total": 120,
+    "drop_words_total": 26,
+    "extra_fragments_total": 33
+  }
+}

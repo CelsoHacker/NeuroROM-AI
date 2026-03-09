@@ -1,0 +1,60 @@
+Listagem de caminhos de pasta
+O número de série do volume é 2E9B-C53E
+C:.
++---.pytest_cache
+|   \---v
+|       \---cache
++---.ruff_cache
+|   \---0.14.14
++---config
++---core
+|   \---__pycache__
++---data
+|   \---reports
++---docs
+|   +---archive
+|   \---manuals
++---dummy_pc_game
+|   +---config
+|   +---localization
+|   +---scripts
+|   \---translation_output
++---examples
+|   \---__pycache__
++---export
++---extraction
+|   \---__pycache__
++---fonts
++---i18n
++---interface
+|   +---gui_tabs
+|   |   \---__pycache__
+|   \---__pycache__
++---internal
++---logs
++---orchestrator
++---plugins
++---profiles
+|   \---sms
++---ROMs
+|   +---Master System
+|   +---Playstation 1
+|   \---Super Nintedo
+|       \---SubPasta
++---rtce_core
+|   \---__pycache__
++---runtime
++---security
+|   \---__pycache__
++---tests
+|   +---output
+|   \---__pycache__
++---tools
+|   +---dev_scripts
+|   |   \---__pycache__
+|   \---__pycache__
++---unification
++---universal_kit
++---utils
+|   \---__pycache__
+\---_patch_ptr

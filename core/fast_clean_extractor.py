@@ -2,6 +2,13 @@
 """
 FAST CLEAN EXTRACTOR - Extrator Rápido com Filtro Inteligente
 ==============================================================
+
+⚠️  DEPRECATED (V1) - Este módulo será removido em versões futuras.
+    Use: orchestrator.plugin_orchestrator.run_extraction()
+
+    Este extrator gera arquivos {rom_name}_CLEAN_REPORT.txt que vazam
+    nomes de arquivo. A nova API usa CRC32 para naming neutro.
+
 Versão ULTRA RÁPIDA focada em extrair APENAS texto inglês puro.
 
 Estratégia:

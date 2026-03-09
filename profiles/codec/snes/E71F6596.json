@@ -1,0 +1,58 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:20:09",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "E71F6596",
+  "rom_size": 4194816,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\E71F6596\\1_extracao\\E71F6596_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\barea\\b",
+      "dst": "are",
+      "ignore_case": true,
+      "hits": 10
+    },
+    {
+      "mode": "regex",
+      "src": "\\bretour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcourse\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bdone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 4
+    }
+  ],
+  "drop_words": [
+    "cranky",
+    "swanky"
+  ],
+  "extra_fragments": [
+    "are",
+    "our",
+    "one",
+    "you"
+  ],
+  "stats": {
+    "items_total": 12000,
+    "rows_with_text": 12000,
+    "unique_tokens": 6817,
+    "replace_rules_total": 4,
+    "drop_words_total": 2,
+    "extra_fragments_total": 4
+  }
+}

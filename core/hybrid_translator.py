@@ -9,6 +9,11 @@ Autor: ROM Translation Framework v5.3
 """
 
 import logging
+import os
+import re
+import shutil
+import subprocess
+import time
 from typing import List, Tuple, Optional, Dict, Any
 from enum import Enum
 
@@ -56,6 +61,9 @@ class HybridTranslator:
             'gemini_quota_saved': 0  # Textos que usaram Ollama para economizar Gemini
         }
 
+        # Flag: quota diária esgotada, não tenta mais Gemini nesta sessão
+        self._gemini_daily_exhausted = False
+
         # Configuração do modo SMART (economiza quota)
         self.smart_config = {
             'short_text_threshold': 50,  # Textos <= 50 chars vão para Ollama
@@ -66,8 +74,88 @@ class HybridTranslator:
         # Importa módulos conforme disponível
         self.gemini_available = False
         self.ollama_available = False
+        self.ollama_models: List[str] = []
+        self.ollama_model: str = "phi3:mini"
 
         self._check_availability()
+
+    def _query_ollama_tags(self, timeout: int = 2) -> Tuple[bool, List[str]]:
+        """Consulta tags do Ollama local e retorna (ativo, modelos)."""
+        try:
+            import requests
+            response = requests.get("http://127.0.0.1:11434/api/tags", timeout=timeout)
+            if response.status_code != 200:
+                return False, []
+            data = response.json() or {}
+            models: List[str] = []
+            for item in data.get("models", []):
+                name = str(item.get("name", "")).strip()
+                if name:
+                    models.append(name)
+            return True, models
+        except Exception:
+            return False, []
+
+    def _pick_best_ollama_model(self, installed_models: List[str]) -> Optional[str]:
+        """Escolhe automaticamente o melhor modelo instalado para tradução."""
+        if not installed_models:
+            return None
+        installed_lower = [m.lower() for m in installed_models]
+        preferred = [
+            "qwen2.5:14b-instruct",
+            "qwen2.5:7b-instruct",
+            "llama3.1:8b",
+            "llama3.2:3b",
+            "mistral:7b-instruct",
+            "phi3:medium",
+            "phi3:mini",
+        ]
+
+        def _match(candidate: str) -> Optional[str]:
+            cand = candidate.lower().strip()
+            cand_base = cand.split(":")[0]
+            if cand in installed_lower:
+                return installed_models[installed_lower.index(cand)]
+            for idx, model_name in enumerate(installed_lower):
+                if model_name == cand_base or model_name.startswith(cand_base + ":"):
+                    return installed_models[idx]
+            return None
+
+        for cand in preferred:
+            hit = _match(cand)
+            if hit:
+                return hit
+        return installed_models[0]
+
+    def _try_start_ollama_service(self, wait_seconds: int = 10) -> bool:
+        """Tenta iniciar `ollama serve` automaticamente quando estiver desligado."""
+        ollama_bin = shutil.which("ollama")
+        if not ollama_bin:
+            logger.warning("⚠️ Ollama não encontrado no PATH")
+            return False
+        try:
+            popen_kwargs: Dict[str, Any] = {
+                "stdout": subprocess.DEVNULL,
+                "stderr": subprocess.DEVNULL,
+            }
+            if os.name == "nt":
+                detached = getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+                new_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
+                popen_kwargs["creationflags"] = detached | new_group
+            subprocess.Popen([ollama_bin, "serve"], **popen_kwargs)
+        except Exception as e:
+            logger.warning(f"⚠️ Falha ao iniciar Ollama automaticamente: {e}")
+            return False
+
+        deadline = time.time() + max(2, int(wait_seconds))
+        while time.time() < deadline:
+            alive, _models = self._query_ollama_tags(timeout=2)
+            if alive:
+                logger.info("✅ Ollama iniciado automaticamente")
+                return True
+            time.sleep(1)
+        logger.warning("⚠️ Ollama não respondeu após tentativa de auto-start")
+        return False
 
     def _check_availability(self):
         """Verifica quais serviços estão disponíveis"""
@@ -83,23 +171,36 @@ class HybridTranslator:
             logger.warning("⚠️ Módulo gemini_api não encontrado")
 
         # Testa Ollama
-        try:
-            import requests
-            response = requests.get('http://127.0.0.1:11434/api/tags', timeout=2)
-            if response.status_code == 200:
-                self.ollama_available = True
-                models = response.json().get('models', [])
-                logger.info(f"✅ Ollama disponível ({len(models)} modelos)")
-            else:
-                logger.warning("⚠️ Ollama respondeu mas com erro")
-        except Exception as e:
-            logger.warning(f"⚠️ Ollama não disponível: {e}")
+        alive, models = self._query_ollama_tags(timeout=2)
+        if not alive:
+            logger.warning("⚠️ Ollama offline. Tentando iniciar automaticamente...")
+            alive = self._try_start_ollama_service(wait_seconds=10)
+            if alive:
+                alive, models = self._query_ollama_tags(timeout=3)
+
+        if not alive:
+            self.ollama_available = False
+            self.ollama_models = []
+            logger.warning("⚠️ Ollama não disponível")
+            return
+
+        self.ollama_models = list(models)
+        selected = self._pick_best_ollama_model(self.ollama_models)
+        if not selected:
+            self.ollama_available = False
+            logger.warning("⚠️ Ollama ativo, mas sem modelos instalados (use: ollama pull qwen2.5:7b-instruct)")
+            return
+
+        self.ollama_model = selected
+        self.ollama_available = True
+        logger.info(f"✅ Ollama disponível ({len(self.ollama_models)} modelos) | modelo={self.ollama_model}")
 
     def translate_batch(
         self,
         texts: List[str],
         target_language: str = "Portuguese (Brazil)",
-        mode: TranslationMode = TranslationMode.AUTO
+        mode: TranslationMode = TranslationMode.AUTO,
+        _log_callback=None
     ) -> Tuple[List[str], bool, Optional[str]]:
         """
         Traduz batch de textos com fallback automático
@@ -108,12 +209,18 @@ class HybridTranslator:
             texts: Lista de textos para traduzir
             target_language: Idioma de destino
             mode: AUTO = fallback automático, GEMINI/OLLAMA = força um específico
+            _log_callback: Função opcional para emitir logs para a UI
 
         Returns:
             (traduções, sucesso, erro)
         """
         if not texts:
             return [], True, None
+
+        def _log(msg):
+            if _log_callback:
+                _log_callback(msg)
+            logger.info(msg)
 
         # Modo forçado
         if mode == TranslationMode.GEMINI:
@@ -123,6 +230,10 @@ class HybridTranslator:
         elif mode == TranslationMode.SMART:
             return self._translate_smart(texts, target_language)
 
+        # Se quota diária já esgotou, vai direto para Ollama
+        if self._gemini_daily_exhausted and self.ollama_available:
+            return self._translate_with_ollama(texts, target_language)
+
         # Modo AUTO: tenta Gemini primeiro se preferido
         if self.prefer_gemini and self.gemini_available:
             translations, success, error = self._translate_with_gemini(texts, target_language)
@@ -131,26 +242,94 @@ class HybridTranslator:
             if success:
                 return translations, success, error
 
-            # Se falhou por quota esgotada, tenta Ollama
-            if error and ("quota" in error.lower() or "429" in error):
-                logger.warning(f"⚠️ Gemini quota esgotada - mudando para Ollama")
-                self.stats['fallback_switches'] += 1
-                self.current_mode = TranslationMode.OLLAMA
+            # Se falhou por quota esgotada, espera e retenta
+            err_lower = error.lower() if error else ""
+            is_quota_error = error and (
+                "quota" in err_lower or "429" in error
+                or "limite" in err_lower or "limit" in err_lower
+                or "resource_exhausted" in err_lower
+            )
 
+            if is_quota_error:
+                import time
+                self.stats['fallback_switches'] += 1
+                error_str = str(error)
+
+                # Detecta se é quota DIÁRIA (PerDay) vs por minuto (PerMinute)
+                # Gemini API retorna "PerDay" no erro original, mas gemini_api.py
+                # pode reformatar para "Limite diario" ou "diário"
+                err_str_lower = error_str.lower()
+                is_daily = (
+                    "PerDay" in error_str
+                    or "per_day" in err_str_lower
+                    or "diario" in err_str_lower
+                    or "diário" in err_str_lower
+                    or "daily" in err_str_lower
+                    or "limite di" in err_str_lower
+                )
+
+                if is_daily:
+                    # Quota diária: retries são inúteis, vai direto para Ollama
+                    self._gemini_daily_exhausted = True
+                    _log("[WARN] Quota DIÁRIA do Gemini esgotada (20 req/dia no free tier).")
+                    if self.ollama_available:
+                        _log("[FALLBACK] Usando Ollama para traduzir. Qualidade boa para textos de jogos.")
+                        return self._translate_with_ollama(texts, target_language)
+                    else:
+                        return translations, False, "Quota diária do Gemini esgotada e Ollama não disponível. Tente amanhã."
+
+                # Quota por minuto: espera e retenta
+                for retry in range(1, 3):
+                    wait_secs = 65
+                    _log(f"[WAIT] Quota por minuto esgotada. Aguardando {wait_secs}s para retry {retry}/2...")
+                    for elapsed in range(0, wait_secs, 10):
+                        remaining = wait_secs - elapsed
+                        if remaining > 0:
+                            _log(f"   ⏱️ {remaining}s restantes...")
+                            time.sleep(min(10, remaining))
+
+                    _log(f"[RETRY] Tentativa {retry}/2 com Gemini...")
+                    translations, success, error = self._translate_with_gemini(texts, target_language)
+                    if success:
+                        _log(f"[OK] Gemini respondeu no retry {retry}!")
+                        return translations, success, error
+
+                    # Checa se virou quota diária (mesmos padrões da detecção principal)
+                    _retry_err = str(error).lower()
+                    _is_daily_retry = (
+                        "PerDay" in str(error) or "per_day" in _retry_err
+                        or "diario" in _retry_err or "diário" in _retry_err
+                        or "daily" in _retry_err or "limite di" in _retry_err
+                    )
+                    if _is_daily_retry:
+                        self._gemini_daily_exhausted = True
+                        _log("[WARN] Quota diária atingida durante retries.")
+                        break
+
+                    err_lower2 = error.lower() if error else ""
+                    still_quota = error and (
+                        "quota" in err_lower2 or "429" in str(error)
+                        or "resource_exhausted" in err_lower2
+                    )
+                    if not still_quota:
+                        break
+
+                # Gemini esgotou após retries - marca flag e tenta Ollama
+                self._gemini_daily_exhausted = True
                 if self.ollama_available:
+                    _log("[FALLBACK] Gemini indisponível. Usando Ollama para os próximos batches.")
                     return self._translate_with_ollama(texts, target_language)
                 else:
-                    return translations, False, "❌ Gemini sem quota e Ollama indisponível"
+                    return translations, False, "Quota do Gemini esgotada e Ollama não disponível."
 
-            # Outro erro, retorna erro
+            # Outro erro (não quota), retorna
             return translations, success, error
 
-        # Se não preferir Gemini ou Gemini indisponível, usa Ollama
+        # Gemini indisponível, tenta Ollama
         if self.ollama_available:
             return self._translate_with_ollama(texts, target_language)
 
-        # Nenhum disponível
-        return texts, False, "❌ Nenhum serviço de tradução disponível"
+        return texts, False, "❌ Nenhum serviço de tradução disponível. Configure a API Key do Gemini."
 
     def _classify_text(self, text: str) -> str:
         """
@@ -248,21 +427,20 @@ class HybridTranslator:
                 for idx, trans in zip(gemini_indices, gemini_result):
                     translations[idx] = trans
             else:
-                # Gemini falhou - tenta Ollama como fallback
-                if "quota" in str(gemini_error).lower() or "429" in str(gemini_error):
-                    logger.warning("⚠️ Gemini quota esgotada - usando Ollama para textos complexos")
-                    self.stats['fallback_switches'] += 1
-                    if self.ollama_available:
-                        fallback_result, fb_success, fb_error = self._translate_with_ollama(
-                            gemini_texts, target_language
-                        )
-                        if fb_success:
-                            for idx, trans in zip(gemini_indices, fallback_result):
-                                translations[idx] = trans
-                        else:
-                            all_success = False
-                            for idx, orig in zip(gemini_indices, gemini_texts):
-                                translations[idx] = orig
+                # Gemini falhou - redireciona para Ollama se disponível
+                is_quota = "quota" in str(gemini_error).lower() or "429" in str(gemini_error)
+                if is_quota and self.ollama_available:
+                    logger.info("🔄 Gemini quota esgotada no SMART - enviando para Ollama...")
+                    ollama_r, ollama_s, ollama_e = self._translate_with_ollama(
+                        gemini_texts, target_language
+                    )
+                    if ollama_s:
+                        for idx, trans in zip(gemini_indices, ollama_r):
+                            translations[idx] = trans
+                    else:
+                        all_success = False
+                        for idx, orig in zip(gemini_indices, gemini_texts):
+                            translations[idx] = orig
                 else:
                     all_success = False
                     if gemini_error:
@@ -316,7 +494,7 @@ class HybridTranslator:
         self,
         texts: List[str],
         target_language: str,
-        model: str = "llama3.2:3b"
+        model: Optional[str] = None
     ) -> Tuple[List[str], bool, Optional[str]]:
         """Traduz usando Ollama local"""
         if not self.ollama_available:
@@ -326,59 +504,103 @@ class HybridTranslator:
             import requests
             from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            logger.info(f"⚡ Traduzindo {len(texts)} textos com Ollama ({model}) - MODO PARALELO...")
+            model_name = str(model or self.ollama_model or "phi3:mini").strip()
+            logger.info(f"⚡ Traduzindo {len(texts)} textos com Ollama ({model_name}) - MODO PARALELO...")
 
             translations = [None] * len(texts)  # Pré-aloca lista
 
             def translate_single(index, text):
-                """Traduz um único texto (função interna para paralelismo)"""
-                # Prompt em INGLÊS (Llama responde melhor) pedindo tradução para PT-BR
-                # CRÍTICO: Instrução direta e clara para forçar tradução completa
-                prompt = f"""You are a professional game translator. Translate the following text to Brazilian Portuguese.
+                """Traduz um único texto"""
+                def _normalize_for_match(value: str) -> str:
+                    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
 
-RULES:
-- Translate EVERYTHING to Portuguese. Do NOT leave any English words.
-- Keep the character's personality and tone (sarcastic, grumpy, angry, etc.)
-- Preserve ONLY technical codes like {{VAR}}, [NAME], <0A>
-- Output ONLY the translation. No explanations, no comments.
+                def _clean_output(value: str) -> str:
+                    cleaned = str(value or "").strip()
+                    if "\n\n" in cleaned:
+                        cleaned = cleaned.split("\n\n")[0].strip()
+                    for prefix in [
+                        "Translation:",
+                        "Tradução:",
+                        "Traducao:",
+                        "Portuguese:",
+                        "PT-BR:",
+                        "Saída:",
+                        "Saida:",
+                    ]:
+                        if cleaned.startswith(prefix):
+                            cleaned = cleaned[len(prefix):].strip()
+                    if cleaned.startswith(("\"", "“")) and cleaned.endswith(("\"", "”")):
+                        cleaned = cleaned[1:-1].strip()
+                    return cleaned
 
-English: {text}
-Portuguese:"""
-
-                payload = {
-                    "model": model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.3,  # Mais determinístico
-                        "num_predict": 256,  # AUMENTADO: permite respostas longas
-                        "num_ctx": 1024,  # Contexto maior para textos longos
-                        "top_p": 0.9,
-                        "repeat_penalty": 1.1  # Evita repetições
+                def _request(prompt_text: str) -> str:
+                    payload = {
+                        "model": model_name,
+                        "prompt": prompt_text,
+                        "system": (
+                            "Voce e tradutor profissional de jogos retro. "
+                            "Responda apenas em portugues brasileiro, sem explicacoes."
+                        ),
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.0,
+                            "num_predict": 200,
+                            "num_ctx": 1024,
+                            "top_p": 0.9,
+                            "repeat_penalty": 1.1,
+                        },
                     }
-                }
+                    response = requests.post(
+                        "http://127.0.0.1:11434/api/generate",
+                        json=payload,
+                        timeout=90,
+                    )
+                    if response.status_code != 200:
+                        return ""
+                    result = response.json() or {}
+                    return _clean_output(result.get("response", ""))
 
                 try:
-                    response = requests.post(
-                        'http://127.0.0.1:11434/api/generate',
-                        json=payload,
-                        timeout=90
+                    src = str(text or "").strip()
+                    prompt = (
+                        "Traduza para portugues brasileiro natural e curto.\n"
+                        "- Retorne SOMENTE a traducao.\n"
+                        "- Nao explique.\n"
+                        "- Nunca mantenha a frase inteira em ingles.\n"
+                        f"Texto: {src}\n"
+                        "Tradução:"
                     )
+                    translation = _request(prompt)
 
-                    if response.status_code == 200:
-                        result = response.json()
-                        translation = result['response'].strip()
-                        if '\n\n' in translation:
-                            translation = translation.split('\n\n')[0]
-                        return index, translation + '\n'
-                    else:
-                        return index, text + '\n'
+                    # Segunda tentativa quando vier igual ao original.
+                    if (
+                        translation
+                        and _normalize_for_match(translation) == _normalize_for_match(src)
+                        and any(ch.isalpha() for ch in src)
+                    ):
+                        retry_prompt = (
+                            "Corrija e traduza para portugues brasileiro.\n"
+                            "Exemplo: Who opens? -> Quem abre?\n"
+                            "- Responda apenas com a traducao final.\n"
+                            f"Texto: {src}\n"
+                            "PT-BR:"
+                        )
+                        retry_translation = _request(retry_prompt)
+                        if retry_translation:
+                            translation = retry_translation
 
+                    if not translation:
+                        return index, src + "\n"
+
+                    lower_trans = translation.lower()
+                    if any(w in lower_trans for w in ["translate", "rules:", "output only"]):
+                        return index, src + "\n"
+                    return index, translation + "\n"
                 except Exception:
-                    return index, text + '\n'
+                    return index, str(text or "").strip() + "\n"
 
-            # PROCESSAMENTO PARALELO com 8 workers
-            with ThreadPoolExecutor(max_workers=8) as executor:
+            # 1 WORKER - proteção térmica para GTX 1060
+            with ThreadPoolExecutor(max_workers=1) as executor:
                 futures = {executor.submit(translate_single, i, text): i for i, text in enumerate(texts)}
 
                 for future in as_completed(futures):

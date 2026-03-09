@@ -1,0 +1,529 @@
+{
+  "rom_crc32": "DE9F8517",
+  "rom_size": 524288,
+  "generated_at": "2026-03-09T13:00:12.974897Z",
+  "displayed_trace_items_total": 1073,
+  "displayed_trace_mapped_items": 1073,
+  "displayed_trace_unmapped_items": 0,
+  "display_candidate_items": 668,
+  "display_excluded_nontext_items": 405,
+  "displayed_trace_needs_review_items": 503,
+  "displayed_trace_not_applied_items": 0,
+  "displayed_trace_skip_displayed_count": 0,
+  "displayed_trace_english_residual_count": 0,
+  "displayed_trace_same_as_source_phrase_count": 0,
+  "missing_displayed_text_count": 422,
+  "translation_quality_non_ptbr_suspect": 0,
+  "issue_index_counts": {
+    "unchanged_equal_src": 0,
+    "suspicious_non_pt": 0,
+    "rom_vs_translated_mismatch": 323,
+    "placeholder_fail": 0,
+    "terminator_missing": 0
+  },
+  "coverage_target_reached": false,
+  "first_20_visual_skip_displayed": [],
+  "first_20_english_residual": [],
+  "first_20_missing": [
+    {
+      "id": 6,
+      "key": "6",
+      "seq": 5,
+      "rom_offset": "0x0035BE",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 6,
+      "raw_bytes_hex": "4845414C5448",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 8,
+      "key": "8",
+      "seq": 7,
+      "rom_offset": "0x0035CA",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 4,
+      "raw_bytes_hex": "47495645",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 10,
+      "key": "10",
+      "seq": 9,
+      "rom_offset": "0x003969",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 7,
+      "raw_bytes_hex": "544B696C6C6564",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 27,
+      "key": "27",
+      "seq": 26,
+      "rom_offset": "0x004547",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "REFORM",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 13,
+      "raw_bytes_hex": "41667465726C6966653F2E2E2E",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 28,
+      "key": "28",
+      "seq": 27,
+      "rom_offset": "0x004556",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 9,
+      "raw_bytes_hex": "596F7520686561723A",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 29,
+      "key": "29",
+      "seq": 28,
+      "rom_offset": "0x004569",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 14,
+      "raw_bytes_hex": "6665656C206D6F74696F6E2E2E2E",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 33,
+      "key": "33",
+      "seq": 32,
+      "rom_offset": "0x0045C9",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 30,
+      "raw_bytes_hex": "4265206D6F7265206361726566756C20696E207468652066757475726521",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 35,
+      "key": "35",
+      "seq": 34,
+      "rom_offset": "0x004661",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 6,
+      "raw_bytes_hex": "43616E277421",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 36,
+      "key": "36",
+      "seq": 35,
+      "rom_offset": "0x00466F",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 10,
+      "raw_bytes_hex": "544E6F74204865726521",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 38,
+      "key": "38",
+      "seq": 37,
+      "rom_offset": "0x004694",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 13,
+      "raw_bytes_hex": "4F6E6C79206F6E20666F6F7421",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 39,
+      "key": "39",
+      "seq": 38,
+      "rom_offset": "0x0046A7",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 14,
+      "raw_bytes_hex": "536C6F772070726F677265737321",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 42,
+      "key": "42",
+      "seq": 41,
+      "rom_offset": "0x004830",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 15,
+      "raw_bytes_hex": "54687920536869702053696E6B7321",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 44,
+      "key": "44",
+      "seq": 43,
+      "rom_offset": "0x004BB5",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 12,
+      "raw_bytes_hex": "54446972656374696F6E3A20",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 46,
+      "key": "46",
+      "seq": 45,
+      "rom_offset": "0x005535",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 12,
+      "raw_bytes_hex": "425548554D55535557657374",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 49,
+      "key": "49",
+      "seq": 48,
+      "rom_offset": "0x00554D",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 5,
+      "raw_bytes_hex": "536F757468",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 54,
+      "key": "54",
+      "seq": 53,
+      "rom_offset": "0x0058A9",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 14,
+      "raw_bytes_hex": "54206D6179204E4F542075736520",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 56,
+      "key": "56",
+      "seq": 55,
+      "rom_offset": "0x0059AB",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 6,
+      "raw_bytes_hex": "205472617021",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 58,
+      "key": "58",
+      "seq": 57,
+      "rom_offset": "0x005A97",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 4,
+      "raw_bytes_hex": "426F6D62",
+      "terminator": 0,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 59,
+      "key": "59",
+      "seq": 58,
+      "rom_offset": "0x005B31",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 17,
+      "raw_bytes_hex": "68617665206E6F206D6978747572657321",
+      "terminator": 1,
+      "reinsertion_safe": true
+    },
+    {
+      "id": 61,
+      "key": "61",
+      "seq": 60,
+      "rom_offset": "0x005B7D",
+      "context_tag": "pointer",
+      "missing_reason_codes": [
+        "ROM_VS_TRANSLATED_MISMATCH"
+      ],
+      "mapping_found": true,
+      "needs_review": false,
+      "last_action": "OK",
+      "last_reason": "",
+      "review_flags": [],
+      "visual_skip_displayed": false,
+      "english_residual": false,
+      "same_as_source_phrase": false,
+      "issue_flags": [
+        "rom_vs_translated_mismatch"
+      ],
+      "raw_len": 12,
+      "raw_bytes_hex": "5370656C6C206E616D653A20",
+      "terminator": 0,
+      "reinsertion_safe": true
+    }
+  ]
+}

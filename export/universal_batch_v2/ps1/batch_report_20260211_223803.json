@@ -1,0 +1,17 @@
+{
+  "console": "ps1",
+  "generated_at": "2026-02-11T22:38:03.097428",
+  "rom_count": 1,
+  "items": [
+    {
+      "rom": "E:\\Tomb Raider III - Adventures of Lara Croft (USA) (v1.2)\\Teste\\DATA\\ANTARC.PSX",
+      "crc32": "0CB4B18D",
+      "output_dir": "export\\universal_batch_v2\\ps1\\ANTARC_0CB4B18D",
+      "status": "ok",
+      "reason": "pure_jsonl_generated",
+      "returncode": 0,
+      "pure_jsonl_count": 1,
+      "report_count": 1
+    }
+  ]
+}

@@ -16,6 +16,7 @@ import subprocess
 import re
 import shutil
 import traceback
+import hashlib
 import base64
 import binascii
 import importlib
@@ -176,6 +177,7 @@ from PyQt6.QtWidgets import (
     QPushButton,
     QLabel,
     QTextEdit,
+    QPlainTextEdit,
     QFileDialog,
     QComboBox,
     QProgressBar,
@@ -196,6 +198,7 @@ from PyQt6.QtWidgets import (
     QDialog,
     QScrollArea,
     QFrame,
+    QRadioButton,
     QGraphicsView,
     QGraphicsScene,
     QGraphicsDropShadowEffect,
@@ -213,6 +216,9 @@ from PyQt6.QtCore import (
     QEvent,
     QByteArray,
     QUrl,
+    QTranslator,
+    QLibraryInfo,
+    QLocale,
 )
 from PyQt6.QtGui import (
     QFont,
@@ -229,6 +235,8 @@ from PyQt6.QtGui import (
     QBrush,
     QPen,
     QTransform,
+    QShortcut,
+    QKeySequence,
 )
 
 
@@ -246,6 +254,14 @@ try:
 except ImportError as e:
     print(f"[ERROR]Erro ao importar gemini_api: {_sanitize_error(e)}")
     gemini_api = None
+
+try:
+    from core.linguistic_qa import LinguisticQA
+except Exception:
+    try:
+        from linguistic_qa import LinguisticQA
+    except Exception:
+        LinguisticQA = None
 
 # Import Security Manager
 try:
@@ -1109,6 +1125,144 @@ class FastExtractWorker(QObject):
             self.error_signal.emit(f"Erro na extração: {_sanitize_error(e)}")
 
 
+class ExtractionWorker(QThread):
+    """Worker para extração in-process (SMS/NES/SNES/etc.) em thread separada."""
+
+    progress_signal = pyqtSignal(int)
+    status_signal = pyqtSignal(str)
+    log_signal = pyqtSignal(str)
+    # finished_signal: (output_file, out_dir, crc32, total_texts)
+    finished_signal = pyqtSignal(str, str, str, int)
+    error_signal = pyqtSignal(str)
+
+    def __init__(self, rom_path: str, extraction_crc32: str, max_extraction_mode: bool = False, original_rom_path: str = None):
+        super().__init__()
+        self.rom_path = rom_path
+        self.extraction_crc32 = extraction_crc32
+        self.max_extraction_mode = max_extraction_mode
+        self.original_rom_path = original_rom_path or rom_path
+        self._is_running = True
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        import json as _json
+        try:
+            self.status_signal.emit("Iniciando extração...")
+            self.progress_signal.emit(10)
+
+            ext = os.path.splitext(self.rom_path)[1].lower()
+
+            # ---- SMS / GG / SG ----
+            if ext in [".sms", ".gg", ".sg"]:
+                self._run_sms()
+            else:
+                self.error_signal.emit(f"Extensão {ext} não suportada no ExtractionWorker.")
+        except Exception as e:
+            self.error_signal.emit(f"Erro crítico na extração: {e}")
+
+    def _run_sms(self):
+        """Extração in-process para Sega Master System."""
+        try:
+            from core.MASTER_SYSTEM_UNIVERSAL_EXTRACTOR_FIXED_NEUTRAL import (
+                UniversalMasterSystemExtractor,
+            )
+        except ImportError:
+            UniversalMasterSystemExtractor = None
+
+        if UniversalMasterSystemExtractor:
+            self.log_signal.emit(f"🧠 Extração Universal (.SMS) ativada - CRC32={self.extraction_crc32}")
+            self.progress_signal.emit(20)
+            try:
+                uni = UniversalMasterSystemExtractor(self.rom_path)
+                total = uni.extract_all()
+                self.progress_signal.emit(70)
+                if total > 0:
+                    output_file = uni.save_results()
+                    out_dir = os.path.dirname(output_file)
+                    crc32 = uni.crc32_full
+                    self.log_signal.emit(f"[OK] SUCESSO: {total} textos extraídos.")
+                    self.log_signal.emit("📁 4 EXPORTS GERADOS:")
+                    self.log_signal.emit(f"   • {crc32}_pure_text.jsonl")
+                    self.log_signal.emit(f"   • {crc32}_reinsertion_mapping.json")
+                    self.log_signal.emit(f"   • {crc32}_report.txt")
+                    self.log_signal.emit(f"   • {crc32}_proof.json")
+                    self.log_signal.emit(f"📂 Pasta: {out_dir}")
+                    self.progress_signal.emit(100)
+                    self.status_signal.emit("Concluído!")
+                    self.finished_signal.emit(output_file, out_dir, crc32, total)
+                    return
+                else:
+                    self.log_signal.emit("[WARN] Universal: Nenhum texto encontrado.")
+            except Exception as ex:
+                self.log_signal.emit(f"[ERROR] Erro ao usar UniversalMasterSystemExtractor: {ex}")
+                # fallback abaixo
+
+        # Fallback: SegaExtractor
+        self.log_signal.emit("🧠 Extração PRO baseada em ponteiros ativada (fallback)")
+        self.progress_signal.emit(30)
+        try:
+            import json as _json
+            from core.sega_extractor import SegaExtractor
+
+            sega = SegaExtractor(self.rom_path)
+            texts = sega.extract_texts(min_length=4)
+            if not texts:
+                self.log_signal.emit("[WARN] SMS PRO: Nenhum texto confiável encontrado.")
+                self.progress_signal.emit(100)
+                self.status_signal.emit("Concluído (sem textos)")
+                self.finished_signal.emit("", "", self.extraction_crc32, 0)
+                return
+
+            self.log_signal.emit(f"[OK] SUCESSO: {len(texts)} strings reais extraídas.")
+            self.progress_signal.emit(60)
+
+            crc32 = self.extraction_crc32
+            out_dir = os.path.dirname(self.rom_path)
+
+            jsonl_path = os.path.join(out_dir, f"{crc32}_pure_text.jsonl")
+            with open(jsonl_path, "w", encoding="utf-8") as f:
+                for i, item in enumerate(texts):
+                    entry = {
+                        "id": i,
+                        "offset": item.get("offset_hex", hex(item.get("offset", 0))),
+                        "text_src": item.get("text", ""),
+                        "max_len_bytes": len(item.get("text", "")) + 1,
+                        "encoding": "ascii",
+                        "source": "SEGA_POINTER",
+                        "reinsertion_safe": item.get("confidence", 0) > 0.6,
+                    }
+                    f.write(_json.dumps(entry, ensure_ascii=False) + "\n")
+
+            mapping_path = os.path.join(out_dir, f"{crc32}_reinsertion_mapping.json")
+            with open(mapping_path, "w", encoding="utf-8") as f:
+                entries = [{"id": i, "offset": t.get("offset", 0),
+                            "max_length": len(t.get("text", "")) + 1,
+                            "terminator": 0x00, "source": "SEGA_POINTER",
+                            "encoding": "ascii",
+                            "reinsertion_safe": t.get("confidence", 0) > 0.6}
+                           for i, t in enumerate(texts)]
+                _json.dump({"entries": entries, "crc32": crc32}, f, indent=2)
+
+            report_path = os.path.join(out_dir, f"{crc32}_report.txt")
+            with open(report_path, "w", encoding="utf-8") as f:
+                f.write(f"CRC32: {crc32}\nTotal Strings: {len(texts)}\nExtractor: SegaExtractor\n")
+
+            proof_path = os.path.join(out_dir, f"{crc32}_proof.json")
+            with open(proof_path, "w", encoding="utf-8") as f:
+                _json.dump({"crc32": crc32, "total_strings": len(texts),
+                            "extractor": "SegaExtractor"}, f, indent=2)
+
+            self.log_signal.emit("📁 4 EXPORTS GERADOS (fallback)")
+            self.progress_signal.emit(100)
+            self.status_signal.emit("Concluído!")
+            self.finished_signal.emit(jsonl_path, out_dir, crc32, len(texts))
+
+        except Exception as ex2:
+            self.error_signal.emit(f"Erro ao usar SegaExtractor: {ex2}")
+
+
 class GeminiWorker(QThread):
     """
     Worker dedicado para tradução com Gemini - V 6.0 PRO SUITE
@@ -1213,11 +1367,6 @@ class GeminiWorker(QThread):
     def run(self):
         """Worker thread para tradução com Gemini - COM VALIDAÇÃO E LOGS DETALHADOS"""
         try:
-            import time as _time
-            from collections import deque as _deque
-            _start_time = _time.time()
-            _recent_timestamps = _deque(maxlen=20)  # Últimos 20 itens para taxa móvel
-
             # 0. LOG INICIAL PARA DEBUG
             self.log_signal.emit("[DEBUG] GeminiWorker.run() iniciado")
 
@@ -1265,7 +1414,6 @@ class GeminiWorker(QThread):
                 lines = f.readlines()
 
             total_lines = len(lines)
-            translated_lines = []
             output_file = self.input_file.replace("_optimized.txt", "_translated.txt")
             if output_file == self.input_file:
                 output_file = (
@@ -1274,113 +1422,121 @@ class GeminiWorker(QThread):
 
             self.log_signal.emit(f"Iniciando tradução de {total_lines} linhas...")
 
-            # 3. Preparação dos Lotes
-            batch_size = 15
-            current_batch = []
-            batch_original_lines = []
+            # 3. Preparação dos lotes reais de strings (50 por request)
+            batch_size = 50
+            indexed_jobs = []
 
-            for i, line in enumerate(lines):
-                if not self._is_running:
-                    self.log_signal.emit("[WARN] Tradução interrompida pelo usuário.")
-                    break
-
-                # Pula linhas nulas ou vazias preservando a estrutura do arquivo
+            for line_index, line in enumerate(lines):
                 if line is None or not line.strip():
-                    translated_lines.append("\n")
                     continue
 
                 line_clean = line.strip()
-
-                # [OK] LINGUISTIC SHIELD V 6.0: Protege as tags antes de enviar
                 line_protected = self.protect_tags(line_clean)
 
-                # === LÓGICA DE PROTEÇÃO PARA DICIONÁRIO MTE ===
                 if "[DTE/MTE]" in line_clean:
-                    # Isola o texto e mede o tamanho original para não estourar a ROM
                     partes = line_protected.split("]", 1)
                     texto_original = (
                         partes[1].strip() if len(partes) > 1 else line_protected
                     )
                     limite = len(texto_original)
-
-                    # Formata a instrução que o Gemini vai ler dentro da lista
-                    linha_para_ia = f"[{limite} chars max] {texto_original}"
-                    current_batch.append(linha_para_ia)
+                    payload = f"[{limite} chars max] {texto_original}"
                 else:
-                    # [OK] LINGUISTIC SHIELD V 6.0: Prompt otimizado para preservar tags
-                    instrucao_elite = (
-                        f"Você é um tradutor literário de elite. Sua prioridade é a fluidez e "
-                        f"naturalidade da história para {self.target_language}, mantendo EXATAMENTE "
-                        f"todas as tags __PROTECTED_N__ intactas (não traduza, não remova, não altere). "
-                        f"Traduza: {line_protected}"
+                    payload = line_protected
+
+                indexed_jobs.append((line_index, payload, line_clean))
+
+            total_strings = len(indexed_jobs)
+            total_batches = (
+                (total_strings + batch_size - 1) // batch_size
+                if total_strings > 0
+                else 0
+            )
+            requests_used = 0
+            translated_by_index = {}
+
+            for batch_idx in range(total_batches):
+                if not self._is_running:
+                    self.log_signal.emit("[WARN] Tradução interrompida pelo usuário.")
+                    break
+
+                start = batch_idx * batch_size
+                end = min(start + batch_size, total_strings)
+                batch_jobs = indexed_jobs[start:end]
+                batch_payload = [item[1] for item in batch_jobs]
+                batch_original = [item[2] for item in batch_jobs]
+
+                try:
+                    translations = gemini_api.translate_batch(
+                        batch_payload,
+                        "English",
+                        self.target_language,
+                        120.0,
+                        api_key=self.api_key,
                     )
-                    current_batch.append(instrucao_elite)
+                except Exception as e:
+                    self.log_signal.emit(
+                        f"[ERROR] Falha no lote Gemini: {_sanitize_error(e)}"
+                    )
+                    translations = list(batch_original)
 
-                # Guarda a linha original para backup em caso de erro da API
-                batch_original_lines.append(line_clean)
+                if not isinstance(translations, list):
+                    translations = list(batch_original)
 
-                # 4. Processa o lote quando atingir o tamanho ou for a última linha
-                if len(current_batch) >= batch_size or i == total_lines - 1:
-                    if not current_batch:
-                        continue
+                if len(translations) != len(batch_jobs):
+                    self.log_signal.emit(
+                        f"[WARN] Lote com tamanho inconsistente ({len(translations)}/{len(batch_jobs)}). "
+                        "Aplicando fallback para originais faltantes."
+                    )
 
-                    try:
-                        # Chama a API
-                        translations, success, error_msg = gemini_api.translate_batch(
-                            current_batch, self.api_key, self.target_language, 120.0
-                        )
+                for item_idx, (line_index, _, original_text) in enumerate(batch_jobs):
+                    raw_translation = (
+                        translations[item_idx]
+                        if item_idx < len(translations)
+                        else original_text
+                    )
 
-                        if success and translations:
-                            for trans in translations:
-                                if trans is None or trans == "":
-                                    translated_lines.append("\n")
-                                else:
-                                    # [OK] LINGUISTIC SHIELD V 6.0: Restaura as tags protegidas
-                                    trans_restored = self.restore_tags(str(trans))
-                                    # Adiciona a tradução com quebra de linha
-                                    translated_lines.append(trans_restored + "\n")
-                                    self._translated_ok += 1
-                        else:
-                            self.log_signal.emit(f"[WARN] Erro na API: {error_msg}")
-                            # Se a API falhar, mantém o original para não perder o arquivo
-                            for orig in batch_original_lines:
-                                translated_lines.append(orig + "\n")
+                    translated_text = ""
+                    if raw_translation is not None:
+                        translated_text = str(raw_translation).strip()
+                    if not translated_text:
+                        translated_text = original_text
 
-                        # Atualiza a interface com ETA por taxa móvel
-                        _recent_timestamps.append(_time.time())
-                        percent = int(((i + 1) / total_lines) * 100)
-                        self.progress_signal.emit(percent)
-                        remaining = total_lines - (i + 1)
-                        if len(_recent_timestamps) >= 2:
-                            window = _recent_timestamps[-1] - _recent_timestamps[0]
-                            rate_items_min = (
-                                (len(_recent_timestamps) - 1) / (window / 60.0)
-                                if window > 0 else 0
-                            )
-                            eta_min = (
-                                remaining / rate_items_min
-                                if rate_items_min > 0 else 0
-                            )
-                            self.status_signal.emit(
-                                f"Traduzindo... {percent}% | "
-                                f"ETA: {eta_min:.1f}min | "
-                                f"{rate_items_min:.0f} items/min"
-                            )
-                        else:
-                            self.status_signal.emit(f"Traduzindo... {percent}%")
+                    restored = self.restore_tags(translated_text)
+                    translated_by_index[line_index] = restored + "\n"
 
-                        # Limpa os lotes para a próxima rodada
-                        current_batch = []
-                        batch_original_lines = []
+                    if restored.strip() and restored.strip() != original_text:
+                        self._translated_ok += 1
 
-                    except Exception as e:
-                        self.log_signal.emit(
-                            f"[ERROR] Erro no processamento do lote: {_sanitize_error(e)}"
-                        )
-                        for orig in batch_original_lines:
-                            translated_lines.append(orig + "\n")
-                        current_batch = []
-                        batch_original_lines = []
+                requests_used += 1
+                self.log_signal.emit(
+                    f"[GEMINI] Lote {batch_idx + 1}/{total_batches} traduzido ({len(batch_jobs)} strings)"
+                )
+
+                safe_total = max(1, total_strings)
+                safe_processed = end
+                percent = int((safe_processed / safe_total) * 100)
+                self.progress_signal.emit(percent)
+                self.status_signal.emit(f"Traduzindo... {percent}%")
+
+            translated_lines = []
+            for line_index, line in enumerate(lines):
+                if line is None or not line.strip():
+                    translated_lines.append("\n")
+                    continue
+                translated_lines.append(
+                    translated_by_index.get(line_index, line.strip() + "\n")
+                )
+
+            if total_strings > 0:
+                economy_pct = (
+                    (1.0 - (requests_used / total_strings)) * 100.0
+                    if total_strings > 0
+                    else 0.0
+                )
+                self.log_signal.emit(
+                    f"[GEMINI] Total requests usados: {requests_used} "
+                    f"(economia de {economy_pct:.2f}% vs 1-por-1)"
+                )
 
             # 5. Salva o arquivo final
             with open(output_file, "w", encoding="utf-8") as f:
@@ -1399,8 +1555,133 @@ class GeminiWorker(QThread):
             self.error_signal.emit(_sanitize_error(e))
 
 
+NLLB_MODEL_NAME = "facebook/nllb-200-distilled-600M"
+_NLLB_RUNTIME_CACHE = {
+    "tokenizer": None,
+    "model": None,
+    "torch": None,
+    "device": "cpu",
+}
+
+
+def _map_target_language_to_nllb(target_language: str) -> str:
+    """Mapeia o rótulo da UI para token de idioma do NLLB."""
+    lang = (target_language or "").strip().lower()
+
+    mapping = [
+        ("portugu", "por_Latn"),
+        ("english", "eng_Latn"),
+        ("español", "spa_Latn"),
+        ("français", "fra_Latn"),
+        ("deutsch", "deu_Latn"),
+        ("italiano", "ita_Latn"),
+        ("日本語", "jpn_Jpan"),
+        ("japanese", "jpn_Jpan"),
+        ("한국어", "kor_Hang"),
+        ("korean", "kor_Hang"),
+        ("中文", "zho_Hans"),
+        ("chinese", "zho_Hans"),
+        ("рус", "rus_Cyrl"),
+        ("russian", "rus_Cyrl"),
+        ("العربية", "arb_Arab"),
+        ("arabic", "arb_Arab"),
+        ("हिन्दी", "hin_Deva"),
+        ("hindi", "hin_Deva"),
+        ("türkçe", "tur_Latn"),
+        ("turkish", "tur_Latn"),
+        ("polski", "pol_Latn"),
+        ("polish", "pol_Latn"),
+        ("nederlands", "nld_Latn"),
+        ("dutch", "nld_Latn"),
+    ]
+
+    for key, value in mapping:
+        if key in lang:
+            return value
+
+    return "por_Latn"
+
+
+def _load_nllb_runtime():
+    """Carrega tokenizer/modelo NLLB com cache de processo."""
+    if (
+        _NLLB_RUNTIME_CACHE["tokenizer"] is not None
+        and _NLLB_RUNTIME_CACHE["model"] is not None
+        and _NLLB_RUNTIME_CACHE["torch"] is not None
+    ):
+        return (
+            _NLLB_RUNTIME_CACHE["tokenizer"],
+            _NLLB_RUNTIME_CACHE["model"],
+            _NLLB_RUNTIME_CACHE["torch"],
+            _NLLB_RUNTIME_CACHE["device"],
+        )
+
+    try:
+        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+        import torch
+    except ImportError as exc:
+        raise RuntimeError(
+            "Dependências do NLLB ausentes. Instale: pip install transformers torch sentencepiece"
+        ) from exc
+
+    tokenizer = AutoTokenizer.from_pretrained(NLLB_MODEL_NAME)
+    model = AutoModelForSeq2SeqLM.from_pretrained(NLLB_MODEL_NAME)
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model.to(device)
+    model.eval()
+
+    _NLLB_RUNTIME_CACHE["tokenizer"] = tokenizer
+    _NLLB_RUNTIME_CACHE["model"] = model
+    _NLLB_RUNTIME_CACHE["torch"] = torch
+    _NLLB_RUNTIME_CACHE["device"] = device
+
+    return tokenizer, model, torch, device
+
+
+def _translate_batch_with_nllb(lines: list[str], target_language: str):
+    """Traduz um lote com NLLB retornando formato compatível do pipeline."""
+    if not lines:
+        return [], True, None
+
+    try:
+        tokenizer, model, torch, device = _load_nllb_runtime()
+        target_lang_code = _map_target_language_to_nllb(target_language)
+
+        tokenizer.src_lang = "eng_Latn"
+        forced_bos_token_id = tokenizer.convert_tokens_to_ids(target_lang_code)
+
+        encoded = tokenizer(
+            lines,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+            max_length=512,
+        )
+        encoded = {k: v.to(device) for k, v in encoded.items()}
+
+        with torch.inference_mode():
+            generated_tokens = model.generate(
+                **encoded,
+                forced_bos_token_id=forced_bos_token_id,
+                max_new_tokens=192,
+                num_beams=1,
+                do_sample=False,
+            )
+
+        translated = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+        if len(translated) != len(lines):
+            raise RuntimeError(
+                f"NLLB retornou {len(translated)} linhas para {len(lines)} entradas"
+            )
+        return [t.strip() + "\n" for t in translated], True, None
+    except Exception as exc:
+        err = _sanitize_error(exc)
+        return [l + "\n" for l in lines], False, err
+
+
 class HybridWorker(QThread):
-    """Worker com fallback automático: Gemini → Ollama"""
+    """Worker com fallback automático: Gemini → NLLB offline."""
 
     progress_signal = pyqtSignal(int)
     status_signal = pyqtSignal(str)
@@ -1426,159 +1707,270 @@ class HybridWorker(QThread):
 
     def run(self):
         try:
-            # Importa HybridTranslator
             try:
-                from core.hybrid_translator import HybridTranslator
-            except ImportError:
-                self.error_signal.emit("Módulo hybrid_translator não encontrado")
-                return
-
-            with open(self.input_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
+                with open(self.input_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            except UnicodeDecodeError:
+                with open(self.input_file, "r", encoding="latin-1") as f:
+                    lines = f.readlines()
 
             total_lines = len(lines)
             translated_lines = []
             output_file = self.input_file.replace("_optimized.txt", "_translated.txt")
             if output_file == self.input_file:
-                output_file = (
-                    str(Path(self.input_file).with_suffix("")) + "_translated.txt"
+                output_file = str(Path(self.input_file).with_suffix("")) + "_translated.txt"
+
+            self.log_signal.emit(
+                f"🤖 AUTO Mode: {total_lines} linhas (Gemini primeiro, NLLB offline no fallback)"
+            )
+
+            gemini_available = bool(
+                self.api_key and gemini_api and getattr(gemini_api, "GENAI_AVAILABLE", False)
+            )
+            self.log_signal.emit(
+                f"[OK] Gemini: {'Disponível' if gemini_available else 'Indisponível'}"
+            )
+
+            nllb_ready = True
+            nllb_error = None
+            try:
+                _load_nllb_runtime()
+            except Exception as exc:
+                nllb_ready = False
+                nllb_error = _sanitize_error(exc)
+
+            self.log_signal.emit(
+                f"[OK] NLLB: {'Disponível' if nllb_ready else 'Indisponível'}"
+            )
+
+            if not gemini_available and not nllb_ready:
+                self.error_signal.emit(
+                    f"Nenhum motor de tradução disponível. Gemini indisponível e NLLB falhou: {nllb_error}"
+                )
+                return
+
+            force_nllb = not gemini_available
+            batch_size = 32 if force_nllb else 20
+            current_batch = []
+            stats = {
+                "gemini_requests": 0,
+                "nllb_requests": 0,
+                "fallback_switches": 0,
+                "total_texts_translated": 0,
+            }
+
+            def _flush_hybrid_batch(processed_count: int):
+                """Processa lote pendente com fallback Gemini -> NLLB."""
+                nonlocal current_batch, force_nllb, batch_size
+                if not current_batch:
+                    return
+
+                engine_used = "NLLB"
+                batch_result = None
+
+                if not force_nllb:
+                    stats["gemini_requests"] += 1
+                    try:
+                        g_result, g_success, g_error = gemini_api.translate_batch(
+                            current_batch,
+                            self.api_key,
+                            self.target_language,
+                        )
+                    except Exception as exc:
+                        g_result, g_success, g_error = None, False, _sanitize_error(exc)
+
+                    if g_success and g_result and len(g_result) == len(current_batch):
+                        batch_result = g_result
+                        engine_used = "Gemini"
+                    else:
+                        if not hasattr(self, "_fallback_warned"):
+                            self.log_signal.emit(
+                                f"🔄 Gemini indisponível ({g_error}). Mudando para NLLB offline."
+                            )
+                            self._fallback_warned = True
+                        force_nllb = True
+                        batch_size = 32
+                        stats["fallback_switches"] += 1
+
+                if batch_result is None:
+                    stats["nllb_requests"] += 1
+                    if nllb_ready:
+                        n_result, n_success, n_error = _translate_batch_with_nllb(
+                            current_batch, self.target_language
+                        )
+                        if n_success and n_result and len(n_result) == len(current_batch):
+                            batch_result = n_result
+                            engine_used = "NLLB"
+                        else:
+                            self.log_signal.emit(
+                                f"[WARN] Falha no NLLB para lote atual: {n_error}"
+                            )
+                    if batch_result is None:
+                        batch_result = [l + "\n" for l in current_batch]
+                        engine_used = "Original"
+
+                translated_lines.extend(batch_result)
+                stats["total_texts_translated"] += sum(
+                    1
+                    for src, dst in zip(current_batch, batch_result)
+                    if dst.strip() and dst.strip() != src
                 )
 
-            self.log_signal.emit(
-                f"🤖 AUTO Mode: {total_lines} linhas (Gemini primeiro, Ollama se quota esgotar)"
-            )
+                if current_batch and batch_result:
+                    self.realtime_signal.emit(
+                        current_batch[-1], batch_result[-1].strip(), engine_used
+                    )
 
-            # Auto-start Ollama se não estiver rodando (fallback precisa estar pronto)
-            import requests as _req
-            try:
-                _req.get("http://127.0.0.1:11434/api/tags", timeout=2)
-            except Exception:
-                self.log_signal.emit("[START] Iniciando Ollama automaticamente (fallback)...")
-                try:
-                    import subprocess as _sp
-                    if sys.platform == "win32":
-                        _sp.Popen(["ollama", "serve"], creationflags=0x08000000,
-                                  stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
-                    else:
-                        _sp.Popen(["ollama", "serve"], stdout=_sp.DEVNULL,
-                                  stderr=_sp.DEVNULL, start_new_session=True)
-                    for _wait in range(15):
-                        time.sleep(1)
-                        try:
-                            _req.get("http://127.0.0.1:11434/api/tags", timeout=2)
-                            self.log_signal.emit("[OK] Ollama pronto para fallback!")
-                            break
-                        except Exception:
-                            self.log_signal.emit(f"⏳ Iniciando Ollama... {_wait+1}/15s")
-                except FileNotFoundError:
-                    self.log_signal.emit("[WARN] Ollama não instalado - fallback indisponível")
-                except Exception:
-                    self.log_signal.emit("[WARN] Não foi possível iniciar Ollama automaticamente")
-
-            # Cria tradutor híbrido
-            translator = HybridTranslator(api_key=self.api_key, prefer_gemini=True)
-
-            self.log_signal.emit(
-                f"[OK] Gemini: {'Disponível' if translator.gemini_available else 'Indisponível'}"
-            )
-            self.log_signal.emit(
-                f"[OK] Ollama: {'Disponível' if translator.ollama_available else 'Indisponível'}"
-            )
-
-            # Processamento em lotes - OTIMIZADO PARA VELOCIDADE MÁXIMA
-            batch_size = 25  # AUMENTADO 6.6x para velocidade!
-            current_batch = []
+                safe_total = max(1, total_lines)
+                safe_processed = max(0, min(processed_count, total_lines))
+                percent = int((safe_processed / safe_total) * 100)
+                self.progress_signal.emit(percent)
+                self.status_signal.emit(f"Traduzindo ({engine_used})... {percent}%")
+                current_batch = []
 
             for i, line in enumerate(lines):
                 if not self._is_running:
                     self.log_signal.emit("[WARN] Tradução interrompida pelo usuário.")
                     break
 
-                line = line.strip()
+                source_line = line.strip()
+                if not source_line:
+                    # Garante ordem e evita perder lote pendente com linha vazia.
+                    _flush_hybrid_batch(i)
+                    translated_lines.append("\n")
+                    continue
+
+                current_batch.append(source_line)
+
+                if len(current_batch) >= batch_size or i == total_lines - 1:
+                    _flush_hybrid_batch(i + 1)
+
+            # Flush final de segurança para não perder último lote.
+            _flush_hybrid_batch(total_lines)
+
+            with open(output_file, "w", encoding="utf-8") as f:
+                f.writelines(translated_lines)
+
+            self.log_signal.emit("\n" + "=" * 50)
+            self.log_signal.emit("[STATS] ESTATÍSTICAS FINAIS:")
+            self.log_signal.emit(f"   Gemini: {stats['gemini_requests']} requisições")
+            self.log_signal.emit(f"   NLLB: {stats['nllb_requests']} requisições")
+            self.log_signal.emit(f"   Fallbacks: {stats['fallback_switches']}")
+            self.log_signal.emit(
+                f"   Total traduzido: {stats['total_texts_translated']} textos"
+            )
+            self.log_signal.emit("=" * 50)
+            self.finished_signal.emit(output_file)
+
+        except Exception as e:
+            error_details = _sanitize_error(traceback.format_exc())
+            self.log_signal.emit(f"Detalhes do Erro: {error_details}")
+            self.error_signal.emit(_sanitize_error(e))
+
+
+class NLLBWorker(QThread):
+    """Worker offline com NLLB-200 via transformers."""
+
+    progress_signal = pyqtSignal(int)
+    status_signal = pyqtSignal(str)
+    log_signal = pyqtSignal(str)
+    finished_signal = pyqtSignal(str)
+    error_signal = pyqtSignal(str)
+    realtime_signal = pyqtSignal(str, str, str)
+
+    def __init__(
+        self,
+        input_file: str,
+        target_language: str = "Portuguese (Brazil)",
+    ):
+        super().__init__()
+        self.input_file = input_file
+        self.target_language = target_language
+        self._is_running = True
+
+    def stop(self):
+        self._is_running = False
+
+    def run(self):
+        try:
+            try:
+                with open(self.input_file, "r", encoding="utf-8") as f:
+                    lines = [line.strip() for line in f.readlines()]
+            except UnicodeDecodeError:
+                self.log_signal.emit("[WARN] Arquivo não é UTF-8, usando Latin-1...")
+                with open(self.input_file, "r", encoding="latin-1") as f:
+                    lines = [line.strip() for line in f.readlines()]
+
+            total_lines = len(lines)
+            translated_lines = []
+            output_file = self.input_file.replace("_optimized.txt", "_translated.txt")
+            if output_file == self.input_file:
+                output_file = str(Path(self.input_file).with_suffix("")) + "_translated.txt"
+
+            self.log_signal.emit(
+                f"🔤 NLLB-200 Offline: {total_lines} linhas (modelo: {NLLB_MODEL_NAME})"
+            )
+
+            try:
+                self.status_signal.emit("Carregando NLLB offline...")
+                self.log_signal.emit("[INFO] Carregando modelo NLLB offline...")
+                _load_nllb_runtime()
+                self.log_signal.emit("[OK] NLLB offline pronto.")
+            except Exception as exc:
+                self.error_signal.emit(_sanitize_error(exc))
+                return
+
+            batch_size = 32
+            current_batch = []
+
+            def _flush_nllb_batch(processed_count: int):
+                """Processa lote pendente do NLLB mantendo progresso correto."""
+                nonlocal current_batch
+                if not current_batch:
+                    return
+
+                result, success, error_msg = _translate_batch_with_nllb(
+                    current_batch, self.target_language
+                )
+                if not success:
+                    self.log_signal.emit(
+                        f"[WARN] Falha no lote NLLB, mantendo original: {error_msg}"
+                    )
+                translated_lines.extend(result)
+
+                if current_batch and result:
+                    self.realtime_signal.emit(
+                        current_batch[-1], result[-1].strip(), "NLLB"
+                    )
+
+                safe_total = max(1, total_lines)
+                safe_processed = max(0, min(processed_count, total_lines))
+                percent = int((safe_processed / safe_total) * 100)
+                self.progress_signal.emit(percent)
+                self.status_signal.emit(f"Traduzindo com NLLB... {percent}%")
+                current_batch = []
+
+            for i, line in enumerate(lines):
+                if not self._is_running:
+                    self.log_signal.emit("[WARN] Tradução interrompida pelo usuário.")
+                    break
+
                 if not line:
+                    # Garante ordem e evita perder lote pendente com linha vazia.
+                    _flush_nllb_batch(i)
                     translated_lines.append("\n")
                     continue
 
                 current_batch.append(line)
 
-                # Processa lote
                 if len(current_batch) >= batch_size or i == total_lines - 1:
-                    if not current_batch:
-                        continue
+                    _flush_nllb_batch(i + 1)
 
-                    try:
-                        from core.hybrid_translator import TranslationMode
+            # Flush final de segurança para não perder último lote.
+            _flush_nllb_batch(total_lines)
 
-                        # Traduz com fallback automático
-                        translations, success, error_msg = translator.translate_batch(
-                            current_batch, self.target_language, TranslationMode.AUTO
-                        )
-
-                        # Mostra status atual
-                        stats = translator.get_stats()
-
-                        if success:
-                            translated_lines.extend(translations)
-                            # Emite sinal em tempo real (última tradução do lote)
-                            if current_batch and translations:
-                                last_orig = current_batch[-1] if current_batch else ""
-                                last_trans = (
-                                    translations[-1].strip() if translations else ""
-                                )
-                                current_translator = (
-                                    "Gemini"
-                                    if stats.get("gemini_requests", 0)
-                                    >= stats.get("ollama_requests", 0)
-                                    else "Ollama"
-                                )
-                                self.realtime_signal.emit(
-                                    last_orig, last_trans, current_translator
-                                )
-                        else:
-                            self.log_signal.emit(f"[WARN] {error_msg}")
-                            translated_lines.extend([l + "\n" for l in current_batch])
-
-                        if stats["fallback_switches"] > 0 and not hasattr(
-                            self, "_fallback_warned"
-                        ):
-                            self.log_signal.emit(
-                                "🔄 Mudou para Ollama (quota Gemini esgotada)"
-                            )
-                            self._fallback_warned = True  # Só avisa 1 vez
-
-                        # Atualiza progresso
-                        percent = int(((i + 1) / total_lines) * 100)
-                        self.progress_signal.emit(percent)
-                        self.status_signal.emit(
-                            f"{translator.get_status_message()} - {percent}%"
-                        )
-
-                        current_batch = []
-
-                    except Exception as e:
-                        self.log_signal.emit(f"[ERROR] Erro no lote: {_sanitize_error(e)}")
-                        translated_lines.extend([l + "\n" for l in current_batch])
-                        current_batch = []
-
-            # Salva arquivo
             with open(output_file, "w", encoding="utf-8") as f:
                 f.writelines(translated_lines)
-
-            # Mostra estatísticas finais
-            final_stats = translator.get_stats()
-            self.log_signal.emit("\n" + "=" * 50)
-            self.log_signal.emit("[STATS] ESTATÍSTICAS FINAIS:")
-            self.log_signal.emit(
-                f"   Gemini: {final_stats['gemini_requests']} requisições"
-            )
-            self.log_signal.emit(
-                f"   Ollama: {final_stats['ollama_requests']} requisições"
-            )
-            self.log_signal.emit(f"   Fallbacks: {final_stats['fallback_switches']}")
-            self.log_signal.emit(
-                f"   Total traduzido: {final_stats['total_texts_translated']} textos"
-            )
-            self.log_signal.emit("=" * 50)
 
             self.finished_signal.emit(output_file)
 
@@ -1608,7 +2000,7 @@ class TilemapWorker(QThread):
         target_language: str = "Portuguese (Brazil)",
         api_key: str = "",
         prefer_gemini: bool = False,
-        model: str = "llama3.1:8b",
+        model: str = NLLB_MODEL_NAME,
     ):
         super().__init__()
         self.input_file = input_file
@@ -1623,6 +2015,7 @@ class TilemapWorker(QThread):
         self._space_prefix = "__SP"
         # Traduções curtas (menus/linhas pequenas)
         self._short_map = {
+            # Entradas genéricas de jogos
             "PRACTICE": "TREINO",
             "NORMAL": "NORMAL",
             "GAME OVER": "FIM DE JOGO",
@@ -1637,6 +2030,105 @@ class TilemapWorker(QThread):
             "EXCITING LEVELS AHEAD": "NIVEIS INCRIVEIS",
             "PAUSE": "PAUSA",
             "HI,": "HI,",
+            # Comandos e UI
+            "BYE": "ADEUS",
+            "YES": "SIM",
+            "NO": "NAO",
+            "JOIN": "JUNTAR",
+            "JOB": "TRABALHO",
+            "AIM": "MIRA",
+            "AIM!": "MIRA!",
+            "DISABLED": "DESATIVADO",
+            "DISABLED!": "DESATIVADO!",
+            "ABORTED": "ABORTADO",
+            "ABORTED!": "ABORTADO!",
+            "ONLY ON FOOT!": "SOMENTE A PE!",
+            "SLOW PROGRESS!": "PROGR. LENTO!",
+            "SLOW PROGRESS": "PROGR. LENTO",
+            # Direções e status
+            "EAST": "LESTE",
+            "WEST": "OESTE",
+            "NORTH": "NORTE",
+            "SOUTH": "SUL",
+            "CALM": "CALMO",
+            "DEAD": "MORTO",
+            "ASLEEP": "ADORMECIDO",
+            "ASLEEP!": "ADORMECIDO!",
+            "POISONED": "ENVENENADO",
+            "POISONED!": "ENVENENADO!",
+            # Itens
+            "KEY": "CHAVE",
+            "KEYS": "CHAVES",
+            "HORN": "TROMBETA",
+            "BOMB": "BOMBA",
+            "TRAP": "ARMADILHA",
+            "TRAP!": "ARMADILHA!",
+            "SLEEP": "DORMIR",
+            # Frases do jogo (Ultima IV)
+            "PIT": "FOSSO",
+            "PIT!": "FOSSO!",
+            "BRIDGE TROLLS!": "TROLS DA PONTE!",
+            "THY SHIP SINKS!": "TUA NAVE AFUNDA!",
+            "THOU HAST LOST AN EIGHTH!": "PERDESTE UM OITAVO!",
+            "ALL IS DARK...": "TUDO ESCURO...",
+            "AFTERLIFE?...": "ALEM-TUMULO?...",
+            "FEEL MOTION...": "SENTE MOVIMENTO...",
+            # Virtudes (Ultima IV)
+            "HONESTY": "HONESTIDADE",
+            "COMPASSION": "COMPAIXAO",
+            "VALOR": "VALOR",
+            "JUSTICE": "JUSTICA",
+            "SACRIFICE": "SACRIFICIO",
+            "HONOUR": "HONRA",
+            "HONOR": "HONRA",
+            "SPIRITUALITY": "ESPIRITUALIDADE",
+            "HUMILITY": "HUMILDADE",
+            # Atributos/ações
+            "LOVE": "AMOR",
+            "COURAGE": "CORAGEM",
+            "HEALTH": "SAUDE",
+            "ARMOR": "ARMADURA",
+            "ATTACK": "ATACAR",
+            "DEFEND": "DEFENDER",
+            "CAST": "CONJURAR",
+            "USE": "USAR",
+            "TALK": "FALAR",
+            "BUY": "COMPRAR",
+            "SELL": "VENDER",
+        }
+        # Abreviações para textos que ultrapassam o limite do tilemap
+        self._abbrev_map = {
+            "HONESTIDADE": "HONEST.",
+            "ESPIRITUALIDADE": "ESPIRIT.",
+            "HUMILDADE": "HUMILD.",
+            "COMPAIXAO": "COMPAIX.",
+            "SACRIFICIO": "SACRIF.",
+            "OPCOES": "OPC.",
+            "OPÇÕES": "OPC.",
+            "INVENTARIO": "INV.",
+            "INVENTÁRIO": "INV.",
+            "EQUIPAMENTO": "EQUIP.",
+            "EQUIPAMENTOS": "EQUIPS.",
+            "CONFIGURACAO": "CONF.",
+            "CONFIGURAÇÃO": "CONF.",
+            "SELECIONAR": "SELEC.",
+            "DIRECAO": "DIR.",
+            "DIREÇÃO": "DIR.",
+            "MASCULINO": "MASC.",
+            "FEMININO": "FEM.",
+            "DESATIVADO": "DESATIV.",
+            "ARMADILHA": "ARMADIL.",
+            "CONTINUAR": "CONTIN.",
+            "ABORTADO": "ABORT.",
+            "PROGRESSO": "PROGR.",
+            "TROMBETA": "TROMB.",
+            "SOMENTE": "SO",
+            "CONJURAR": "CONJUR.",
+            "DEFENDER": "DEFND.",
+            "ATACAR": "ATACAR",
+            "MUITO": "MT",
+            "FERIDO": "FERID.",
+            "LENTO": "LENTO",
         }
         # Traduções compactas para créditos (mantém colunas)
         self._credits_map = {
@@ -1655,6 +2147,10 @@ class TilemapWorker(QThread):
             "THANK YOU FOR": "OBRIGADO POR",
             "PLAYING.": "JOGAR.",
         }
+        self._gemini_quota_hit = False      # fallback: quota diária atingida
+        self._quota_switch_logged = False   # loga a troca apenas uma vez
+        self._nllb_cache: dict[tuple[str, int], str] = {}
+        self._nllb_cache_hits = 0
         self._crc_tag = self._extract_crc_from_filename(self.input_file)
         self._postfix_rules = self._load_postfix_rules()
         self._short_words = {
@@ -1662,9 +2158,151 @@ class TilemapWorker(QThread):
             "E", "EM", "NO", "NA", "NOS", "NAS", "UM", "UMA", "UNS", "UMAS",
             "POR", "PARA", "COM", "SEM", "AO", "AOS", "À", "ÀS",
         }
+        self._worker_cfg = self._load_worker_translation_config()
+        self._auto_translate = bool(self._worker_cfg.get("auto_translate", True))
+        self._auto_translate_missing_only = bool(
+            self._worker_cfg.get("auto_translate_missing_only", True)
+        )
+        self._apply_custom_dict_first = bool(
+            self._worker_cfg.get("apply_custom_dict_first", True)
+        )
+        self._normalize_nfc_enabled = bool(self._worker_cfg.get("normalize_nfc", True))
+        self._deterministic_lock_mode = bool(
+            self._worker_cfg.get("deterministic_lock_mode", True)
+        )
+        self._custom_dict = self._load_custom_dictionary(
+            self._worker_cfg.get("custom_dictionary")
+        )
+        self._merge_custom_dict_into_short_map()
+        self._configure_translation_service()
 
     def stop(self):
         self._is_running = False
+
+    def _load_worker_translation_config(self) -> dict:
+        """
+        Lê translator_config.json para parâmetros de tradução automática
+        sem depender do ciclo completo da UI.
+        """
+        cfg_path = Path(__file__).resolve().parent / "translator_config.json"
+        try:
+            if cfg_path.exists():
+                with cfg_path.open("r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+        except Exception:
+            pass
+        return {}
+
+    def _resolve_custom_dict_path(self, raw_path: str) -> Path | None:
+        if not isinstance(raw_path, str) or not raw_path.strip():
+            return None
+        p = Path(raw_path.strip())
+        candidates: list[Path] = []
+        if p.is_absolute():
+            candidates.append(p)
+        else:
+            candidates.append((Path(project_root) / p).resolve())
+            candidates.append((Path(__file__).resolve().parent / p).resolve())
+            if self.input_file:
+                candidates.append((Path(self.input_file).resolve().parent / p).resolve())
+        for cand in candidates:
+            try:
+                if cand.exists() and cand.is_file():
+                    return cand
+            except Exception:
+                continue
+        return None
+
+    def _load_custom_dictionary(self, raw_path: str) -> dict[str, str]:
+        path = self._resolve_custom_dict_path(str(raw_path or ""))
+        if path is None:
+            return {}
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            if not isinstance(data, dict):
+                return {}
+            out: dict[str, str] = {}
+            for k, v in data.items():
+                if isinstance(k, str) and isinstance(v, str):
+                    key = k.strip()
+                    val = v.strip()
+                    if key and val:
+                        out[key] = val
+            if out:
+                self.log_signal.emit(
+                    f"🧩 Dicionário customizado carregado: {len(out)} entradas ({path.name})"
+                )
+            return out
+        except Exception as e:
+            self.log_signal.emit(
+                f"[WARN] Falha ao carregar custom_dictionary: {_sanitize_error(e)}"
+            )
+            return {}
+
+    def _normalize_dict_key(self, text: str) -> str:
+        return re.sub(r"\s+", " ", str(text or "").strip().upper())
+
+    def _merge_custom_dict_into_short_map(self) -> None:
+        if not isinstance(self._custom_dict, dict) or not self._custom_dict:
+            return
+        for src, dst in self._custom_dict.items():
+            key = self._normalize_dict_key(src)
+            if key:
+                self._short_map[key] = str(dst).strip()
+
+    def _configure_translation_service(self) -> None:
+        """
+        Respeita a preferência declarada no config sem quebrar fallback.
+        Serviços suportados no app: Gemini (google) e NLLB offline.
+        """
+        service = str(self._worker_cfg.get("translation_service", "") or "").strip().lower()
+        if service in {"google", "gemini"}:
+            # Gemini precisa de API key; sem key, o fluxo já cai para NLLB.
+            self.prefer_gemini = bool(self.api_key)
+        elif service in {"nllb", "offline", "local", "ollama", "llama"}:
+            self.prefer_gemini = False
+
+    def _normalize_nfc_text(self, text: str) -> str:
+        """Normaliza texto em NFC quando habilitado no config."""
+        raw = str(text or "")
+        if not self._normalize_nfc_enabled:
+            return raw
+        try:
+            return unicodedata.normalize("NFC", raw)
+        except Exception:
+            return raw
+
+    def _apply_custom_dictionary_replace(self, text: str) -> str:
+        if not isinstance(text, str) or not text:
+            return ""
+        if not isinstance(self._custom_dict, dict) or not self._custom_dict:
+            return self._normalize_nfc_text(text)
+        out = self._normalize_nfc_text(text)
+        items = sorted(
+            self._custom_dict.items(),
+            key=lambda kv: len(str(kv[0])),
+            reverse=True,
+        )
+        for raw_src, raw_dst in items:
+            src = str(raw_src or "").strip()
+            dst = str(raw_dst or "").strip()
+            if not src or not dst:
+                continue
+            try:
+                if re.fullmatch(r"[A-Za-zÀ-ÿ0-9_ ]+", src):
+                    pattern = re.compile(
+                        rf"(?<![A-Za-zÀ-ÿ0-9_]){re.escape(src)}(?![A-Za-zÀ-ÿ0-9_])",
+                        flags=re.IGNORECASE,
+                    )
+                else:
+                    pattern = re.compile(re.escape(src), flags=re.IGNORECASE)
+                out = pattern.sub(dst, out)
+            except re.error:
+                out = out.replace(src, dst)
+        return self._normalize_nfc_text(out)
 
     def _protect_codes(self, text: str) -> tuple[str, dict]:
         """Protege códigos como {VAR}, [NAME], <0A>."""
@@ -1700,6 +2338,84 @@ class TilemapWorker(QThread):
             return None
         m = re.search(r"([0-9A-Fa-f]{8})", os.path.basename(path))
         return m.group(1).upper() if m else None
+
+    def _load_mapping_filter(self) -> tuple[set[str], set[str]]:
+        """
+        Carrega IDs/OFFSETS permitidos a partir do reinsertion_mapping.
+        Restringe a tradução ao conjunto realmente reinserível.
+        """
+        if not self.input_file:
+            return set(), set()
+
+        input_path = Path(self.input_file)
+        crc = self._extract_crc_from_filename(self.input_file)
+        candidates: list[Path] = []
+
+        if input_path.name.endswith("_pure_text.jsonl"):
+            candidates.append(
+                input_path.with_name(
+                    input_path.name.replace("_pure_text.jsonl", "_reinsertion_mapping.json")
+                )
+            )
+        if input_path.name.endswith("_translated.jsonl"):
+            candidates.append(
+                input_path.with_name(
+                    input_path.name.replace("_translated.jsonl", "_reinsertion_mapping.json")
+                )
+            )
+        if crc:
+            candidates.append(input_path.with_name(f"{crc}_reinsertion_mapping.json"))
+
+        allowed_ids: set[str] = set()
+        allowed_offsets: set[str] = set()
+        for mapping_path in candidates:
+            if not mapping_path.exists():
+                continue
+            try:
+                data = json.loads(mapping_path.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+                continue
+
+            blocks = []
+            if isinstance(data, dict):
+                blocks = data.get("text_blocks") or data.get("entries") or []
+            elif isinstance(data, list):
+                blocks = data
+            if not isinstance(blocks, list):
+                continue
+
+            for row in blocks:
+                if not isinstance(row, dict):
+                    continue
+                if not bool(row.get("reinsertion_safe", False)):
+                    continue
+
+                src = str(row.get("source", "") or "").upper()
+                has_ptr = bool(row.get("has_pointer", False))
+                is_ui = bool(row.get("ui_item", False) or src.startswith("UI_POINTER_"))
+                # Bloqueia apenas scan cego puro; mantém textos estáticos válidos do mapping.
+                if src == "ASCII_BRUTE" and not has_ptr and not is_ui:
+                    continue
+
+                if row.get("id") is not None:
+                    allowed_ids.add(str(row.get("id")))
+                off = row.get("offset", row.get("rom_offset"))
+                off_i = None
+                if isinstance(off, int):
+                    off_i = int(off)
+                elif isinstance(off, str):
+                    raw = off.strip()
+                    try:
+                        off_i = int(raw, 16) if raw.lower().startswith("0x") else int(raw)
+                    except ValueError:
+                        off_i = None
+                if off_i is not None and off_i >= 0:
+                    allowed_offsets.add(f"0x{int(off_i):06X}")
+
+            if allowed_ids or allowed_offsets:
+                return allowed_ids, allowed_offsets
+
+        return set(), set()
 
     def _load_postfix_rules(self) -> list[dict]:
         """Carrega regras de correção por CRC32 (postfix_rules_{CRC32}.json)."""
@@ -1942,10 +2658,35 @@ class TilemapWorker(QThread):
         return out[: len(pads)]
 
     def _translate_short_phrase(self, text: str) -> str:
-        key = re.sub(r"\s+", " ", text.strip().upper())
+        probe = str(text or "")
+        if self._apply_custom_dict_first:
+            probe = self._apply_custom_dictionary_replace(probe)
+        key = re.sub(r"\s+", " ", probe.strip().upper())
         if not key:
             return ""
-        return self._short_map.get(key, text)
+        translated = self._short_map.get(key, probe)
+        if not self._apply_custom_dict_first:
+            translated = self._apply_custom_dictionary_replace(translated)
+        return translated
+
+    def _lookup_short_map_exact(self, text: str) -> str | None:
+        """
+        Retorna tradução fixa do short_map apenas quando houver match exato.
+        Evita acionar modelo para comandos curtos (ex.: EAST, BOMB, TRAP!).
+        """
+        probe = str(text or "")
+        if self._apply_custom_dict_first:
+            probe = self._apply_custom_dictionary_replace(probe)
+        key = re.sub(r"\s+", " ", probe.strip().upper())
+        if not key:
+            return None
+        mapped = self._short_map.get(key)
+        if not isinstance(mapped, str) or not mapped.strip():
+            return None
+        out = mapped.strip()
+        if not self._apply_custom_dict_first:
+            out = self._apply_custom_dictionary_replace(out)
+        return out
 
     def _translate_credits_line(self, line: str, width: int) -> str:
         """Traduz linha de créditos preservando colunas (2+ espaços)."""
@@ -1971,6 +2712,37 @@ class TilemapWorker(QThread):
         line_out = "".join(out)
         return line_out[:width].ljust(width)
 
+    # Padrões de correção gramatical: (regex, substituto)
+    _GRAMMAR_FIXES = [
+        # "Eu" + verbo 3ª pessoa passado → 1ª pessoa
+        (r'\bEu\s+(\w+)ou\b',   lambda m: f"Eu {m.group(1)}ei"),   # arrancou→arranquei
+        (r'\bEu\s+(\w+)iu\b',   lambda m: f"Eu {m.group(1)}i"),    # abriu→abri
+        (r'\bEu\s+(\w+)aram\b', lambda m: f"Eu {m.group(1)}ei"),   # tomaram→tomei
+        # Typos comuns no PT-BR
+        (r'\bCompasao\b',      'Compaixao'),
+        (r'\bCompasão\b',      'Compaixão'),
+        (r'\bEspiritualid\b',  'Espirit.'),
+        # Formas arcaicas → PT-BR
+        (r'\bThou hast\b',     'Perdeste'),
+        (r'\bThou art\b',      'Tu es'),
+        (r'\bThee\b',          'Te'),
+        (r'\bThy\b',           'Teu'),
+        (r'\bHast\b',          'Tens'),
+        (r'\bDost\b',          'Fazes'),
+        (r'\bHath\b',          'Tem'),
+    ]
+
+    def _fix_grammar(self, text: str) -> str:
+        """Corrige erros gramaticais comuns e formas arcaicas."""
+        import re as _re
+        out = text
+        for pattern, repl in self._GRAMMAR_FIXES:
+            try:
+                out = _re.sub(pattern, repl, out, flags=_re.IGNORECASE)
+            except Exception:
+                continue
+        return out
+
     def _trim_to_max(self, text: str, max_chars: int) -> str:
         """Corta sem estourar o limite, priorizando borda de palavra."""
         if max_chars <= 0 or len(text) <= max_chars:
@@ -1980,25 +2752,175 @@ class TilemapWorker(QThread):
             return text[:cut].rstrip()
         return text[:max_chars].rstrip()
 
+    def _normalize_short_key(self, token: str) -> str:
+        """Normaliza token para lookup de abreviações curtas."""
+        if not isinstance(token, str):
+            return ""
+        folded = unicodedata.normalize("NFKD", token)
+        folded = "".join(ch for ch in folded if unicodedata.category(ch) != "Mn")
+        folded = re.sub(r"[^A-Za-z0-9]+", "", folded).lower()
+        return folded
+
+    def _apply_short_style_sanitization(self, text: str) -> str:
+        """
+        Sanitização curta para UI retro:
+        tenta abreviar palavras longas para formas naturais (Opc., Inv., Equip. etc.).
+        """
+        if not isinstance(text, str) or not text:
+            return ""
+
+        def _repl(match: re.Match) -> str:
+            token = match.group(0)
+            key_upper = token.upper()
+            mapped = self._abbrev_map.get(key_upper)
+            if not mapped:
+                mapped = self._abbrev_map.get(self._normalize_short_key(token).upper())
+            if not mapped:
+                return token
+            if token.isupper():
+                return mapped.upper()
+            if token[:1].isupper():
+                return mapped[:1].upper() + mapped[1:]
+            return mapped.lower()
+
+        return re.sub(r"[A-Za-zÀ-ÿ']+", _repl, text)
+
+    def _ascii_budget_len(self, text: str) -> int:
+        """Mede comprimento aproximado no charset ASCII alvo da reinserção."""
+        if not isinstance(text, str):
+            return 0
+        # {B:XX} representa 1 byte real no reinserter; conta como 1 no orçamento.
+        budget_text = re.sub(r"\{B:[0-9A-Fa-f]{2}\}", "X", text)
+        folded = unicodedata.normalize("NFKD", budget_text)
+        folded = "".join(ch for ch in folded if unicodedata.category(ch) != "Mn")
+        folded = folded.encode("ascii", errors="ignore").decode("ascii", errors="ignore")
+        return len(folded)
+
+    def _extract_control_tokens(self, text: str) -> list[str]:
+        """Extrai tokens de controle relevantes para reinserção segura."""
+        if not isinstance(text, str) or not text:
+            return []
+        pattern = r"(\{B:[0-9A-Fa-f]{2}\}|\{[^}]+\}|\[[^\]]+\]|<[^>]+>)"
+        return re.findall(pattern, text)
+
+    def _ensure_control_tokens_integrity(self, src_text: str, dst_text: str) -> tuple[str, bool]:
+        """
+        Garante preservação estrutural de control codes.
+        Se perder/alterar tokens, retorna source original por segurança.
+        """
+        src_tokens = self._extract_control_tokens(src_text)
+        if not src_tokens:
+            return dst_text, False
+        dst_tokens = self._extract_control_tokens(dst_text)
+        if src_tokens == dst_tokens:
+            return dst_text, False
+        return str(src_text or ""), True
+
+    def _enforce_jsonl_max_length(self, text: str, max_len_bytes: int, is_ascii: bool) -> tuple[str, bool]:
+        """
+        Validação estrita de comprimento para JSONL traduzido.
+        Garante que a tradução não ultrapasse o budget do bloco original.
+        """
+        if not isinstance(text, str):
+            return "", False
+        if max_len_bytes <= 0:
+            return text, False
+
+        changed = False
+        out = str(text)
+
+        if is_ascii:
+            limit = int(max_len_bytes)
+            # Preferência: encurtar por palavra; fallback: trim.
+            out = self._apply_short_style_sanitization(out)
+            while self._ascii_budget_len(out) > limit:
+                candidate = self._shorten_phrase(out, limit)
+                if not candidate:
+                    candidate = self._trim_to_max(out, max(1, limit))
+                if not candidate or candidate == out:
+                    candidate = out[: max(1, limit)]
+                out = candidate.rstrip()
+                changed = True
+            return out, changed
+
+        # Tilemap: capacidade em caracteres (2 bytes por tile).
+        limit_chars = int(max_len_bytes // 2) if max_len_bytes > 0 else 0
+        if limit_chars <= 0:
+            return out, False
+        if len(out) <= limit_chars:
+            return out, False
+        out = self._apply_short_style_sanitization(out)
+        candidate = self._shorten_phrase(out, limit_chars)
+        if not candidate:
+            candidate = self._trim_to_max(out, max(1, limit_chars))
+        if not candidate or len(candidate) > limit_chars:
+            candidate = out[: max(1, limit_chars)]
+        return candidate.rstrip(), True
+
+    def _is_charset_table_like_text(self, text: str) -> bool:
+        """Detecta linhas técnicas de tabela de charset/teclado (não traduzir)."""
+        raw = str(text or "")
+        s = re.sub(r"\s+", "", raw)
+        if not s:
+            return False
+        low = s.lower()
+        if "abcdefghijklmnopqrstuvwxyz" in low and "0123456789" in low:
+            return True
+        letters = [ch.lower() for ch in s if ch.isalpha()]
+        digits = [ch for ch in s if ch.isdigit()]
+        if len(s) >= 24 and len(set(letters)) >= 18 and len(set(digits)) >= 6:
+            return True
+        return False
+
+    def _is_llm_refusal_text(self, text: str) -> bool:
+        """Detecta resposta de recusa/meta do modelo para fallback seguro."""
+        low = str(text or "").strip().lower()
+        if not low:
+            return False
+        markers = (
+            "nao posso cumprir esse pedido",
+            "não posso cumprir esse pedido",
+            "nao posso ajudar com esse pedido",
+            "não posso ajudar com esse pedido",
+            "nao posso ajudar com isso",
+            "não posso ajudar com isso",
+            "i can't help with that",
+            "i cannot help with that",
+            "i'm sorry, i can't",
+            "as an ai",
+        )
+        return any(m in low for m in markers)
+
     def _shorten_phrase(self, text: str, max_chars: int) -> str | None:
-        """Encurta sem cortar palavras; remove palavras curtas se necessário."""
+        """Encurta sem cortar palavras: tenta abreviações, depois remove curtas."""
         if max_chars <= 0:
             return None
+        text = self._apply_short_style_sanitization(str(text or ""))
         words = [w for w in text.split() if w]
         if not words:
             return None
         joined = " ".join(words)
         if len(joined) <= max_chars:
             return joined
-        # Remove palavras curtas primeiro
-        filtered = [w for w in words if w.upper() not in self._short_words]
+
+        # Tenta substituir palavras longas por abreviações
+        abbrev_words = [
+            self._abbrev_map.get(w.upper(), w) for w in words
+        ]
+        joined_abbrev = " ".join(abbrev_words)
+        if len(joined_abbrev) <= max_chars:
+            return joined_abbrev
+
+        # Remove palavras curtas (artigos/preposições)
+        filtered = [w for w in abbrev_words if w.upper() not in self._short_words]
         if filtered:
             joined2 = " ".join(filtered)
             if len(joined2) <= max_chars:
                 return joined2
-        # Fallback: adiciona até caber
+
+        # Fallback: adiciona palavras até caber
         out = ""
-        for w in words:
+        for w in abbrev_words:
             if not out:
                 if len(w) > max_chars:
                     return None
@@ -2010,63 +2932,79 @@ class TilemapWorker(QThread):
                 break
         return out if out else None
 
-    def _translate_with_gemini(self, text: str) -> str:
+    def _translate_with_gemini(self, text: str, max_chars: int = 0) -> str | None:
+        """Retorna tradução ou None em falha (permite fallback para NLLB)."""
         if not gemini_api or not gemini_api.GENAI_AVAILABLE:
-            return text
+            return None
+        prompt_text = str(text or "")
+        if max_chars > 0:
+            prompt_text = (
+                f"Traduza para {self.target_language} com limite máximo de {max_chars} caracteres. "
+                "Se necessário, abrevie sem perder o sentido. "
+                "Responda SOMENTE com a tradução final.\n"
+                f"TEXTO: {prompt_text}"
+            )
         translations, success, error_msg = gemini_api.translate_batch(
-            [text], self.api_key, self.target_language, 120.0
+            [prompt_text], self.api_key, self.target_language, 120.0
         )
         if not success or not translations:
             if error_msg:
                 self.log_signal.emit(f"[WARN] Gemini: {error_msg}")
-            return text
+                if "quota" in error_msg.lower() or "limite diario" in error_msg.lower():
+                    self._gemini_quota_hit = True
+            return None
         return str(translations[0]).strip()
 
-    def _translate_with_ollama(self, text: str, max_chars: int) -> str:
-        if not REQUESTS_AVAILABLE:
-            return text
-        limit_line = (
-            f"- Limite máximo: {max_chars} caracteres.\n" if max_chars > 0 else ""
-        )
-        prompt = (
-            "Você é um tradutor profissional. Traduza para português brasileiro.\n"
-            f"{limit_line}"
-            "- Não explique.\n"
-            "- Não adicione texto extra.\n"
-            "- Não use aspas.\n"
-            "- Não altere tokens no formato __SPN__ ou __CODEN__.\n"
-            "- Responda SOMENTE com a tradução.\n\n"
-            f"{text}"
-        )
+    def _translate_with_nllb(self, text: str, max_chars: int = 0) -> str:
+        raw_text = str(text or "")
+        cache_key = (raw_text, int(max_chars or 0))
+        cached = self._nllb_cache.get(cache_key)
+        if cached is not None:
+            self._nllb_cache_hits += 1
+            return cached
+
         try:
-            resp = requests.post(
-                "http://127.0.0.1:11434/api/generate",
-                json={
-                    "model": self.model,
-                    "prompt": prompt,
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.2,
-                        "num_predict": 512,
-                        "num_ctx": 2048,
-                    },
-                },
-                timeout=180,
+            result, success, error_msg = _translate_batch_with_nllb(
+                [raw_text], self.target_language
             )
-            if resp.status_code != 200:
-                return text
-            out = resp.json().get("response", "").strip()
-            if out.startswith(("\"", "“")) and out.endswith(("\"", "”")):
-                out = out[1:-1].strip()
-            return out
-        except Exception:
-            return text
+            if success and result:
+                out = str(result[0]).strip()
+                if max_chars > 0 and len(out) > max_chars:
+                    out = self._trim_to_max(out, max_chars)
+                if len(self._nllb_cache) >= 8000:
+                    self._nllb_cache.pop(next(iter(self._nllb_cache)))
+                self._nllb_cache[cache_key] = out
+                return out
+            if error_msg:
+                self.log_signal.emit(f"[WARN] NLLB: {error_msg}")
+            if len(self._nllb_cache) >= 8000:
+                self._nllb_cache.pop(next(iter(self._nllb_cache)))
+            self._nllb_cache[cache_key] = raw_text
+            return raw_text
+        except Exception as e:
+            self.log_signal.emit(f"[WARN] NLLB: {_sanitize_error(e)}")
+            if len(self._nllb_cache) >= 8000:
+                self._nllb_cache.pop(next(iter(self._nllb_cache)))
+            self._nllb_cache[cache_key] = raw_text
+            return raw_text
 
     def _translate_text(self, text: str, max_chars: int) -> tuple[str, str]:
-        """Traduz um texto e retorna (tradução, engine)."""
-        if self.prefer_gemini and self.api_key:
-            return self._translate_with_gemini(text), "Gemini"
-        return self._translate_with_ollama(text, max_chars), "Ollama"
+        """Traduz um texto e retorna (tradução, engine).
+        Se Gemini atingir quota diária, troca automaticamente para NLLB."""
+        use_gemini = (
+            self.prefer_gemini
+            and self.api_key
+            and not self._gemini_quota_hit
+        )
+        if use_gemini:
+            result = self._translate_with_gemini(text, max_chars=max_chars)
+            if result is not None:
+                return result, "Gemini"
+            # Gemini falhou — se quota atingida, loga troca e usa NLLB.
+            if self._gemini_quota_hit and not self._quota_switch_logged:
+                self.log_signal.emit("🔄 Quota Gemini atingida: continuando com NLLB offline.")
+                self._quota_switch_logged = True
+        return self._translate_with_nllb(text, max_chars), "NLLB"
 
     def _translate_chunked(self, text: str, max_chars: int, chunk_size: int = 200) -> tuple[str, str]:
         """Traduz texto longo em blocos menores para evitar timeout."""
@@ -2095,7 +3033,7 @@ class TilemapWorker(QThread):
             chunks.append(cur)
 
         out = []
-        engine = "Ollama"
+        engine = "NLLB"
         for ch in chunks:
             translated, engine = self._translate_text(ch, max_chars)
             out.append(translated.strip())
@@ -2113,8 +3051,9 @@ class TilemapWorker(QThread):
         return " ".join(dedup).strip(), engine
 
     def _post_fix_text(self, text: str) -> str:
-        """Correções rápidas por CRC (postfix_rules_{CRC32}.json)."""
-        return self._apply_postfix_rules(text)
+        """Correções gramaticais + regras por CRC (postfix_rules_{CRC32}.json)."""
+        out = self._apply_postfix_rules(self._fix_grammar(text))
+        return self._apply_custom_dictionary_replace(out)
 
     def run(self):
         try:
@@ -2122,8 +3061,12 @@ class TilemapWorker(QThread):
                 self.error_signal.emit("Arquivo JSONL não encontrado.")
                 return
 
-            # Carrega entradas tilemap
+            # Carrega entradas JSONL (qualquer encoding, reinsertion_safe=True)
             entries = []
+            raw_total = 0
+            allowed_ids, allowed_offsets = self._load_mapping_filter()
+            mapping_filter_on = bool(allowed_ids or allowed_offsets)
+            filtered_out = 0
             with open(self.input_file, "r", encoding="utf-8", errors="ignore") as f:
                 for line in f:
                     line = line.strip()
@@ -2133,23 +3076,54 @@ class TilemapWorker(QThread):
                         obj = json.loads(line)
                     except json.JSONDecodeError:
                         continue
-                    enc = str(obj.get("encoding", "")).lower()
-                    if enc != "tilemap" or not obj.get("reinsertion_safe", False):
+                    if obj.get("type") == "meta":
+                        continue
+                    raw_total += 1
+                    if not obj.get("reinsertion_safe", False):
                         continue
                     text = obj.get("text_src") or obj.get("text") or ""
                     if not isinstance(text, str) or not text.strip():
                         continue
+                    if mapping_filter_on:
+                        key_id = str(obj.get("id")) if obj.get("id") is not None else ""
+                        off_raw = obj.get("offset", obj.get("rom_offset"))
+                        off_fmt = ""
+                        if isinstance(off_raw, int):
+                            off_fmt = f"0x{int(off_raw):06X}"
+                        elif isinstance(off_raw, str):
+                            try:
+                                off_i = int(off_raw, 16) if off_raw.lower().startswith("0x") else int(off_raw)
+                                off_fmt = f"0x{int(off_i):06X}"
+                            except ValueError:
+                                off_fmt = ""
+                        if key_id not in allowed_ids and off_fmt not in allowed_offsets:
+                            filtered_out += 1
+                            continue
                     entries.append(obj)
 
             if not entries:
-                self.error_signal.emit("Nenhum texto tilemap válido encontrado.")
+                self.error_signal.emit("Nenhum texto válido encontrado no JSONL.")
                 return
 
             total = len(entries)
             self.log_signal.emit(f"[CFG] input_path={self.input_file} lines_count={total}")
             self.log_signal.emit(
-                f"🧩 Tilemap: {total} textos | Tradução direta via JSONL"
+                f"🧩 JSONL: {total} textos seguros para tradução"
             )
+            if mapping_filter_on:
+                self.log_signal.emit(
+                    f"🧩 Filtro mapping ativo: {total}/{raw_total} entradas (ignoradas: {filtered_out})"
+                )
+            if self._auto_translate and (
+                (not self.prefer_gemini) or (not self.api_key)
+            ):
+                self.status_signal.emit("Carregando NLLB offline...")
+                self.log_signal.emit("[INFO] Carregando motor NLLB offline...")
+                try:
+                    _load_nllb_runtime()
+                    self.log_signal.emit("[OK] NLLB offline pronto.")
+                except Exception as exc:
+                    self.log_signal.emit(f"[WARN] NLLB preload falhou: {_sanitize_error(exc)}")
 
             # Define saída
             output_file = self.input_file
@@ -2160,132 +3134,423 @@ class TilemapWorker(QThread):
             else:
                 output_file = output_file + "_translated.jsonl"
 
+            def _norm_offset(value) -> str:
+                if isinstance(value, int):
+                    return f"0x{int(value):06X}"
+                if isinstance(value, str):
+                    s = value.strip()
+                    if not s:
+                        return ""
+                    try:
+                        n = int(s, 16) if s.lower().startswith("0x") else int(s)
+                        return f"0x{int(n):06X}"
+                    except ValueError:
+                        return ""
+                return ""
+
+            def _entry_key(item: dict) -> str:
+                if item.get("id") is not None:
+                    return f"id:{item.get('id')}"
+                off = _norm_offset(item.get("offset", item.get("rom_offset")))
+                return f"off:{off}" if off else ""
+
+            def _deterministic_signature(item: dict) -> str:
+                """Assinatura estável por entrada para lock determinístico."""
+                try:
+                    src = self._normalize_nfc_text(item.get("text_src") or item.get("text") or "")
+                    enc = str(item.get("encoding", "") or "").lower().strip()
+                    max_len = int(item.get("max_len_bytes") or item.get("max_len") or 0)
+                    payload = {
+                        "crc32": str(self._crc_tag or ""),
+                        "target_language": str(self.target_language or ""),
+                        "entry_key": _entry_key(item),
+                        "encoding": enc,
+                        "max_len_bytes": int(max_len),
+                        "text_src": src,
+                    }
+                    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+                    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+                except Exception:
+                    return ""
+
+            deterministic_lock_mode = bool(self._deterministic_lock_mode)
+            lock_crc = str(self._crc_tag or self._extract_crc_from_filename(output_file) or "GLOBAL")
+            lock_path = Path(output_file).with_name(f"{lock_crc}_deterministic_lock.json")
+            lock_entries: dict[str, dict] = {}
+            if deterministic_lock_mode and lock_path.exists():
+                try:
+                    with lock_path.open("r", encoding="utf-8", errors="ignore") as lf:
+                        lock_data = json.load(lf)
+                    if isinstance(lock_data, dict):
+                        raw_entries = lock_data.get("entries", {})
+                        if isinstance(raw_entries, dict):
+                            lock_entries = {
+                                str(sig): row
+                                for sig, row in raw_entries.items()
+                                if isinstance(sig, str) and isinstance(row, dict)
+                            }
+                except Exception as e:
+                    self.log_signal.emit(
+                        f"[WARN] Lock determinístico inválido: {_sanitize_error(e)}"
+                    )
+                    lock_entries = {}
+            if deterministic_lock_mode:
+                self.log_signal.emit(
+                    f"🔒 Modo determinístico: {'ON' if deterministic_lock_mode else 'OFF'} ({lock_path.name})"
+                )
+                if lock_entries:
+                    self.log_signal.emit(
+                        f"🔒 Lock carregado: {len(lock_entries)} entradas"
+                    )
+
+            def _lock_upsert(signature: str, out_obj: dict) -> None:
+                if not deterministic_lock_mode or not signature:
+                    return
+                txt = (
+                    out_obj.get("translated_text")
+                    or out_obj.get("text_dst")
+                    or ""
+                )
+                if not isinstance(txt, str) or not txt.strip():
+                    return
+                try:
+                    charset_fb = int(out_obj.get("charset_fallback_chars", 0) or 0)
+                except (TypeError, ValueError):
+                    charset_fb = 0
+                lock_entries[str(signature)] = {
+                    "translated_text": str(txt),
+                    "layout_fingerprint": (
+                        out_obj.get("layout_fingerprint")
+                        if isinstance(out_obj.get("layout_fingerprint"), dict)
+                        else {}
+                    ),
+                    "alignment_mode": str(out_obj.get("alignment_mode", "LEFT")),
+                    "needs_review": bool(out_obj.get("needs_review", False)),
+                    "charset_fallback_chars": int(charset_fb),
+                    "entry_key": _entry_key(out_obj),
+                    "updated_at": datetime.now().isoformat(),
+                }
+
+            # Retomada automática: reaproveita traduções já presentes no arquivo parcial.
+            # Em modo offline (NLLB), desativa retomada para evitar manter traduções ruins antigas.
+            allow_resume_cache = bool(self._auto_translate_missing_only)
+            if allow_resume_cache and self._auto_translate and (not self.prefer_gemini or not self.api_key):
+                allow_resume_cache = False
+                self.log_signal.emit(
+                    "↩ Retomada desativada no modo offline para priorizar qualidade da retradução."
+                )
+            resume_cache: dict[str, dict] = {}
+            if allow_resume_cache and os.path.exists(output_file):
+                try:
+                    with open(output_file, "r", encoding="utf-8", errors="ignore") as prev_f:
+                        for prev_line in prev_f:
+                            prev_line = prev_line.strip()
+                            if not prev_line:
+                                continue
+                            try:
+                                prev_obj = json.loads(prev_line)
+                            except json.JSONDecodeError:
+                                continue
+                            if prev_obj.get("type") == "meta":
+                                continue
+                            prev_text = (
+                                prev_obj.get("translated_text")
+                                or prev_obj.get("text_dst")
+                                or ""
+                            )
+                            if not isinstance(prev_text, str) or not prev_text.strip():
+                                continue
+                            key = _entry_key(prev_obj)
+                            if key:
+                                resume_cache[key] = prev_obj
+                except Exception:
+                    resume_cache = {}
+
+            if resume_cache:
+                self.log_signal.emit(
+                    f"↩ Retomada: {len(resume_cache)} itens já traduzidos encontrados em {Path(output_file).name}"
+                )
+            if self._auto_translate_missing_only and allow_resume_cache:
+                self.log_signal.emit("🧩 auto_translate_missing_only=ON (só pendentes serão traduzidos).")
+            elif self._auto_translate_missing_only and not allow_resume_cache:
+                self.log_signal.emit("🧩 auto_translate_missing_only=ON, mas retomada do arquivo foi ignorada neste modo.")
+            if not self._auto_translate:
+                self.log_signal.emit("⚠️ auto_translate=OFF (mantendo texto original com dicionário customizado).")
+
             translated_out = []
+            resumed_count = 0
+            translated_now = 0
+            locked_count = 0
             for i, obj in enumerate(entries):
                 if not self._is_running:
                     self.log_signal.emit("[WARN] Tradução interrompida pelo usuário.")
                     break
 
-                text_src = obj.get("text_src") or obj.get("text") or ""
+                entry_key = _entry_key(obj)
+                det_sig = _deterministic_signature(obj)
+                if deterministic_lock_mode and det_sig:
+                    locked = lock_entries.get(det_sig)
+                    if isinstance(locked, dict):
+                        reused = (
+                            locked.get("translated_text")
+                            or locked.get("text_dst")
+                            or ""
+                        )
+                        if isinstance(reused, str) and reused.strip():
+                            out_obj = dict(obj)
+                            out_obj["text_dst"] = reused
+                            out_obj["translated_text"] = reused
+                            out_obj["layout_fingerprint"] = (
+                                locked.get("layout_fingerprint")
+                                if isinstance(locked.get("layout_fingerprint"), dict)
+                                else {}
+                            )
+                            out_obj["alignment_mode"] = str(
+                                locked.get("alignment_mode", "LEFT")
+                            )
+                            out_obj["needs_review"] = bool(locked.get("needs_review", False))
+                            try:
+                                out_obj["charset_fallback_chars"] = int(
+                                    locked.get("charset_fallback_chars", 0) or 0
+                                )
+                            except (TypeError, ValueError):
+                                out_obj["charset_fallback_chars"] = 0
+                            translated_out.append(json.dumps(out_obj, ensure_ascii=False))
+                            resumed_count += 1
+                            locked_count += 1
+                            percent = int(((i + 1) / total) * 100)
+                            self.progress_signal.emit(percent)
+                            self.status_signal.emit(
+                                f"Determinístico (lock)... {percent}%"
+                            )
+                            continue
+
+                cached = resume_cache.get(entry_key) if entry_key else None
+                if isinstance(cached, dict):
+                    reused = (
+                        cached.get("translated_text")
+                        or cached.get("text_dst")
+                        or ""
+                    )
+                    if isinstance(reused, str) and reused.strip():
+                        out_obj = dict(obj)
+                        out_obj["text_dst"] = reused
+                        out_obj["translated_text"] = reused
+                        out_obj["layout_fingerprint"] = (
+                            cached.get("layout_fingerprint")
+                            if isinstance(cached.get("layout_fingerprint"), dict)
+                            else {}
+                        )
+                        out_obj["alignment_mode"] = str(
+                            cached.get("alignment_mode", "LEFT")
+                        )
+                        out_obj["needs_review"] = bool(cached.get("needs_review", False))
+                        try:
+                            out_obj["charset_fallback_chars"] = int(
+                                cached.get("charset_fallback_chars", 0) or 0
+                            )
+                        except (TypeError, ValueError):
+                            out_obj["charset_fallback_chars"] = 0
+                        _lock_upsert(det_sig, out_obj)
+                        translated_out.append(json.dumps(out_obj, ensure_ascii=False))
+                        resumed_count += 1
+                        percent = int(((i + 1) / total) * 100)
+                        self.progress_signal.emit(percent)
+                        self.status_signal.emit(
+                            f"Retomando tradução... {percent}%"
+                        )
+                        continue
+
+                if self._auto_translate_missing_only:
+                    existing_text = (
+                        obj.get("translated_text")
+                        or obj.get("text_dst")
+                        or obj.get("translation")
+                        or obj.get("translated")
+                        or ""
+                    )
+                    if isinstance(existing_text, str) and existing_text.strip():
+                        reused = self._apply_custom_dictionary_replace(existing_text.strip())
+                        out_obj = dict(obj)
+                        out_obj["text_dst"] = reused
+                        out_obj["translated_text"] = reused
+                        out_obj["layout_fingerprint"] = (
+                            out_obj.get("layout_fingerprint")
+                            if isinstance(out_obj.get("layout_fingerprint"), dict)
+                            else {}
+                        )
+                        out_obj["alignment_mode"] = str(out_obj.get("alignment_mode", "LEFT"))
+                        out_obj["needs_review"] = bool(out_obj.get("needs_review", False))
+                        out_obj["charset_fallback_chars"] = int(
+                            out_obj.get("charset_fallback_chars", 0) or 0
+                        )
+                        _lock_upsert(det_sig, out_obj)
+                        translated_out.append(json.dumps(out_obj, ensure_ascii=False))
+                        resumed_count += 1
+                        percent = int(((i + 1) / total) * 100)
+                        self.progress_signal.emit(percent)
+                        self.status_signal.emit(
+                            f"Aproveitando tradução existente... {percent}%"
+                        )
+                        continue
+
+                text_src = self._normalize_nfc_text(obj.get("text_src") or obj.get("text") or "")
+                enc = str(obj.get("encoding", "")).lower()
+                is_ascii = enc != "tilemap"
                 max_len_bytes = int(obj.get("max_len_bytes") or obj.get("max_len") or 0)
-                max_chars = max_len_bytes // 2 if max_len_bytes else 0
+                # ASCII: 1 byte/char — tilemap: 2 bytes/tile
+                max_chars = max_len_bytes if (is_ascii and max_len_bytes) else (max_len_bytes // 2 if max_len_bytes else 0)
                 source_tag = str(obj.get("source", "")).lower()
 
-                width = self._infer_tilemap_width(text_src, max_chars)
-                lines_src = self._chunk_lines(text_src, width) if width else [text_src]
-                total_lines = len(lines_src)
-                layout_fp = self._build_layout_fingerprint(lines_src, width)
-                alignment_mode = layout_fp.get("alignment_mode", "LEFT")
                 needs_review = False
                 fallback_count = 0
+                layout_fp = {}
+                alignment_mode = "LEFT"
 
-                # Modo colunas (créditos/colunas detectadas)
-                if alignment_mode == "COLUMNS":
-                    out_lines = [self._translate_credits_line(ln, width) for ln in lines_src]
-                    sanitized = "".join(out_lines)
-                    engine = "FIXED"
-                # Modo centralizado
-                elif alignment_mode == "CENTER":
-                    plain = " ".join([ln.strip() for ln in lines_src if ln.strip()])
-                    plain = re.sub(r"\\s+", " ", plain).strip()
-                    safe_text, codes = self._protect_codes(plain.lower())
-                    translated, engine = self._translate_chunked(safe_text, max_chars, chunk_size=180)
-                    translated = self._restore_tokens(translated, codes)
-                    translated = self._post_fix_text(translated)
-                    translated, fallback_count = self._sanitize_tilemap_with_fallback(translated)
-                    wrapped = self._wrap_to_lines(translated, width, total_lines, left_pad=0)
-                    if wrapped is None:
-                        short_txt = self._shorten_phrase(translated, width * total_lines)
-                        if short_txt:
-                            wrapped = self._wrap_to_lines(short_txt, width, total_lines, left_pad=0)
-                    if wrapped is None:
-                        needs_review = True
-                        sanitized = "".join(lines_src)
+                # Modo sem tradução automática: mantém fonte com dicionário customizado.
+                if not self._auto_translate:
+                    sanitized = self._apply_custom_dictionary_replace(str(text_src or ""))
+                    engine = "AUTO_TRANSLATE_OFF"
+                    if is_ascii:
+                        sanitized = self._apply_short_style_sanitization(sanitized.strip())
+                        if max_chars > 0 and len(sanitized) > max_chars:
+                            compacted = self._shorten_phrase(sanitized, max_chars)
+                            sanitized = compacted if compacted else self._trim_to_max(sanitized, max_chars)
                     else:
-                        out_lines = [ln.center(width) for ln in wrapped]
-                        sanitized = "".join(out_lines)
-                # Modo curto: usa dicionário (menus e linhas pequenas)
-                elif "menu" in source_tag or max_chars <= 30:
-                    out_lines = []
-                    for ln in lines_src:
-                        if not ln.strip():
-                            out_lines.append(" " * width)
-                            continue
-                        left_pad = len(ln) - len(ln.lstrip(" "))
-                        seg = ln.strip()
-                        trans = self._translate_short_phrase(seg)
-                        trans, fb = self._sanitize_tilemap_with_fallback(trans)
+                        sanitized, fb = self._sanitize_tilemap_with_fallback(sanitized)
                         fallback_count += fb
-                        avail = max(1, width - left_pad)
-                        if len(trans) > avail:
-                            short_txt = self._shorten_phrase(trans, avail)
-                            if short_txt:
-                                trans = short_txt
-                            else:
+                        if max_chars > 0:
+                            sanitized = sanitized.ljust(max_chars)[:max_chars]
+                # Entradas ASCII puro: tradução direta sem lógica de tilemap
+                elif is_ascii:
+                    if self._is_charset_table_like_text(text_src):
+                        sanitized = text_src.strip()
+                        engine = "KEEP_SRC_CHARSET"
+                    else:
+                        fixed_short = self._lookup_short_map_exact(text_src)
+                        if fixed_short is not None:
+                            translated = fixed_short
+                            engine = "FIXED_ASCII"
+                        else:
+                            safe_text, codes = self._protect_codes(text_src)
+                            translated, engine = self._translate_chunked(safe_text, max_chars, chunk_size=200)
+                            translated = self._restore_tokens(translated, codes)
+                            translated = self._post_fix_text(translated)
+                        sanitized = self._apply_short_style_sanitization(translated.strip())
+                        if self._is_llm_refusal_text(sanitized):
+                            sanitized = text_src
+                            needs_review = True
+                            engine = "FALLBACK_SRC_REFUSAL"
+                        if max_chars > 0 and len(sanitized) > max_chars:
+                            compacted = self._shorten_phrase(sanitized, max_chars)
+                            trimmed = compacted if compacted else self._trim_to_max(sanitized, max_chars)
+                            # Se o corte ainda ficou no meio de uma palavra → mantém original
+                            remaining = sanitized[len(trimmed):]
+                            if trimmed and trimmed[-1].isalpha() and remaining and remaining[0].isalpha():
+                                sanitized = text_src
                                 needs_review = True
-                                trans = seg
-                        out_lines.append((" " * left_pad + trans).ljust(width)[:width])
-                    sanitized = "".join(out_lines)
-                    engine = "FIXED"
+                            else:
+                                sanitized = trimmed
                 else:
-                    # Tradução por blocos (preserva linhas em branco)
-                    out_lines = []
-                    idx = 0
-                    while idx < total_lines:
-                        ln = lines_src[idx]
-                        if not ln.strip():
-                            out_lines.append(" " * width)
-                            idx += 1
-                            continue
-                        # bloco contínuo de linhas não vazias
-                        j = idx
-                        while j < total_lines and lines_src[j].strip():
-                            j += 1
-                        block_lines = lines_src[idx:j]
-                        pads = [len(bl) - len(bl.lstrip(" ")) for bl in block_lines]
-                        mask = [bool(bl.strip()) for bl in block_lines]
-                        plain = " ".join([bl.strip() for bl in block_lines if bl.strip()])
-                        plain = re.sub(r"\\s+", " ", plain).strip()
-                        plain_for_translate = plain.lower()
+                    # Lógica tilemap (SNES/SMS-tilemap): setup de layout
+                    width = self._infer_tilemap_width(text_src, max_chars)
+                    lines_src = self._chunk_lines(text_src, width) if width else [text_src]
+                    total_lines = len(lines_src)
+                    layout_fp = self._build_layout_fingerprint(lines_src, width)
+                    alignment_mode = layout_fp.get("alignment_mode", "LEFT")
 
-                        safe_text, codes = self._protect_codes(plain_for_translate)
-                        translated, engine = self._translate_chunked(safe_text, max_chars, chunk_size=180)
-                        translated = self._restore_tokens(translated, codes)
-                        translated = self._post_fix_text(translated)
-                        translated, fb = self._sanitize_tilemap_with_fallback(translated)
-                        fallback_count += fb
+                    if "menu" in source_tag or max_chars <= 30:
+                        # Tilemap modo curto: menus e linhas pequenas
+                        out_lines = []
+                        for ln in lines_src:
+                            if not ln.strip():
+                                out_lines.append(" " * width)
+                                continue
+                            left_pad = len(ln) - len(ln.lstrip(" "))
+                            seg = ln.strip()
+                            trans = self._translate_short_phrase(seg)
+                            trans, fb = self._sanitize_tilemap_with_fallback(trans)
+                            fallback_count += fb
+                            avail = max(1, width - left_pad)
+                            if len(trans) > avail:
+                                short_txt = self._shorten_phrase(trans, avail)
+                                if short_txt:
+                                    trans = short_txt
+                                else:
+                                    needs_review = True
+                                    trans = seg
+                            out_lines.append((" " * left_pad + trans).ljust(width)[:width])
+                        sanitized = "".join(out_lines)
+                        engine = "FIXED"
+                    else:
+                        # Tilemap: tradução por blocos (preserva linhas em branco)
+                        out_lines = []
+                        idx = 0
+                        while idx < total_lines:
+                            ln = lines_src[idx]
+                            if not ln.strip():
+                                out_lines.append(" " * width)
+                                idx += 1
+                                continue
+                            j = idx
+                            while j < total_lines and lines_src[j].strip():
+                                j += 1
+                            block_lines = lines_src[idx:j]
+                            pads = [len(bl) - len(bl.lstrip(" ")) for bl in block_lines]
+                            mask = [bool(bl.strip()) for bl in block_lines]
+                            plain = " ".join([bl.strip() for bl in block_lines if bl.strip()])
+                            plain = re.sub(r"\\s+", " ", plain).strip()
+                            safe_text, codes = self._protect_codes(plain.lower())
+                            translated, engine = self._translate_chunked(safe_text, max_chars, chunk_size=180)
+                            translated = self._restore_tokens(translated, codes)
+                            translated = self._post_fix_text(translated)
+                            translated, fb = self._sanitize_tilemap_with_fallback(translated)
+                            fallback_count += fb
+                            wrapped = self._wrap_to_lines_variable(translated, width, pads, mask)
+                            if wrapped is None:
+                                short_txt = self._shorten_phrase(translated, width * len(pads))
+                                if short_txt:
+                                    wrapped = self._wrap_to_lines_variable(short_txt, width, pads, mask)
+                            if wrapped is None:
+                                needs_review = True
+                                out_lines.extend(block_lines)
+                            else:
+                                out_lines.extend(wrapped)
+                            idx = j
+                        sanitized = "".join(out_lines)
+                        if fallback_count == 0:
+                            sanitized, fb = self._sanitize_tilemap_with_fallback(sanitized)
+                            fallback_count += fb
+                        # Garante tamanho final (tilemap)
+                        if max_chars > 0:
+                            if len(sanitized) < max_chars:
+                                sanitized = sanitized.ljust(max_chars)
+                            elif len(sanitized) > max_chars:
+                                extra = len(sanitized) - max_chars
+                                if extra > 0 and sanitized[-extra:].strip() == "":
+                                    sanitized = sanitized[:max_chars]
+                                else:
+                                    needs_review = True
+                                    fallback_src = "".join(lines_src)
+                                    fallback_src, _ = self._sanitize_tilemap_with_fallback(fallback_src)
+                                    sanitized = fallback_src.ljust(max_chars)[:max_chars]
 
-                        wrapped = self._wrap_to_lines_variable(translated, width, pads, mask)
-                        if wrapped is None:
-                            short_txt = self._shorten_phrase(translated, width * len(pads))
-                            if short_txt:
-                                wrapped = self._wrap_to_lines_variable(short_txt, width, pads, mask)
-                        if wrapped is None:
-                            needs_review = True
-                            out_lines.extend(block_lines)
-                        else:
-                            out_lines.extend(wrapped)
-                        idx = j
-
-                    sanitized = "".join(out_lines)
-
-                if fallback_count == 0:
-                    sanitized, fb = self._sanitize_tilemap_with_fallback(sanitized)
-                    fallback_count += fb
-
-                # Garante tamanho final
-                if max_chars > 0:
-                    if len(sanitized) < max_chars:
-                        sanitized = sanitized.ljust(max_chars)
-                    elif len(sanitized) > max_chars:
-                        extra = len(sanitized) - max_chars
-                        if extra > 0 and sanitized[-extra:].strip() == "":
-                            sanitized = sanitized[:max_chars]
-                        else:
-                            needs_review = True
-                            fallback_src = "".join(lines_src)
-                            fallback_src, _ = self._sanitize_tilemap_with_fallback(fallback_src)
-                            sanitized = fallback_src.ljust(max_chars)[:max_chars]
+                # Validação estrita final por entrada do JSONL.
+                # Evita overflow de caixa/slot mesmo com saída longa do modelo.
+                sanitized, strict_changed = self._enforce_jsonl_max_length(
+                    sanitized,
+                    max_len_bytes=max_len_bytes,
+                    is_ascii=is_ascii,
+                )
+                if strict_changed:
+                    needs_review = True
+                sanitized, control_changed = self._ensure_control_tokens_integrity(
+                    text_src,
+                    sanitized,
+                )
+                if control_changed:
+                    needs_review = True
+                sanitized = self._normalize_nfc_text(sanitized)
 
                 out_obj = dict(obj)
                 out_obj["text_dst"] = sanitized
@@ -2294,7 +3559,9 @@ class TilemapWorker(QThread):
                 out_obj["alignment_mode"] = alignment_mode
                 out_obj["needs_review"] = bool(needs_review)
                 out_obj["charset_fallback_chars"] = int(fallback_count)
+                _lock_upsert(det_sig, out_obj)
                 translated_out.append(json.dumps(out_obj, ensure_ascii=False))
+                translated_now += 1
 
                 percent = int(((i + 1) / total) * 100)
                 self.progress_signal.emit(percent)
@@ -2303,6 +3570,35 @@ class TilemapWorker(QThread):
 
             with open(output_file, "w", encoding="utf-8") as f:
                 f.write("\n".join(translated_out))
+
+            if deterministic_lock_mode:
+                try:
+                    lock_payload = {
+                        "version": 1,
+                        "crc32": str(lock_crc),
+                        "target_language": str(self.target_language or ""),
+                        "entries": lock_entries,
+                    }
+                    with lock_path.open("w", encoding="utf-8") as lf:
+                        json.dump(lock_payload, lf, ensure_ascii=False, indent=2)
+                    self.log_signal.emit(
+                        f"🔒 Lock determinístico salvo: {len(lock_entries)} entradas ({lock_path.name})"
+                    )
+                except Exception as e:
+                    self.log_signal.emit(
+                        f"[WARN] Falha ao salvar lock determinístico: {_sanitize_error(e)}"
+                    )
+
+            if resumed_count:
+                self.log_signal.emit(
+                    f"↩ Retomada aplicada: {resumed_count} reaproveitados, {translated_now} novos."
+                )
+            if deterministic_lock_mode and locked_count:
+                self.log_signal.emit(
+                    f"🔒 Reuso determinístico: {locked_count} entradas travadas."
+                )
+            if self._nllb_cache_hits:
+                self.log_signal.emit(f"[STATS] NLLB cache hits: {self._nllb_cache_hits}")
 
             self.finished_signal.emit(output_file)
 
@@ -4523,6 +5819,26 @@ class ReinsertionWorker(QThread):
 
             # Cria reinsertor
             reinserter = SegaReinserter(self.rom_path)
+            runtime_policy = reinserter.get_runtime_policy()
+            guardrail_warnings = reinserter.get_guardrail_warnings()
+            if guardrail_warnings:
+                self.log_signal.emit(
+                    "⚠️ Guardrails desativados por configuração (pipeline continua por sua conta e risco):"
+                )
+                for warn in guardrail_warnings:
+                    self.log_signal.emit(f"   • {warn}")
+            else:
+                self.log_signal.emit(
+                    "[OK] Guardrails ativos: NFC, tilemap com TBL obrigatório, dicionário prioritário, fallback API e injeção de glifos."
+                )
+            if isinstance(runtime_policy, dict):
+                self.log_signal.emit(
+                    "[CFG] Reinserção: "
+                    f"normalize_nfc={str(bool(runtime_policy.get('normalize_nfc', True))).lower()} | "
+                    f"require_tilemap={str(bool(runtime_policy.get('tilemap_require_tbl', True))).lower()} | "
+                    f"auto_diff_ranges={str(bool(runtime_policy.get('auto_generate_diff_ranges', True))).lower()} | "
+                    f"glyph_font={runtime_policy.get('glyph_font', 'Verdana.ttf')}"
+                )
 
             self.status_signal.emit("Carregando traduções...")
             self.progress_signal.emit(30)
@@ -4569,6 +5885,7 @@ class ReinsertionWorker(QThread):
                 self.log_signal.emit(f"\n{'='*60}")
                 self.log_signal.emit("[OK] REINSERÇÃO SEGA CONCLUÍDA!")
                 self.log_signal.emit(f"{'='*60}")
+                self.log_signal.emit(message)
                 self.log_signal.emit("[STATS] Estatísticas:")
                 self.log_signal.emit(f"   • Inseridos: {reinserter.stats['inserted']}")
                 self.log_signal.emit(f"   • Truncados: {reinserter.stats['truncated']}")
@@ -4768,11 +6085,82 @@ class ProjectConfig:
 
     FONT_FAMILIES = {
         "Padrão (Segoe UI + CJK Fallback)": "Segoe UI, Malgun Gothic, Yu Gothic UI, Microsoft JhengHei UI, sans-serif",
-        "Segoe UI Semilight": "Segoe UI Semilight, Segoe UI, sans-serif",
-        "Malgun Gothic (Korean)": "Malgun Gothic, sans-serif",
-        "Yu Gothic UI (Japanese)": "Yu Gothic UI, Yu Gothic, sans-serif",
-        "Microsoft JhengHei UI (Chinese)": "Microsoft JhengHei UI, Microsoft JhengHei, sans-serif",
         "Arial": "Arial, sans-serif",
+        "Arial Black": "Arial Black, sans-serif",
+        "Bahnschrift": "Bahnschrift, sans-serif",
+        "Bahnschrift Light": "Bahnschrift Light, sans-serif",
+        "Bahnschrift SemiBold": "Bahnschrift SemiBold, sans-serif",
+        "Bahnschrift SemiLight": "Bahnschrift SemiLight, sans-serif",
+        "Caladea": "Caladea, serif",
+        "Calibri": "Calibri, sans-serif",
+        "Calibri Light": "Calibri Light, sans-serif",
+        "Cambria": "Cambria, serif",
+        "Candara": "Candara, sans-serif",
+        "Carlito": "Carlito, sans-serif",
+        "Cascadia Code": "Cascadia Code, monospace",
+        "Cascadia Code Light": "Cascadia Code Light, monospace",
+        "Cascadia Code SemiBold": "Cascadia Code SemiBold, monospace",
+        "Cascadia Mono": "Cascadia Mono, monospace",
+        "Comic Sans MS": "Comic Sans MS, cursive",
+        "Consolas": "Consolas, monospace",
+        "Constantia": "Constantia, serif",
+        "Corbel": "Corbel, sans-serif",
+        "Courier New": "Courier New, monospace",
+        "DejaVu Sans": "DejaVu Sans, sans-serif",
+        "DejaVu Sans Mono": "DejaVu Sans Mono, monospace",
+        "DejaVu Serif": "DejaVu Serif, serif",
+        "Franklin Gothic Medium": "Franklin Gothic Medium, sans-serif",
+        "Gabriola": "Gabriola, cursive",
+        "Georgia": "Georgia, serif",
+        "Heebo": "Heebo, sans-serif",
+        "Impact": "Impact, sans-serif",
+        "Leelawadee UI": "Leelawadee UI, sans-serif",
+        "Liberation Mono": "Liberation Mono, monospace",
+        "Liberation Sans": "Liberation Sans, sans-serif",
+        "Liberation Serif": "Liberation Serif, serif",
+        "Linux Libertine G": "Linux Libertine G, serif",
+        "Lucida Console": "Lucida Console, monospace",
+        "Lucida Sans Unicode": "Lucida Sans Unicode, sans-serif",
+        "Malgun Gothic (Korean)": "Malgun Gothic, sans-serif",
+        "Malgun Gothic Semilight": "Malgun Gothic Semilight, sans-serif",
+        "Microsoft JhengHei UI (Chinese)": "Microsoft JhengHei UI, Microsoft JhengHei, sans-serif",
+        "Microsoft JhengHei UI Light": "Microsoft JhengHei UI Light, sans-serif",
+        "Microsoft Sans Serif": "Microsoft Sans Serif, sans-serif",
+        "Microsoft YaHei": "Microsoft YaHei, sans-serif",
+        "Microsoft YaHei UI": "Microsoft YaHei UI, sans-serif",
+        "MS Gothic": "MS Gothic, sans-serif",
+        "MS PGothic": "MS PGothic, sans-serif",
+        "MS UI Gothic": "MS UI Gothic, sans-serif",
+        "Nirmala UI": "Nirmala UI, sans-serif",
+        "Open Sans": "Open Sans, sans-serif",
+        "Palatino Linotype": "Palatino Linotype, serif",
+        "PT Serif": "PT Serif, serif",
+        "Segoe Print": "Segoe Print, cursive",
+        "Segoe Script": "Segoe Script, cursive",
+        "Segoe UI": "Segoe UI, sans-serif",
+        "Segoe UI Black": "Segoe UI Black, sans-serif",
+        "Segoe UI Light": "Segoe UI Light, sans-serif",
+        "Segoe UI Semibold": "Segoe UI Semibold, sans-serif",
+        "Segoe UI Semilight": "Segoe UI Semilight, Segoe UI, sans-serif",
+        "Segoe UI Variable Display": "Segoe UI Variable Display, sans-serif",
+        "Segoe UI Variable Text": "Segoe UI Variable Text, sans-serif",
+        "SimSun": "SimSun, serif",
+        "Sitka Text": "Sitka Text, serif",
+        "Sitka Heading": "Sitka Heading, serif",
+        "Source Code Pro": "Source Code Pro, monospace",
+        "Source Sans Pro": "Source Sans Pro, sans-serif",
+        "Source Sans Pro Light": "Source Sans Pro Light, sans-serif",
+        "Source Sans Pro Semibold": "Source Sans Pro Semibold, sans-serif",
+        "Sylfaen": "Sylfaen, serif",
+        "Tahoma": "Tahoma, sans-serif",
+        "Times New Roman": "Times New Roman, serif",
+        "Trebuchet MS": "Trebuchet MS, sans-serif",
+        "Unispace": "Unispace, monospace",
+        "Verdana": "Verdana, sans-serif",
+        "Yu Gothic UI (Japanese)": "Yu Gothic UI, Yu Gothic, sans-serif",
+        "Yu Gothic UI Light": "Yu Gothic UI Light, sans-serif",
+        "Yu Gothic UI Semibold": "Yu Gothic UI Semibold, sans-serif",
+        "Yu Gothic UI Semilight": "Yu Gothic UI Semilight, sans-serif",
     }
 
     SOURCE_LANGUAGES = {
@@ -4804,6 +6192,11 @@ class ProjectConfig:
         "한국어 (Korean)": "ko",
         "中文 (Chinese)": "zh",
         "Русский (Russian)": "ru",
+        "العربية (Arabic)": "ar",
+        "हिन्दी (Hindi)": "hi",
+        "Türkçe (Turkish)": "tr",
+        "Polski (Polish)": "pl",
+        "Nederlands (Dutch)": "nl",
     }
     THEMES = {
         "Preto (Black)": {
@@ -4818,12 +6211,19 @@ class ProjectConfig:
             "button": "#444444",
             "accent": "#D4AF37",
         },
+        "Branco (White)": {
+            "window": "#F0F0F0",
+            "text": "#1A1A1A",
+            "button": "#E1E1E1",
+            "accent": "#308CC6",
+        },
     }
 
     # Mapping between internal theme keys and translation keys
     THEME_TRANSLATION_KEYS = {
         "Preto (Black)": "theme_black",
         "Cinza (Gray)": "theme_gray",
+        "Branco (White)": "theme_white",
     }
 
     @classmethod
@@ -5085,11 +6485,82 @@ class ProjectConfig:
 
     FONT_FAMILIES = {
         "Padrão (Segoe UI + CJK Fallback)": "Segoe UI, Malgun Gothic, Yu Gothic UI, Microsoft JhengHei UI, sans-serif",
-        "Segoe UI Semilight": "Segoe UI Semilight, Segoe UI, sans-serif",
-        "Malgun Gothic (Korean)": "Malgun Gothic, sans-serif",
-        "Yu Gothic UI (Japanese)": "Yu Gothic UI, Yu Gothic, sans-serif",
-        "Microsoft JhengHei UI (Chinese)": "Microsoft JhengHei UI, Microsoft JhengHei, sans-serif",
         "Arial": "Arial, sans-serif",
+        "Arial Black": "Arial Black, sans-serif",
+        "Bahnschrift": "Bahnschrift, sans-serif",
+        "Bahnschrift Light": "Bahnschrift Light, sans-serif",
+        "Bahnschrift SemiBold": "Bahnschrift SemiBold, sans-serif",
+        "Bahnschrift SemiLight": "Bahnschrift SemiLight, sans-serif",
+        "Caladea": "Caladea, serif",
+        "Calibri": "Calibri, sans-serif",
+        "Calibri Light": "Calibri Light, sans-serif",
+        "Cambria": "Cambria, serif",
+        "Candara": "Candara, sans-serif",
+        "Carlito": "Carlito, sans-serif",
+        "Cascadia Code": "Cascadia Code, monospace",
+        "Cascadia Code Light": "Cascadia Code Light, monospace",
+        "Cascadia Code SemiBold": "Cascadia Code SemiBold, monospace",
+        "Cascadia Mono": "Cascadia Mono, monospace",
+        "Comic Sans MS": "Comic Sans MS, cursive",
+        "Consolas": "Consolas, monospace",
+        "Constantia": "Constantia, serif",
+        "Corbel": "Corbel, sans-serif",
+        "Courier New": "Courier New, monospace",
+        "DejaVu Sans": "DejaVu Sans, sans-serif",
+        "DejaVu Sans Mono": "DejaVu Sans Mono, monospace",
+        "DejaVu Serif": "DejaVu Serif, serif",
+        "Franklin Gothic Medium": "Franklin Gothic Medium, sans-serif",
+        "Gabriola": "Gabriola, cursive",
+        "Georgia": "Georgia, serif",
+        "Heebo": "Heebo, sans-serif",
+        "Impact": "Impact, sans-serif",
+        "Leelawadee UI": "Leelawadee UI, sans-serif",
+        "Liberation Mono": "Liberation Mono, monospace",
+        "Liberation Sans": "Liberation Sans, sans-serif",
+        "Liberation Serif": "Liberation Serif, serif",
+        "Linux Libertine G": "Linux Libertine G, serif",
+        "Lucida Console": "Lucida Console, monospace",
+        "Lucida Sans Unicode": "Lucida Sans Unicode, sans-serif",
+        "Malgun Gothic (Korean)": "Malgun Gothic, sans-serif",
+        "Malgun Gothic Semilight": "Malgun Gothic Semilight, sans-serif",
+        "Microsoft JhengHei UI (Chinese)": "Microsoft JhengHei UI, Microsoft JhengHei, sans-serif",
+        "Microsoft JhengHei UI Light": "Microsoft JhengHei UI Light, sans-serif",
+        "Microsoft Sans Serif": "Microsoft Sans Serif, sans-serif",
+        "Microsoft YaHei": "Microsoft YaHei, sans-serif",
+        "Microsoft YaHei UI": "Microsoft YaHei UI, sans-serif",
+        "MS Gothic": "MS Gothic, sans-serif",
+        "MS PGothic": "MS PGothic, sans-serif",
+        "MS UI Gothic": "MS UI Gothic, sans-serif",
+        "Nirmala UI": "Nirmala UI, sans-serif",
+        "Open Sans": "Open Sans, sans-serif",
+        "Palatino Linotype": "Palatino Linotype, serif",
+        "PT Serif": "PT Serif, serif",
+        "Segoe Print": "Segoe Print, cursive",
+        "Segoe Script": "Segoe Script, cursive",
+        "Segoe UI": "Segoe UI, sans-serif",
+        "Segoe UI Black": "Segoe UI Black, sans-serif",
+        "Segoe UI Light": "Segoe UI Light, sans-serif",
+        "Segoe UI Semibold": "Segoe UI Semibold, sans-serif",
+        "Segoe UI Semilight": "Segoe UI Semilight, Segoe UI, sans-serif",
+        "Segoe UI Variable Display": "Segoe UI Variable Display, sans-serif",
+        "Segoe UI Variable Text": "Segoe UI Variable Text, sans-serif",
+        "SimSun": "SimSun, serif",
+        "Sitka Text": "Sitka Text, serif",
+        "Sitka Heading": "Sitka Heading, serif",
+        "Source Code Pro": "Source Code Pro, monospace",
+        "Source Sans Pro": "Source Sans Pro, sans-serif",
+        "Source Sans Pro Light": "Source Sans Pro Light, sans-serif",
+        "Source Sans Pro Semibold": "Source Sans Pro Semibold, sans-serif",
+        "Sylfaen": "Sylfaen, serif",
+        "Tahoma": "Tahoma, sans-serif",
+        "Times New Roman": "Times New Roman, serif",
+        "Trebuchet MS": "Trebuchet MS, sans-serif",
+        "Unispace": "Unispace, monospace",
+        "Verdana": "Verdana, sans-serif",
+        "Yu Gothic UI (Japanese)": "Yu Gothic UI, Yu Gothic, sans-serif",
+        "Yu Gothic UI Light": "Yu Gothic UI Light, sans-serif",
+        "Yu Gothic UI Semibold": "Yu Gothic UI Semibold, sans-serif",
+        "Yu Gothic UI Semilight": "Yu Gothic UI Semilight, sans-serif",
     }
 
     SOURCE_LANGUAGES = {
@@ -5121,6 +6592,11 @@ class ProjectConfig:
         "한국어 (Korean)": "ko",
         "中文 (Chinese)": "zh",
         "Русский (Russian)": "ru",
+        "العربية (Arabic)": "ar",
+        "हिन्दी (Hindi)": "hi",
+        "Türkçe (Turkish)": "tr",
+        "Polski (Polish)": "pl",
+        "Nederlands (Dutch)": "nl",
     }
 
     THEMES = {
@@ -5135,6 +6611,12 @@ class ProjectConfig:
             "text": "#EDEDED",
             "button": "#444444",
             "accent": "#D4AF37",
+        },
+        "Branco (White)": {
+            "window": "#F0F0F0",
+            "text": "#1A1A1A",
+            "button": "#E1E1E1",
+            "accent": "#308CC6",
         },
     }
 
@@ -5578,9 +7060,9 @@ class ProjectConfig:
             "tab4": "📥 4. 再挿入",
             "tab5": "⚙️ 5. 設定",
             "platform": "プラットフォーム:",
-            "rom_file": "📂 ROMファイル",
+            "rom_file": "📄 ROMファイル",
             "no_rom": "[WARN] ROM未選択",
-            "select_rom": "📂 ROM選択",
+            "select_rom": "📄 ROM選択",
             "extract_texts": "📄 テキスト抽出",
             "optimize_data": "🧹 データ最適化",
             "extraction_progress": "抽出進行状況",
@@ -5598,7 +7080,7 @@ class ProjectConfig:
             "translation_progress": "翻訳進行状況",
             "translate_ai": "🤖 AIで翻訳",
             "stop_translation": "🛑 翻訳を停止",
-            "original_rom": "📂 オリジナルROM",
+            "original_rom": "📄 オリジナルROM",
             "translated_file": "📄 翻訳済みファイル",
             "select_file": "📄 ファイル選択",
             "output_rom": "💾 翻訳済みROM (出力)",
@@ -6240,11 +7722,11 @@ class ThemeManager:
             color: {text};
         }}
         QComboBox:focus {{
-            border: 2px solid {accent};
+            border: 1px solid {border};
             background: {button};
         }}
         QComboBox:hover {{
-            border: 1px solid {accent};
+            border: 1px solid {border};
         }}
         QComboBox::drop-down {{
             subcontrol-origin: padding;
@@ -6282,16 +7764,16 @@ class ThemeManager:
             padding: 4px 8px;
         }}
         QLineEdit:hover {{
-            border: 1px solid {accent};
+            border: 1px solid {border};
         }}
         QLineEdit:focus {{
-            border: 1px solid {accent};
+            border: 1px solid {border};
         }}
         QAbstractSpinBox:hover {{
-            border: 1px solid {accent};
+            border: 1px solid {border};
         }}
         QAbstractSpinBox:focus {{
-            border: 1px solid {accent};
+            border: 1px solid {border};
         }}
         QLineEdit:disabled {{
             color: {text_disabled};
@@ -6324,8 +7806,8 @@ class ThemeManager:
             border-radius: 4px;
         }}
         QScrollBar::handle:vertical:hover {{
-            background: {accent};
-            border: 1px solid {accent};
+            background: {scroll_handle};
+            border: 1px solid {scroll_handle_border};
         }}
         QScrollBar::add-line:vertical {{
             background: transparent;
@@ -6367,8 +7849,8 @@ class ThemeManager:
             border-radius: 4px;
         }}
         QScrollBar::handle:horizontal:hover {{
-            background: {accent};
-            border: 1px solid {accent};
+            background: {scroll_handle};
+            border: 1px solid {scroll_handle_border};
         }}
         QScrollBar::add-line:horizontal {{
             background: transparent;
@@ -6412,7 +7894,7 @@ class ThemeManager:
         }}
         QPushButton[class="primaryOutline"] {{
             background: {button};
-            border: 2px solid {accent};
+            border: 1px solid {border};
             color: {text};
             font-weight: 600;
         }}
@@ -6453,7 +7935,6 @@ class ThemeManager:
             color: {text_disabled};
         }}
         QTabBar::tab:selected {{
-            border-bottom: 2px solid {accent};
             color: #EDEDED;
         }}
         QTabBar::tab:hover {{
@@ -6467,7 +7948,7 @@ class ThemeManager:
             color: {progress_text};
         }}
         QProgressBar::chunk {{
-            background: {accent};
+            background: {scroll_handle};
             border-radius: 7px;
         }}
         QToolButton {{
@@ -6518,7 +7999,7 @@ class ThemeManager:
             palette.setColor(QPalette.ColorRole.Text, QColor(theme["text"]))
             palette.setColor(QPalette.ColorRole.Button, QColor(theme["button"]))
             palette.setColor(QPalette.ColorRole.ButtonText, QColor(theme["text"]))
-            palette.setColor(QPalette.ColorRole.Highlight, QColor(theme["accent"]))
+            palette.setColor(QPalette.ColorRole.Highlight, QColor("#4A4A4A"))
             palette.setColor(QPalette.ColorRole.HighlightedText, QColor("#ffffff"))
             app.setPalette(palette)
         except Exception:
@@ -6593,6 +8074,363 @@ def _deobfuscate_key(obfuscated: str) -> str:
         return base64.b64decode(obfuscated.encode()).decode()
     except (binascii.Error, UnicodeDecodeError, ValueError):
         return ""
+
+
+# ================================================================================
+# Translation Review Dialog
+# ================================================================================
+class TranslationReviewDialog(QDialog):
+    """Diálogo de revisão e edição da tradução após conclusão."""
+
+    def __init__(
+        self,
+        output_file: str,
+        source_lang: str = "AUTO-DETECTAR",
+        target_lang: str = "Português (PT-BR)",
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.output_file = output_file
+        self.source_lang = source_lang
+        self.target_lang = target_lang
+        self.entries = []
+        self._load_entries()
+        self.setWindowTitle("Revisão da Tradução")
+        self.setMinimumSize(1100, 680)
+        self._init_ui()
+
+    def _load_entries(self):
+        """Carrega entradas do arquivo JSONL ou TXT."""
+        try:
+            if self.output_file.lower().endswith(".jsonl"):
+                with open(self.output_file, encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            try:
+                                self.entries.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                pass
+            else:
+                # Arquivo TXT simples: cada linha é uma entrada
+                with open(self.output_file, encoding="utf-8") as f:
+                    for line in f:
+                        stripped = line.rstrip("\n")
+                        self.entries.append({"text_src": stripped, "text_dst": stripped})
+        except Exception:
+            pass
+
+    def _init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setSpacing(8)
+
+        # Instrução
+        instr = QLabel(
+            "Revise a tradução abaixo. Edite as linhas que precisam de ajuste e clique Salvar."
+        )
+        instr.setWordWrap(True)
+        instr.setStyleSheet("padding:8px; color:#cfcfcf; font-size:13px;")
+        layout.addWidget(instr)
+
+        # Painéis lado a lado
+        panels = QHBoxLayout()
+        panels.setSpacing(8)
+
+        orig_group = QGroupBox("Original (somente leitura)")
+        orig_layout = QVBoxLayout(orig_group)
+        self.orig_text = QPlainTextEdit()
+        self.orig_text.setReadOnly(True)
+        self.orig_text.setStyleSheet(
+            "background:#1e1e1e; color:#aaa; font-family:Consolas,monospace; font-size:12px;"
+        )
+        orig_layout.addWidget(self.orig_text)
+
+        trans_group = QGroupBox("Tradução (editável)")
+        trans_layout = QVBoxLayout(trans_group)
+        self.trans_text = QPlainTextEdit()
+        self.trans_text.setStyleSheet(
+            "background:#1a1a2e; color:#e0e0e0; font-family:Consolas,monospace; font-size:12px;"
+        )
+        trans_layout.addWidget(self.trans_text)
+
+        panels.addWidget(orig_group)
+        panels.addWidget(trans_group)
+        layout.addLayout(panels, stretch=1)
+
+        # Popula os painéis e coleta stats
+        orig_lines = []
+        trans_lines = []
+        translated_count = 0
+        total_count = len(self.entries)
+        orig_chars = 0
+        trans_chars = 0
+
+        for entry in self.entries:
+            orig = entry.get("text_src", "")
+            trans = (
+                entry.get("text_dst")
+                or entry.get("translated_text")
+                or orig
+            )
+            orig_lines.append(orig)
+            trans_lines.append(trans)
+            orig_chars += len(orig)
+            trans_chars += len(trans)
+            if trans and trans.strip() != orig.strip():
+                translated_count += 1
+
+        self.orig_text.setPlainText("\n".join(orig_lines))
+        self.trans_text.setPlainText("\n".join(trans_lines))
+
+        pending = total_count - translated_count
+        pct = (translated_count / total_count * 100) if total_count else 0.0
+
+        # Estatísticas
+        stats_layout = QHBoxLayout()
+        stats_layout.setSpacing(6)
+        stat_style = (
+            "background:#2a2a2a; padding:6px 10px; border-radius:5px;"
+            " color:#cfcfcf; font-size:12px;"
+        )
+        s1 = QLabel(
+            f"{self.source_lang}: {total_count} textos | {orig_chars} caracteres"
+        )
+        s1.setStyleSheet(stat_style)
+        s1.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        s2 = QLabel(
+            f"{self.target_lang}: {total_count} textos | {trans_chars} caracteres"
+        )
+        s2.setStyleSheet(stat_style)
+        s2.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        s3 = QLabel(
+            f"Traduzidos: {translated_count}/{total_count} ({pct:.2f}%) | Pendentes: {pending}"
+        )
+        s3.setStyleSheet(stat_style)
+        s3.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        stats_layout.addWidget(s1)
+        stats_layout.addWidget(s2)
+        stats_layout.addWidget(s3)
+        layout.addLayout(stats_layout)
+
+        # Rodapé de contagem
+        footer = QLabel(
+            f"Original: {total_count} linhas | Tradução: {total_count} linhas"
+        )
+        footer.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        footer.setStyleSheet("color:#666; font-size:11px; padding:2px;")
+        layout.addWidget(footer)
+
+        # Botões
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+
+        save_btn = QPushButton("💾  Salvar Revisão")
+        save_btn.setMinimumHeight(42)
+        save_btn.setStyleSheet(
+            "background:#27ae60; color:white; font-weight:bold;"
+            " border-radius:6px; font-size:13px;"
+        )
+        save_btn.clicked.connect(self._save_review)
+
+        skip_btn = QPushButton("⏭  Pular (usar como está)")
+        skip_btn.setMinimumHeight(42)
+        skip_btn.setStyleSheet(
+            "background:#555; color:#cfcfcf; border-radius:6px; font-size:13px;"
+        )
+        skip_btn.clicked.connect(self.accept)
+
+        btn_layout.addWidget(save_btn)
+        btn_layout.addWidget(skip_btn)
+        layout.addLayout(btn_layout)
+
+    def _save_review(self):
+        """Salva as traduções editadas de volta no arquivo."""
+        trans_lines = self.trans_text.toPlainText().split("\n")
+
+        for i, entry in enumerate(self.entries):
+            new_text = trans_lines[i] if i < len(trans_lines) else ""
+            entry["text_dst"] = new_text
+            if "translated_text" in entry:
+                entry["translated_text"] = new_text
+
+        try:
+            if self.output_file.lower().endswith(".jsonl"):
+                with open(self.output_file, "w", encoding="utf-8", newline="\n") as f:
+                    for entry in self.entries:
+                        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+            else:
+                with open(self.output_file, "w", encoding="utf-8", newline="\n") as f:
+                    for entry in self.entries:
+                        f.write(entry.get("text_dst", "") + "\n")
+            self.accept()
+        except Exception as e:
+            QMessageBox.warning(self, "Erro ao Salvar", f"Não foi possível salvar: {e}")
+
+
+# ================================================================================
+# QA Blocked Review Dialog
+# ================================================================================
+class BlockedQAReviewDialog(QDialog):
+    """Revisão manual das linhas bloqueadas pelo QA do Auto Pipeline."""
+
+    def __init__(self, qa_file: str, parent=None):
+        super().__init__(parent)
+        self.qa_file = qa_file
+        self.entries: list[dict | str] = []
+        self.blocked_refs: list[tuple[int, dict]] = []
+        self.saved_output_file: str = ""
+        self.remaining_blocked: int = 0
+        self._load_entries()
+        self.setWindowTitle("Revisar Linhas Bloqueadas (QA)")
+        self.setMinimumSize(1100, 680)
+        self._init_ui()
+
+    @staticmethod
+    def _is_blocked(obj: dict) -> bool:
+        status = str(obj.get("qa_status", "")).strip().lower()
+        if status == "blocked":
+            return True
+        score_raw = obj.get("qa_score", None)
+        try:
+            if score_raw is None:
+                return False
+            return float(score_raw) < 0.5
+        except (TypeError, ValueError):
+            return False
+
+    def _load_entries(self) -> None:
+        if not self.qa_file or not os.path.exists(self.qa_file):
+            return
+        try:
+            with open(self.qa_file, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    raw = line.rstrip("\n")
+                    if not raw.strip():
+                        self.entries.append("")
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                    except json.JSONDecodeError:
+                        self.entries.append(raw)
+                        continue
+                    idx = len(self.entries)
+                    self.entries.append(obj)
+                    if isinstance(obj, dict) and self._is_blocked(obj):
+                        self.blocked_refs.append((idx, obj))
+        except Exception:
+            self.entries = []
+            self.blocked_refs = []
+
+    def _init_ui(self) -> None:
+        layout = QVBoxLayout(self)
+        layout.setSpacing(8)
+
+        info = QLabel(
+            "Edite apenas as traduções bloqueadas. Cada linha da direita corresponde à linha da esquerda."
+        )
+        info.setWordWrap(True)
+        info.setStyleSheet("padding:8px; color:#cfcfcf; font-size:13px;")
+        layout.addWidget(info)
+
+        stats = QLabel(
+            f"Arquivo: {os.path.basename(self.qa_file)} | Bloqueadas: {len(self.blocked_refs)}"
+        )
+        stats.setStyleSheet("color:#9a9a9a; font-size:11px; padding:2px;")
+        layout.addWidget(stats)
+
+        panels = QHBoxLayout()
+        panels.setSpacing(8)
+
+        orig_group = QGroupBox("Original (somente leitura)")
+        orig_layout = QVBoxLayout(orig_group)
+        self.orig_text = QPlainTextEdit()
+        self.orig_text.setReadOnly(True)
+        self.orig_text.setStyleSheet(
+            "background:#1e1e1e; color:#c0c0c0; font-family:Consolas,monospace; font-size:12px;"
+        )
+        orig_layout.addWidget(self.orig_text)
+
+        edit_group = QGroupBox("Nova tradução (editável)")
+        edit_layout = QVBoxLayout(edit_group)
+        self.edit_text = QPlainTextEdit()
+        self.edit_text.setStyleSheet(
+            "background:#1a1a2e; color:#f0f0f0; font-family:Consolas,monospace; font-size:12px;"
+        )
+        edit_layout.addWidget(self.edit_text)
+
+        panels.addWidget(orig_group)
+        panels.addWidget(edit_group)
+        layout.addLayout(panels, stretch=1)
+
+        original_lines: list[str] = []
+        current_lines: list[str] = []
+        for n, (_idx, obj) in enumerate(self.blocked_refs, start=1):
+            src = str(obj.get("text_src") or obj.get("text") or "")
+            cur = str(
+                obj.get("translated_text")
+                or obj.get("text_dst")
+                or src
+            )
+            original_lines.append(f"[{n}] {src}")
+            current_lines.append(cur)
+
+        self.orig_text.setPlainText("\n".join(original_lines))
+        self.edit_text.setPlainText("\n".join(current_lines))
+
+        btns = QHBoxLayout()
+        btns.setSpacing(10)
+        self.apply_btn = QPushButton("💾 Aplicar Correções e Retomar")
+        self.apply_btn.setMinimumHeight(40)
+        self.apply_btn.clicked.connect(self._apply_and_save)
+        cancel_btn = QPushButton("Cancelar")
+        cancel_btn.setMinimumHeight(40)
+        cancel_btn.clicked.connect(self.reject)
+        btns.addWidget(self.apply_btn)
+        btns.addWidget(cancel_btn)
+        layout.addLayout(btns)
+
+        if not self.blocked_refs:
+            self.apply_btn.setEnabled(False)
+
+    def _apply_and_save(self) -> None:
+        edited_lines = self.edit_text.toPlainText().split("\n")
+        for pos, (entry_index, _obj) in enumerate(self.blocked_refs):
+            item = self.entries[entry_index]
+            if not isinstance(item, dict):
+                continue
+            new_text = edited_lines[pos] if pos < len(edited_lines) else ""
+            if not new_text.strip():
+                new_text = str(item.get("text_src") or item.get("text") or "")
+            item["text_dst"] = new_text
+            item["translated_text"] = new_text
+            item["qa_status"] = "manual_override"
+            item["qa_score"] = 0.71
+
+        try:
+            out_path = str(
+                Path(self.qa_file).with_name(
+                    Path(self.qa_file).stem + "_reviewed.jsonl"
+                )
+            )
+            with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+                for row in self.entries:
+                    if isinstance(row, dict):
+                        f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    else:
+                        f.write(str(row) + "\n")
+
+            remaining = 0
+            for row in self.entries:
+                if isinstance(row, dict) and self._is_blocked(row):
+                    remaining += 1
+            self.remaining_blocked = remaining
+            self.saved_output_file = out_path
+            self.accept()
+        except Exception as e:
+            QMessageBox.warning(self, "Erro ao Salvar", f"Falha ao salvar revisão: {e}")
 
 
 # ================================================================================
@@ -6913,6 +8751,7 @@ class MainWindow(QMainWindow):
         self._config_missing = not ProjectConfig.CONFIG_FILE.exists()
 
         # Variáveis de Estado
+        self.optimize_btn = None  # botão removido da UI; mantido como None para compatibilidade
         self.original_rom_path = None
         self.extracted_file = None
         self.optimized_file = None
@@ -6929,8 +8768,23 @@ class MainWindow(QMainWindow):
         self.beginner_mode = True
         self.graphics_lab_tab = None
         self.developer_mode = bool(startup_config.get("developer_mode", False))
+        self.ui_mode = self._normalize_ui_mode(
+            str(startup_config.get("ui_mode", "basic") or "basic")
+        )
         self.auto_graphics_pipeline = bool(startup_config.get("auto_graphics_pipeline", True))
+        self.high_quality_mode = bool(startup_config.get("high_quality_mode", True))
         self.gfx_needs_review = 0
+        self._auto_pipeline_active = False
+        self._auto_pipeline_stage = 0
+        self._auto_pipeline_failed = False
+        self._auto_pipeline_qa_file = ""
+        self._qa_panel_stats = {
+            "approved": 0,
+            "alerts": 0,
+            "blocked": 0,
+            "score_sum": 0.0,
+            "processed": 0,
+        }
 
         # RTCE State (Motor v 6.0)
         self.rtce_thread = None
@@ -6949,6 +8803,7 @@ class MainWindow(QMainWindow):
         self.translate_thread = None
         self.reinsert_thread = None
         self.engine_detection_thread = None
+        self._translation_stop_requested = False
 
         # [OK] CONFIGURAÇÕES DO OTIMIZADOR (Expert Mode)
         self.optimizer_config = {
@@ -7211,6 +9066,25 @@ class MainWindow(QMainWindow):
         action_exit.setShortcut("Ctrl+Q")
         action_exit.triggered.connect(self.close)
 
+        # --- MENU TEMAS ---
+        themes_menu = menu_bar.addMenu(self.tr("menu_themes") if self.tr("menu_themes") != "Menu_themes" else "Temas")
+        themes_menu.setCursor(Qt.CursorShape.PointingHandCursor)
+        for theme_key in ProjectConfig.THEMES.keys():
+            translated = self.get_translated_theme_name(theme_key)
+            action_theme = themes_menu.addAction(translated)
+            action_theme.triggered.connect(
+                lambda checked=False, tk=theme_key: self.change_theme(self.get_translated_theme_name(tk))
+            )
+
+        # --- MENU FONTES ---
+        fonts_menu = menu_bar.addMenu("Fontes")
+        fonts_menu.setCursor(Qt.CursorShape.PointingHandCursor)
+        for font_name in ProjectConfig.FONT_FAMILIES.keys():
+            action_font = fonts_menu.addAction(font_name)
+            action_font.triggered.connect(
+                lambda checked=False, fn=font_name: self.change_font_family(fn)
+            )
+
         # --- MENU AJUDA (ETAPAS) ---
         help_menu = menu_bar.addMenu(self.tr("menu_help"))
         help_menu.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -7241,6 +9115,10 @@ class MainWindow(QMainWindow):
         action_help_step4.triggered.connect(
             lambda _=False: self.show_manual_step(4)
         )
+        help_menu.addSeparator()
+        action_help_glossary = help_menu.addAction("📚 Glossário de Termos")
+        action_help_glossary.setShortcut("F8")
+        action_help_glossary.triggered.connect(self.show_terms_glossary_dialog)
 
         self._apply_menu_action_cursors(menu_bar)
 
@@ -7510,12 +9388,39 @@ class MainWindow(QMainWindow):
 
     def _resolve_initial_ui_language(self, config: Dict) -> str:
         """Resolve idioma inicial: config > locale do sistema > EN."""
+        # 1. Prioridade máxima: preferência salva pelo usuário
         ui_lang = config.get("ui_lang")
         if ui_lang and (ProjectConfig.I18N_DIR / f"{ui_lang}.json").exists():
             return ui_lang
 
-        # Primeira execução (sem config): sempre EN-US
+        # 2. Primeira execução: detectar locale do Windows
+        try:
+            import locale
+            system_lang, _ = locale.getdefaultlocale()
+            if system_lang:
+                lang_code = system_lang.split("_")[0].lower()
+                if (ProjectConfig.I18N_DIR / f"{lang_code}.json").exists():
+                    return lang_code
+        except Exception:
+            pass
+
+        # 3. Último recurso: inglês
         return "en"
+
+    def _persist_ui_lang(self, lang_code: str) -> None:
+        """Salva APENAS a chave ui_lang no translator_config.json.
+        Lê o JSON existente, atualiza a chave e grava de volta,
+        preservando todas as outras configurações."""
+        try:
+            config: Dict = {}
+            if ProjectConfig.CONFIG_FILE.exists():
+                with open(ProjectConfig.CONFIG_FILE, "r", encoding="utf-8") as f:
+                    config = json.load(f)
+            config["ui_lang"] = lang_code
+            with open(ProjectConfig.CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            self.log(f"[ERROR] Falha ao persistir idioma: {_sanitize_error(e)}")
 
     def _format_lang_for_log(self) -> str:
         lang_map = {"en": "EN-US", "pt": "PT-BR"}
@@ -7527,6 +9432,43 @@ class MainWindow(QMainWindow):
                 return label
         # Fallback para inglês
         return "🇺🇸 English (US)"
+
+    def _get_target_lang_label_by_code(self, code: str) -> str | None:
+        for label, lang_code in ProjectConfig.TARGET_LANGUAGES.items():
+            if lang_code == code:
+                return label
+        return None
+
+    def _sync_target_language_with_ui(self, force: bool = False) -> None:
+        """
+        Sincroniza o idioma de destino com o idioma da interface.
+        Quando force=False, preserva escolha manual já válida do usuário.
+        """
+        if not hasattr(self, "target_lang_combo"):
+            return
+
+        current_label = (self.target_lang_combo.currentText() or "").strip()
+        current_code = ProjectConfig.TARGET_LANGUAGES.get(current_label)
+        if not force and current_code:
+            return
+
+        ui_code = str(getattr(self, "current_ui_lang", "") or "").strip().lower()
+        target_code = ui_code or "en"
+        target_label = self._get_target_lang_label_by_code(target_code)
+        if not target_label:
+            target_code = "en"
+            target_label = self._get_target_lang_label_by_code(target_code)
+        if not target_label:
+            return
+
+        self._suppress_lang_logs = True
+        self.target_lang_combo.blockSignals(True)
+        self.target_lang_combo.setCurrentText(target_label)
+        self.target_lang_combo.blockSignals(False)
+        self._suppress_lang_logs = False
+
+        self.target_language_name = target_label
+        self.target_language_code = target_code
 
     def _rom_identity_text(self, crc32: str | None = None, rom_size: int | None = None) -> str:
         crc32 = crc32 or self.current_rom_crc32
@@ -7816,7 +9758,7 @@ class MainWindow(QMainWindow):
         has_extracted = bool(
             self.extracted_file and os.path.exists(self.extracted_file)
         )
-        if hasattr(self, "optimize_btn"):
+        if self.optimize_btn:
             is_optimizing = bool(
                 getattr(self, "optimize_thread", None)
                 and self.optimize_thread.isRunning()
@@ -7857,6 +9799,7 @@ class MainWindow(QMainWindow):
                 if can_reinsert
                 else self.tr("tooltip_select_reinsert_files")
             )
+        self._update_basic_dashboard_panels()
 
     def _get_progress_bar_style(self) -> str:
         """Estilo de barra de progresso em cinza/preto."""
@@ -7957,7 +9900,7 @@ class MainWindow(QMainWindow):
         }}
         QPushButton[class="primaryOutline"] {{
             background: {button};
-            border: 2px solid {accent};
+            border: 1px solid {border};
             color: {text};
             font-weight: 600;
         }}
@@ -8039,6 +9982,52 @@ class MainWindow(QMainWindow):
         """Estilo neutro (unificado)."""
         return self._get_unified_button_style()
 
+    def _get_top_action_gray_style(self) -> str:
+        """Estilo dos botões superiores respeitando o tema ativo."""
+        theme = self._get_theme_colors()
+        border = self._get_theme_border_color()
+        is_light_theme = self.current_theme == "Branco (White)"
+
+        if is_light_theme:
+            base = "#FFFFFF"
+            text = "#1A1A1A"
+            hover = "#F4F4F4"
+            pressed = "#EAEAEA"
+            disabled_bg = "#F0F0F0"
+            disabled_text = "#8A8A8A"
+        else:
+            base = theme.get("button", "#4A4A4A")
+            text = "#F1F1F1"
+            hover = QColor(base).lighter(112).name()
+            pressed = QColor(base).darker(112).name()
+            disabled_bg = QColor(base).darker(115).name()
+            disabled_text = "#9B9B9B"
+
+        return f"""
+        QPushButton {{
+            background-color: {base};
+            color: {text};
+            font-size: 10.5pt;
+            font-weight: 600;
+            border-radius: 16px;
+            border: 1px solid {border};
+            padding: 6px 14px;
+        }}
+        QPushButton:hover {{
+            background-color: {hover};
+            border: 1px solid {border};
+        }}
+        QPushButton:pressed {{
+            background-color: {pressed};
+            border: 1px solid {border};
+        }}
+        QPushButton:disabled {{
+            background-color: {disabled_bg};
+            color: {disabled_text};
+            border: 1px solid {border};
+        }}
+        """
+
     def _ensure_rom_output_dir(self, rom_dir: str, crc32_full: str) -> str:
         """Cria (se necessário) uma pasta de saída por CRC32."""
         if not rom_dir or not crc32_full:
@@ -8066,12 +10055,103 @@ class MainWindow(QMainWindow):
             has_jsonl = False
         if self.max_extraction_mode and has_all_text:
             self.last_text_dir = aux_dir
-        elif has_jsonl:
-            self.last_text_dir = output_dir
-        elif os.path.isdir(aux_dir):
-            self.last_text_dir = aux_dir
         else:
+            # Sempre aponta para a pasta CRC32 (não _interno) — o arquivo
+            # pure_text.jsonl fica nessa pasta e o filtro do diálogo o encontra lá.
             self.last_text_dir = output_dir
+
+    def _stage_folder_name(self, stage: str) -> str:
+        names = {
+            "extract": "1_extracao",
+            "translate": "2_traducao",
+            "reinsert": "3_reinsercao",
+        }
+        return names.get(stage, str(stage))
+
+    def _snapshot_stage_files(
+        self,
+        stage: str,
+        output_dir: str,
+        crc32_full: str = "",
+        explicit_files: Optional[List[str]] = None,
+    ) -> str | None:
+        """Copia arquivos principais da etapa para pasta dedicada dentro do CRC32."""
+        if not output_dir or not os.path.isdir(output_dir):
+            return None
+        stage_dir = os.path.join(output_dir, self._stage_folder_name(stage))
+        os.makedirs(stage_dir, exist_ok=True)
+
+        files: set[str] = set()
+        crc = str(crc32_full or "").upper()
+
+        if explicit_files:
+            for src in explicit_files:
+                if src and os.path.isfile(src):
+                    files.add(os.path.abspath(src))
+
+        if crc:
+            if stage == "extract":
+                for fn in (
+                    f"{crc}_pure_text.jsonl",
+                    f"{crc}_reinsertion_mapping.json",
+                    f"{crc}_report.txt",
+                    f"{crc}_proof.json",
+                ):
+                    src = os.path.join(output_dir, fn)
+                    if os.path.isfile(src):
+                        files.add(os.path.abspath(src))
+            elif stage == "translate":
+                for fn in os.listdir(output_dir):
+                    low = fn.lower()
+                    if (
+                        fn.startswith(f"{crc}_")
+                        and low.endswith(".jsonl")
+                        and "translated" in low
+                    ):
+                        src = os.path.join(output_dir, fn)
+                        if os.path.isfile(src):
+                            files.add(os.path.abspath(src))
+                rules_file = os.path.join(output_dir, f"postfix_rules_{crc}.json")
+                if os.path.isfile(rules_file):
+                    files.add(os.path.abspath(rules_file))
+            elif stage == "reinsert":
+                for fn in os.listdir(output_dir):
+                    low = fn.lower()
+                    if not fn.startswith(f"{crc}_"):
+                        continue
+                    if low.endswith(
+                        (".sms", ".gg", ".sg", ".md", ".gen", ".smd", ".bin", ".rom")
+                    ):
+                        src = os.path.join(output_dir, fn)
+                        if os.path.isfile(src):
+                            files.add(os.path.abspath(src))
+                hist_dir = os.path.join(output_dir, "_historico")
+                if os.path.isdir(hist_dir):
+                    for fn in os.listdir(hist_dir):
+                        low = fn.lower()
+                        if not fn.startswith(f"{crc}_"):
+                            continue
+                        if (
+                            "auto_postpatch_proof" in low
+                            or "residual_english_report" in low
+                        ):
+                            src = os.path.join(hist_dir, fn)
+                            if os.path.isfile(src):
+                                files.add(os.path.abspath(src))
+
+        copied = 0
+        for src in sorted(files):
+            dst = os.path.join(stage_dir, os.path.basename(src))
+            try:
+                if os.path.abspath(src) != os.path.abspath(dst):
+                    shutil.copy2(src, dst)
+                    copied += 1
+            except Exception:
+                continue
+
+        if copied > 0:
+            self.log(f"📂 Etapa organizada em: {stage_dir}")
+        return stage_dir
 
     def _get_output_dir_for_current_rom(self) -> str | None:
         """Retorna pasta CRC32 da ROM atual, se existir."""
@@ -8085,7 +10165,56 @@ class MainWindow(QMainWindow):
                 return candidate
         return None
 
-    def _resolve_tilemap_jsonl_for_translation(self, input_file: str | None) -> str | None:
+    def _is_supported_translation_input_path(self, file_path: str) -> bool:
+        low = str(file_path or "").lower()
+        return low.endswith(
+            (
+                "_pure_text_optimized.txt",
+                "_only_safe_text.txt",
+                "_only_safe_text_pure.txt",
+                "_pure_text.jsonl",
+            )
+        )
+
+    def _is_advanced_jsonl_input(self, file_path: str) -> bool:
+        return str(file_path or "").lower().endswith("_pure_text.jsonl")
+
+    def _normalize_path_key(self, file_path: str) -> str:
+        return os.path.abspath(str(file_path or "")).replace("\\", "/").lower()
+
+    def _is_advanced_jsonl_confirmed(self, file_path: str) -> bool:
+        return self._normalize_path_key(file_path) == str(
+            getattr(self, "_advanced_jsonl_confirmed_path", "") or ""
+        )
+
+    def _confirm_advanced_jsonl_translation(self, file_path: str) -> bool:
+        if not self._is_advanced_jsonl_input(file_path):
+            return True
+        if self._is_advanced_jsonl_confirmed(file_path):
+            return True
+
+        answer = QMessageBox.warning(
+            self,
+            self.tr("dialog_title_warning") if hasattr(self, "tr") else "Aviso",
+            "Modo avançado: JSONL direto detectado.\n\n"
+            "Esse modo pode mostrar ruído técnico no painel de tempo real.\n"
+            "Para fluxo limpo, prefira *_pure_text_optimized.txt ou *_only_safe_text.txt.\n\n"
+            "Deseja continuar em JSONL direto?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            self._advanced_jsonl_confirmed_path = self._normalize_path_key(file_path)
+            if hasattr(self, "log"):
+                self.log(f"[ADV] JSONL direto confirmado: {os.path.basename(file_path)}")
+            return True
+        return False
+
+    def _resolve_tilemap_jsonl_for_translation(
+        self,
+        input_file: str | None,
+        allow_advanced: bool = True,
+    ) -> str | None:
         """Resolve JSONL tilemap (pure_text) para tradução direta, se existir."""
         candidates = []
         seen = set()
@@ -8098,27 +10227,38 @@ class MainWindow(QMainWindow):
             seen.add(p)
             candidates.append(p)
 
-        # 1) Se o arquivo selecionado já for JSONL, valida direto
-        if input_file and input_file.lower().endswith(".jsonl"):
-            if _jsonl_has_tilemap_entries(input_file):
-                return input_file
+        # 1) Se o arquivo selecionado já for JSONL, usa direto apenas com allow_advanced
+        if input_file and input_file.lower().endswith(".jsonl") and os.path.exists(input_file):
+            if not allow_advanced:
+                return None
+            return input_file
 
         # 2) Tenta deduzir pela pasta do arquivo atual
         if input_file:
             p = Path(input_file)
             output_dir = p.parent.parent if p.parent.name == "_interno" else p.parent
-            crc = self._infer_crc32_from_filename(input_file) or self.current_rom_crc32
+            infer_crc = getattr(self, "_infer_crc32_from_filename", None)
+            crc = (
+                infer_crc(input_file) if callable(infer_crc) else None
+            ) or getattr(self, "current_rom_crc32", None)
             if crc and output_dir:
                 _add_candidate(os.path.join(output_dir, f"{crc}_pure_text.jsonl"))
 
         # 3) Tenta pasta CRC32 atual
-        output_dir = self._get_output_dir_for_current_rom()
-        if output_dir and self.current_rom_crc32:
-            _add_candidate(os.path.join(output_dir, f"{self.current_rom_crc32}_pure_text.jsonl"))
+        output_dir = None
+        get_output_dir = getattr(self, "_get_output_dir_for_current_rom", None)
+        if callable(get_output_dir):
+            try:
+                output_dir = get_output_dir()
+            except Exception:
+                output_dir = None
+        current_crc = getattr(self, "current_rom_crc32", None)
+        if output_dir and current_crc:
+            _add_candidate(os.path.join(output_dir, f"{current_crc}_pure_text.jsonl"))
 
         # 4) Valida candidatos diretos
         for cand in candidates:
-            if os.path.exists(cand) and _jsonl_has_tilemap_entries(cand):
+            if os.path.exists(cand):
                 return cand
 
         # 5) Fallback: varre _pure_text.jsonl na pasta de saída
@@ -8128,12 +10268,357 @@ class MainWindow(QMainWindow):
                     if not fn.endswith("_pure_text.jsonl"):
                         continue
                     cand = os.path.join(output_dir, fn)
-                    if _jsonl_has_tilemap_entries(cand):
+                    if os.path.exists(cand):
                         return cand
             except Exception:
                 return None
 
         return None
+
+    def _auto_prepare_translation_after_extraction(self):
+        """Prepara automaticamente o melhor arquivo de entrada para tradução."""
+        extracted = str(getattr(self, "extracted_file", "") or "")
+        if not extracted or not os.path.exists(extracted):
+            return
+
+        self._auto_prepared_extracted_path = extracted
+        self._advanced_jsonl_confirmed_path = ""
+
+        output_dir = getattr(self, "current_output_dir", None)
+        stage_dir = None
+        get_stage_dir = getattr(self, "_get_stage_dir", None)
+        if callable(get_stage_dir):
+            try:
+                stage_dir = get_stage_dir("extracao", output_dir=output_dir)
+            except TypeError:
+                try:
+                    stage_dir = get_stage_dir("extracao")
+                except Exception:
+                    stage_dir = None
+            except Exception:
+                stage_dir = None
+        if not stage_dir:
+            stage_dir = os.path.dirname(extracted)
+
+        crc = str(
+            getattr(self, "current_rom_crc32", "")
+            or (self._infer_crc32_from_filename(extracted) if hasattr(self, "_infer_crc32_from_filename") else "")
+            or ""
+        ).upper()
+        if not crc:
+            crc = Path(extracted).stem.split("_", 1)[0].upper()
+
+        safe_candidates = []
+        if crc:
+            safe_candidates.extend(
+                [
+                    os.path.join(stage_dir, f"{crc}_only_safe_text.txt"),
+                    os.path.join(stage_dir, f"{crc}_only_safe_text_pure.txt"),
+                ]
+            )
+        safe_candidates.extend(
+            [
+                os.path.join(stage_dir, "only_safe_text.txt"),
+                os.path.join(stage_dir, "only_safe_text_pure.txt"),
+            ]
+        )
+
+        safe_file = next((p for p in safe_candidates if p and os.path.exists(p)), None)
+        optimized_target = (
+            os.path.join(stage_dir, f"{crc}_pure_text_optimized.txt")
+            if crc
+            else os.path.join(stage_dir, f"{Path(extracted).stem}_optimized.txt")
+        )
+
+        if safe_file:
+            try:
+                with open(safe_file, "r", encoding="utf-8", errors="ignore") as src:
+                    safe_text = src.read()
+                with open(optimized_target, "w", encoding="utf-8", newline="") as dst:
+                    dst.write(safe_text)
+            except Exception:
+                shutil.copy2(safe_file, optimized_target)
+            self.optimized_file = optimized_target
+            if hasattr(self, "log"):
+                self.log(
+                    f"[AUTO] Preparação de tradução: safe -> optimized ({os.path.basename(optimized_target)})."
+                )
+        else:
+            self.optimized_file = extracted
+            if hasattr(self, "log"):
+                self.log(
+                    "[AUTO] Preparação de tradução: fallback bruto para JSONL (sem only_safe_text)."
+                )
+
+        maybe_runtime = getattr(self, "_maybe_auto_run_runtime_dyn_after_extraction", None)
+        if callable(maybe_runtime):
+            try:
+                maybe_runtime(self.optimized_file)
+            except Exception:
+                pass
+
+        update_states = getattr(self, "_update_action_states", None)
+        if callable(update_states):
+            try:
+                update_states()
+            except Exception:
+                pass
+
+    def _parse_optional_int_gate(self, value, default: int = 0) -> int:
+        if value is None:
+            return int(default)
+        if isinstance(value, bool):
+            return int(default)
+        if isinstance(value, (int, float)):
+            return int(value)
+        s = str(value).strip()
+        if not s:
+            return int(default)
+        try:
+            if s.lower().startswith("0x"):
+                return int(s, 16)
+            if re.fullmatch(r"[0-9A-Fa-f]{2,}", s):
+                return int(s, 16)
+            return int(float(s))
+        except Exception:
+            return int(default)
+
+    def _normalize_for_match(self, value: str) -> str:
+        text = str(value or "")
+        text = unicodedata.normalize("NFD", text)
+        text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+        text = text.lower()
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    def _is_text_candidate_for_gate(self, src_text: str, source_hint: str = "") -> bool:
+        src = str(src_text or "").strip()
+        if not src:
+            return False
+
+        source = str(source_hint or "").upper()
+        technical_sources = {
+            "SCRIPT_OPCODE_AUTO",
+            "SCRIPT_OPCODE",
+            "OPCODE",
+            "HEX_SCAN",
+            "DTE_STREAM",
+        }
+        if source in technical_sources:
+            return False
+
+        words = re.findall(r"[A-Za-z']+", src)
+        if not words:
+            return False
+
+        # Nome próprio em caixa alta (ex.: KARAMEIKOS) não entra na cobertura.
+        if len(words) == 1 and src.isupper() and len(words[0]) >= 4:
+            return False
+
+        return True
+
+    def _get_translation_gate_min_ratio(self) -> float:
+        raw = getattr(self, "translation_gate_min_ratio", None)
+        if raw is None:
+            raw = getattr(self, "translation_gate_min_percent", None)
+        if raw is None:
+            return 1.0
+
+        try:
+            val = float(raw)
+        except Exception:
+            return 1.0
+
+        if val > 1.0:
+            val = val / 100.0
+        return max(0.0, min(1.0, val))
+
+    def _find_companion_translated_txt_for_gate(
+        self,
+        translated_path: str,
+        source_txt_path: str | None = None,
+    ) -> str | None:
+        candidates = []
+        seen = set()
+
+        def _add(p: str | None):
+            if not p:
+                return
+            key = os.path.abspath(p)
+            if key in seen:
+                return
+            seen.add(key)
+            candidates.append(key)
+
+        translated_path = str(translated_path or "")
+        if source_txt_path:
+            src = os.path.abspath(source_txt_path)
+            _add(src.replace("_pure_text_optimized.txt", "_pure_text_translated.txt"))
+            _add(src.replace("_only_safe_text_pure.txt", "_pure_text_translated.txt"))
+            _add(src.replace("_only_safe_text.txt", "_pure_text_translated.txt"))
+            _add(src.replace(".txt", "_translated.txt"))
+
+        if translated_path:
+            tpath = os.path.abspath(translated_path)
+            _add(tpath.replace("_translated.jsonl", "_pure_text_translated.txt"))
+            _add(tpath.replace("_pure_text.jsonl", "_pure_text_translated.txt"))
+
+            parent = os.path.dirname(tpath)
+            crc = self._infer_crc32_from_filename(tpath) if hasattr(self, "_infer_crc32_from_filename") else None
+            if crc:
+                _add(os.path.join(parent, f"{crc}_pure_text_translated.txt"))
+                _add(os.path.join(parent, f"{crc}_translated.txt"))
+
+            if os.path.isdir(parent):
+                try:
+                    for fn in os.listdir(parent):
+                        low = fn.lower()
+                        if low.endswith("_pure_text_translated.txt"):
+                            _add(os.path.join(parent, fn))
+                except Exception:
+                    pass
+
+        for cand in candidates:
+            if os.path.exists(cand):
+                return cand
+        return None
+
+    def _compute_translation_completion_gate(
+        self,
+        translated_path: str,
+        write_report: bool = True,
+    ) -> dict:
+        info = {
+            "mode": "unknown",
+            "total_candidates": 0,
+            "effective_translated": 0,
+            "unchanged": 0,
+            "missing": 0,
+            "pending": 0,
+            "ratio": 0.0,
+            "non_translatable_skipped": 0,
+        }
+
+        path = str(translated_path or "")
+        if not path or not os.path.exists(path):
+            return info
+
+        if path.lower().endswith(".jsonl"):
+            info["mode"] = "jsonl"
+            try:
+                with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            obj = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        if not isinstance(obj, dict):
+                            continue
+                        if str(obj.get("type", "")).lower() == "meta":
+                            continue
+
+                        src = str(
+                            obj.get("text_src")
+                            or obj.get("text")
+                            or obj.get("original_text")
+                            or ""
+                        )
+                        dst = str(obj.get("text_dst") or obj.get("translated_text") or "")
+                        source = str(obj.get("source") or "")
+
+                        if not MainWindow._is_text_candidate_for_gate(self, src, source):
+                            info["non_translatable_skipped"] += 1
+                            continue
+
+                        info["total_candidates"] += 1
+                        src_norm = MainWindow._normalize_for_match(self, src)
+                        dst_norm = MainWindow._normalize_for_match(self, dst)
+
+                        if not dst_norm:
+                            info["missing"] += 1
+                        elif dst_norm == src_norm:
+                            info["unchanged"] += 1
+                        else:
+                            info["effective_translated"] += 1
+            except Exception as e:
+                if hasattr(self, "log"):
+                    self.log(f"[WARN] Falha ao calcular cobertura JSONL: {_sanitize_error(e)}")
+        else:
+            info["mode"] = "txt"
+
+        total = int(info["total_candidates"] or 0)
+        translated = int(info["effective_translated"] or 0)
+        info["pending"] = int(info["unchanged"] or 0) + int(info["missing"] or 0)
+        info["ratio"] = (float(translated) / float(total)) if total > 0 else 1.0
+
+        if write_report and hasattr(self, "log"):
+            pct = float(info["ratio"]) * 100.0
+            self.log(
+                f"[GATE] Cobertura efetiva: {translated}/{total} ({pct:.2f}%) | "
+                f"pendentes={info['pending']} | ignorados={info['non_translatable_skipped']}"
+            )
+
+        return info
+
+    def _evaluate_reinsertion_preflight_gate(
+        self,
+        translated_path: str | None = None,
+    ) -> tuple[bool, str]:
+        path = str(translated_path or getattr(self, "translated_file", "") or "")
+        if not path or not os.path.exists(path):
+            return False, "Arquivo traduzido não encontrado."
+
+        min_ratio = self._get_translation_gate_min_ratio()
+        info = self._compute_translation_completion_gate(path, write_report=False)
+        best_ratio = float(info.get("ratio", 0.0) or 0.0)
+
+        if path.lower().endswith(".jsonl"):
+            source_txt = None
+            find_source = getattr(self, "_find_translation_source_txt_for_gate", None)
+            if callable(find_source):
+                try:
+                    source_txt = find_source(path)
+                except Exception:
+                    source_txt = None
+
+            companion_txt = self._find_companion_translated_txt_for_gate(path, source_txt)
+            if source_txt and companion_txt and os.path.exists(source_txt) and os.path.exists(companion_txt):
+                try:
+                    with open(source_txt, "r", encoding="utf-8", errors="ignore") as fs:
+                        src_lines = [ln.strip() for ln in fs if ln.strip()]
+                    with open(companion_txt, "r", encoding="utf-8", errors="ignore") as ft:
+                        dst_lines = [ln.strip() for ln in ft if ln.strip()]
+
+                    total = 0
+                    effective = 0
+                    for idx, src_line in enumerate(src_lines):
+                        if not MainWindow._is_text_candidate_for_gate(self, src_line, ""):
+                            continue
+                        total += 1
+                        dst_line = dst_lines[idx] if idx < len(dst_lines) else ""
+                        if MainWindow._normalize_for_match(self, dst_line) and (
+                            MainWindow._normalize_for_match(self, dst_line)
+                            != MainWindow._normalize_for_match(self, src_line)
+                        ):
+                            effective += 1
+                    txt_ratio = (float(effective) / float(total)) if total > 0 else 1.0
+                    if txt_ratio > best_ratio:
+                        best_ratio = txt_ratio
+                except Exception:
+                    pass
+
+        if best_ratio + 1e-9 < min_ratio:
+            return (
+                False,
+                (
+                    f"Cobertura efetiva {best_ratio * 100:.2f}% abaixo do mínimo "
+                    f"{min_ratio * 100:.2f}%."
+                ),
+            )
+        return True, ""
 
     def _infer_crc32_from_filename(self, file_path: str) -> str | None:
         """Extrai CRC32 do nome do arquivo, se existir."""
@@ -8505,6 +10990,183 @@ class MainWindow(QMainWindow):
             self._activate_graphics_tab("tilemap detectado")
         self._update_action_states()
 
+    def _generate_auto_diff_ranges_from_mapping(self, output_dir: str, crc32_full: str):
+        """
+        Gera automaticamente {CRC}_diff_ranges.json a partir do reinsertion_mapping.
+        A geração pode ser desativada via translator_config.json (auto_generate_diff_ranges=false).
+        """
+        if not output_dir or not crc32_full:
+            return
+
+        cfg: dict = {}
+        try:
+            if ProjectConfig.CONFIG_FILE.exists():
+                with open(ProjectConfig.CONFIG_FILE, "r", encoding="utf-8") as f:
+                    raw_cfg = json.load(f)
+                if isinstance(raw_cfg, dict):
+                    cfg = raw_cfg
+        except Exception:
+            cfg = {}
+
+        enabled = bool(cfg.get("auto_generate_diff_ranges", True))
+        if not enabled:
+            self.log("[INFO] auto_generate_diff_ranges=false (geração automática desativada).")
+            return
+
+        overwrite = bool(cfg.get("auto_generate_diff_ranges_overwrite", False))
+        margin_start = int(cfg.get("diff_ranges_margin_start", 2) or 2)
+        margin_end = int(cfg.get("diff_ranges_margin_end", 16) or 16)
+        merge_gap = int(cfg.get("diff_ranges_merge_gap", 16) or 16)
+        margin_start = max(0, margin_start)
+        margin_end = max(0, margin_end)
+        merge_gap = max(0, merge_gap)
+
+        mapping_candidates = [
+            os.path.join(output_dir, "1_extracao", f"{crc32_full}_reinsertion_mapping.json"),
+            os.path.join(output_dir, "_interno", f"{crc32_full}_reinsertion_mapping.json"),
+            os.path.join(output_dir, f"{crc32_full}_reinsertion_mapping.json"),
+        ]
+        mapping_path = next((p for p in mapping_candidates if os.path.isfile(p)), None)
+        if not mapping_path:
+            self.log("[WARN] Mapping não encontrado para auto diff ranges.")
+            return
+
+        try:
+            with open(mapping_path, "r", encoding="utf-8", errors="ignore") as f:
+                mapping_obj = json.load(f)
+        except Exception as e:
+            self.log(f"[WARN] Falha ao ler mapping para auto diff ranges: {_sanitize_error(e)}")
+            return
+
+        entries = []
+        rom_size = 0x80000
+        if isinstance(mapping_obj, dict):
+            rom_size = int(mapping_obj.get("file_size", rom_size) or rom_size)
+            if isinstance(mapping_obj.get("entries"), list):
+                entries = mapping_obj.get("entries")
+            elif isinstance(mapping_obj.get("text_blocks"), list):
+                entries = mapping_obj.get("text_blocks")
+        elif isinstance(mapping_obj, list):
+            entries = mapping_obj
+
+        if not isinstance(entries, list) or not entries:
+            self.log("[WARN] Mapping sem entries/text_blocks para auto diff ranges.")
+            return
+
+        def _parse_int(v, default=0):
+            try:
+                if isinstance(v, str):
+                    s = v.strip()
+                    return int(s, 16) if s.lower().startswith("0x") else int(s)
+                return int(v)
+            except Exception:
+                return int(default)
+
+        ranges = []
+        for e in entries:
+            if not isinstance(e, dict):
+                continue
+            off = e.get("offset", e.get("address", e.get("rom_offset")))
+            if off is None:
+                continue
+            start_off = _parse_int(off, default=-1)
+            if start_off < 0:
+                continue
+            max_len = e.get(
+                "max_len",
+                e.get("max_length", e.get("max_bytes", e.get("max_len_bytes", 0))),
+            )
+            slot_size = _parse_int(max_len, default=0)
+            if e.get("terminator", None) is not None:
+                slot_size += 1
+            if slot_size <= 0:
+                slot_size = 1
+            rs = max(0, start_off - margin_start)
+            re = min(int(rom_size), start_off + slot_size + margin_end)
+            if re > rs:
+                ranges.append((rs, re))
+
+            for ptr in (e.get("pointer_offsets") or []):
+                po = _parse_int(ptr, default=-1)
+                if po >= 0:
+                    ps = max(0, po)
+                    pe = min(int(rom_size), po + 2)
+                    if pe > ps:
+                        ranges.append((ps, pe))
+
+            ptr_entry = e.get("pointer_entry_offset")
+            if ptr_entry is not None:
+                po = _parse_int(ptr_entry, default=-1)
+                if po >= 0:
+                    ps = max(0, po)
+                    pe = min(int(rom_size), po + 2)
+                    if pe > ps:
+                        ranges.append((ps, pe))
+
+            for ref in (e.get("pointer_refs") or []):
+                if not isinstance(ref, dict):
+                    continue
+                po = _parse_int(ref.get("ptr_offset"), default=-1)
+                psz = _parse_int(ref.get("ptr_size", 2), default=2)
+                if po < 0:
+                    continue
+                if psz <= 0:
+                    psz = 2
+                ps = max(0, po)
+                pe = min(int(rom_size), po + psz)
+                if pe > ps:
+                    ranges.append((ps, pe))
+
+        if not ranges:
+            self.log("[WARN] Nenhum range gerado a partir do mapping.")
+            return
+
+        ranges.sort(key=lambda t: (t[0], t[1]))
+        merged: list[tuple[int, int]] = []
+        for s, e in ranges:
+            if not merged:
+                merged.append((s, e))
+                continue
+            ps, pe = merged[-1]
+            if s <= pe + merge_gap:
+                merged[-1] = (ps, max(pe, e))
+            else:
+                merged.append((s, e))
+
+        payload = [{"start": f"0x{s:X}", "end": f"0x{e:X}"} for s, e in merged]
+
+        stage_extract = os.path.join(output_dir, "1_extracao")
+        stage_reinsert = os.path.join(output_dir, "3_reinsercao")
+        stage_out = os.path.join(output_dir, "out")
+        os.makedirs(stage_extract, exist_ok=True)
+        os.makedirs(stage_reinsert, exist_ok=True)
+        os.makedirs(stage_out, exist_ok=True)
+
+        target_files = [
+            os.path.join(stage_extract, f"{crc32_full}_diff_ranges.json"),
+            os.path.join(stage_reinsert, f"{crc32_full}_diff_ranges.json"),
+            os.path.join(stage_out, f"{crc32_full}_diff_ranges.json"),
+            os.path.join(stage_extract, f"{crc32_full}_editable_ranges.json"),
+            os.path.join(stage_reinsert, f"{crc32_full}_editable_ranges.json"),
+        ]
+
+        written = 0
+        skipped = 0
+        for fp in target_files:
+            if os.path.exists(fp) and not overwrite:
+                skipped += 1
+                continue
+            try:
+                with open(fp, "w", encoding="utf-8", newline="\n") as f:
+                    json.dump(payload, f, indent=2, ensure_ascii=False)
+                written += 1
+            except Exception as e:
+                self.log(f"[WARN] Falha ao salvar auto diff ranges em {fp}: {_sanitize_error(e)}")
+
+        self.log(
+            f"[OK] Auto diff ranges gerado | ranges={len(payload)} | escritos={written} | ignorados={skipped}"
+        )
+
     def _create_rom_backup(self, rom_path: str, output_dir: str) -> str | None:
         """Cria backup da ROM original antes da reinserção."""
         try:
@@ -8530,6 +11192,32 @@ class MainWindow(QMainWindow):
             self.tr("log_show") if is_visible else self.tr("log_hide")
         )
 
+    def _copy_log_to_clipboard(self):
+        """Copia o conteúdo do log para a área de transferência."""
+        try:
+            text = self.log_text.toPlainText()
+            QApplication.clipboard().setText(text)
+        except Exception:
+            pass
+
+    def wheelEvent(self, event):
+        """Ctrl + Scroll para aumentar/diminuir o tamanho da fonte."""
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            delta = event.angleDelta().y()
+            app = QApplication.instance()
+            font = app.font()
+            size = font.pointSize()
+            if delta > 0:
+                size = min(size + 1, 24)
+            else:
+                size = max(size - 1, 7)
+            font.setPointSize(size)
+            app.setFont(font)
+            self._apply_font_to_widgets(font)
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
     def init_ui(self):
         self.setWindowTitle(self.tr("window_title"))
         self._apply_initial_window_size()
@@ -8539,10 +11227,47 @@ class MainWindow(QMainWindow):
 
         central = QWidget()
         self.setCentralWidget(central)
-        main_layout = QHBoxLayout(central)
+        outer_layout = QVBoxLayout(central)
+        outer_layout.setContentsMargins(0, 0, 0, 0)
+        outer_layout.setSpacing(0)
+
+        content_widget = QWidget()
+        main_layout = QHBoxLayout(content_widget)
+        outer_layout.addWidget(content_widget, 1)
 
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
+        top_actions = QWidget()
+        top_actions_layout = QHBoxLayout(top_actions)
+        top_actions_layout.setContentsMargins(0, 0, 0, 0)
+        top_actions_layout.setSpacing(8)
+
+        self.select_rom_auto_btn = QPushButton("Arquivo ROM/Jogo")
+        self.select_rom_auto_btn.setObjectName("select_rom_auto_btn")
+        self.select_rom_auto_btn.setMinimumHeight(42)
+        self.select_rom_auto_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.select_rom_auto_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.select_rom_auto_btn.setIcon(
+            self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon)
+        )
+        self.select_rom_auto_btn.setStyleSheet(self._get_top_action_gray_style())
+        self.select_rom_auto_btn.clicked.connect(self.select_rom)
+        top_actions_layout.addWidget(self.select_rom_auto_btn, 1)
+
+        self.auto_pipeline_btn = QPushButton("🚀 Traduzir Tudo (Auto)")
+        self.auto_pipeline_btn.setObjectName("auto_pipeline_btn")
+        self.auto_pipeline_btn.setMinimumHeight(42)
+        self.auto_pipeline_btn.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+        )
+        self.auto_pipeline_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.auto_pipeline_btn.setStyleSheet(self._get_top_action_gray_style())
+        self.auto_pipeline_btn.clicked.connect(self.start_auto_pipeline)
+        top_actions_layout.addWidget(self.auto_pipeline_btn, 1)
+
+        left_layout.addWidget(top_actions)
         self.tabs = QTabWidget()
         self.tabs.addTab(
             self.create_extraction_tab(), self._clean_tab_label(self.tr("tab1"))
@@ -8623,6 +11348,12 @@ class MainWindow(QMainWindow):
         log_header_layout = QHBoxLayout()
         self.log_title_label = QLabel(self.tr("log"))
         self.log_title_label.setStyleSheet("color: #b0b0b0; font-weight: bold;")
+        self.log_copy_btn = QPushButton("Copiar log")
+        self.log_copy_btn.setObjectName("log_copy_btn")
+        self.log_copy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.log_copy_btn.setFixedHeight(26)
+        self.log_copy_btn.setStyleSheet(self._get_unified_button_style())
+        self.log_copy_btn.clicked.connect(self._copy_log_to_clipboard)
         self.log_toggle_btn = QPushButton(self.tr("log_hide"))
         self.log_toggle_btn.setObjectName("log_toggle_btn")
         self.log_toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -8631,6 +11362,7 @@ class MainWindow(QMainWindow):
         self.log_toggle_btn.clicked.connect(self.toggle_log_panel)
         log_header_layout.addWidget(self.log_title_label)
         log_header_layout.addStretch()
+        log_header_layout.addWidget(self.log_copy_btn)
         log_header_layout.addWidget(self.log_toggle_btn)
         right_layout.addLayout(log_header_layout)
 
@@ -8651,6 +11383,38 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self.log_group)
         # Inicializa texto do botão de log
         self.log_toggle_btn.setText(self.tr("log_hide"))
+
+        self.quality_panel = QGroupBox("Qualidade (Auto Pipeline)")
+        self.quality_panel.setObjectName("quality_panel")
+        quality_layout = QVBoxLayout()
+        self.quality_status_label = QLabel(
+            "✅ Aprovadas: 0  ⚠️ Alertas: 0  ❌ Bloqueadas: 0  📊 Score: --"
+        )
+        self.quality_status_label.setObjectName("quality_status_label")
+        self.quality_status_label.setStyleSheet("font-size: 10pt; color: #b0b0b0;")
+        self.quality_status_label.setWordWrap(True)
+        quality_layout.addWidget(self.quality_status_label)
+
+        self.review_blocked_btn = QPushButton("🛠 Revisar Bloqueadas e Retomar")
+        self.review_blocked_btn.setObjectName("review_blocked_btn")
+        self.review_blocked_btn.setMinimumHeight(32)
+        self.review_blocked_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.review_blocked_btn.setStyleSheet(self._get_top_action_gray_style())
+        self.review_blocked_btn.setEnabled(False)
+        self.review_blocked_btn.clicked.connect(self.review_blocked_and_resume)
+        quality_layout.addWidget(self.review_blocked_btn)
+        self.quality_panel.setLayout(quality_layout)
+        right_layout.addWidget(self.quality_panel)
+
+        self.quick_overview_group = QGroupBox("📋 Resumo Rápido")
+        self.quick_overview_group.setObjectName("quick_overview_group")
+        quick_overview_layout = QVBoxLayout()
+        self.quick_overview_label = QLabel("Aguardando seleção da ROM...")
+        self.quick_overview_label.setWordWrap(True)
+        self.quick_overview_label.setStyleSheet("font-size: 10pt; color: #b0b0b0;")
+        quick_overview_layout.addWidget(self.quick_overview_label)
+        self.quick_overview_group.setLayout(quick_overview_layout)
+        right_layout.addWidget(self.quick_overview_group)
 
         # ========== PAINEL DE TRADUÇÃO EM TEMPO REAL (LADO DIREITO) ==========
         self.realtime_group = QGroupBox(self.tr("realtime_group_title"))
@@ -8697,6 +11461,18 @@ class MainWindow(QMainWindow):
         )
         realtime_layout.addWidget(self.realtime_info_label)
 
+        self.realtime_engine_label = QLabel("Engine ativa: ---")
+        self.realtime_engine_label.setStyleSheet(
+            "color: #4da6ff; font-size: 10pt; font-weight: bold; padding: 5px;"
+        )
+        realtime_layout.addWidget(self.realtime_engine_label)
+
+        self.realtime_model_label = QLabel("Modelo ativo: --")
+        self.realtime_model_label.setStyleSheet(
+            "color: #9a9a9a; font-size: 10pt; padding: 5px;"
+        )
+        realtime_layout.addWidget(self.realtime_model_label)
+
         self.realtime_group.setLayout(realtime_layout)
         right_layout.addWidget(self.realtime_group)
 
@@ -8731,11 +11507,27 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(footer_container)
 
         main_layout.addWidget(right_panel, 2)
-        self.statusBar().showMessage(self.tr("status_ready"))
+
+        # --- BARRA INFERIOR COM VERSÃO ---
+        version_bar = QLabel("NEUROROM AI V7 PRO")
+        version_bar.setObjectName("version_bar_label")
+        version_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        version_bar.setFixedHeight(22)
+        version_bar.setStyleSheet(
+            "color: #888; font-size: 9pt; font-weight: bold;"
+            " background: transparent; margin: 0; padding: 2px;"
+        )
+        outer_layout.addWidget(version_bar)
+
+        self.statusBar().hide()
         self.log(self.tr("log_startup"))
         # Mostra painel de tradução em tempo real apenas na aba de Tradução
         self.tabs.currentChanged.connect(self.on_tab_changed)
         self.on_tab_changed(self.tabs.currentIndex())
+        self.ui_mode_shortcut = QShortcut(QKeySequence("Ctrl+Shift+D"), self)
+        self.ui_mode_shortcut.activated.connect(self.toggle_ui_mode)
+        self._apply_ui_mode_visibility()
+        self._reset_quality_panel()
         self._apply_theme_panels()
         self._refresh_theme_styles()
         self._update_action_states()
@@ -8840,9 +11632,9 @@ class MainWindow(QMainWindow):
             "color: #b0b0b0; font-weight: bold;"
         )  # Neutro
         self.rom_path_label.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
         )
-        rom_select_layout.addWidget(self.rom_path_label)
+        rom_select_layout.addWidget(self.rom_path_label, 1)
 
         self.select_rom_btn = QPushButton(self.tr("select_rom"))
         self.select_rom_btn.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -8854,7 +11646,7 @@ class MainWindow(QMainWindow):
         self.select_rom_btn.setToolTip(self.tr("tooltip_select_rom_btn"))
         self.select_rom_btn.clicked.connect(self.select_rom)
 
-        rom_select_layout.addWidget(self.select_rom_btn)
+        rom_select_layout.addWidget(self.select_rom_btn, 1)
         rom_layout.addLayout(rom_select_layout)
 
         # PAINEL DE ANÁLISE FORENSE
@@ -8924,10 +11716,6 @@ class MainWindow(QMainWindow):
         self.extract_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.extract_btn.setToolTip(self.tr("tooltip_extract_texts"))
         self.btn_extrair = self.extract_btn
-        self.btn_extrair.setProperty("class", "primary")
-        self.btn_extrair.style().unpolish(self.btn_extrair)
-        self.btn_extrair.style().polish(self.btn_extrair)
-        self.btn_extrair.update()
         self.extract_btn.clicked.connect(self.extract_texts)
         buttons_h_layout.addWidget(self.extract_btn)
 
@@ -8944,19 +11732,17 @@ class MainWindow(QMainWindow):
         # Oculta opções avançadas para simplificar a interface
         self.ascii_probe_btn.setVisible(False)
 
-        # Botão Carregar Arquivo TXT Extraído
+        layout.addLayout(buttons_h_layout)
+
+        # Botão Carregar Arquivo Extraído (abaixo de Extrair Textos)
         self.load_txt_btn = QPushButton(self.tr("load_extracted_txt"))
         self.load_txt_btn.setObjectName("load_txt_btn")
-        self.load_txt_btn.setMinimumHeight(40)
+        self.load_txt_btn.setMinimumHeight(36)
         self.load_txt_btn.setStyleSheet(neutral_button_style)
         self.load_txt_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.load_txt_btn.setToolTip(self.tr("tooltip_load_extracted_txt"))
         self.load_txt_btn.clicked.connect(self.load_extracted_txt_directly)
-        buttons_h_layout.addWidget(self.load_txt_btn)
-        # Oculta opções avançadas para simplificar a interface
-        self.load_txt_btn.setVisible(False)
-
-        layout.addLayout(buttons_h_layout)
+        layout.addWidget(self.load_txt_btn)
 
         self.load_txt_hint_label = QLabel(self.tr("hint_load_extracted_txt"))
         self.load_txt_hint_label.setObjectName("load_txt_hint_label")
@@ -8964,30 +11750,6 @@ class MainWindow(QMainWindow):
         self.load_txt_hint_label.setStyleSheet("color: #8a8a8a; font-size: 9pt;")
         layout.addWidget(self.load_txt_hint_label)
 
-        # Modo Cobertura Total (Forense)
-        self.max_extract_cb = QCheckBox(self.tr("max_extraction_label"))
-        self.max_extract_cb.setObjectName("max_extract_cb")
-        self.max_extract_cb.setChecked(self.max_extraction_mode)
-        self.max_extract_cb.setToolTip(self.tr("tooltip_max_extraction"))
-        self.max_extract_cb.setStyleSheet("color: #cfcfcf; font-size: 9pt;")
-        if self.max_extraction_locked:
-            self.max_extract_cb.setChecked(True)
-            self.max_extract_cb.setEnabled(False)
-            self.max_extract_cb.setToolTip(self.tr("tooltip_max_extraction_locked"))
-        self.max_extract_cb.stateChanged.connect(self._on_max_extraction_changed)
-        layout.addWidget(self.max_extract_cb)
-
-        # Botão Otimizar Dados (Laranja)
-        self.optimize_btn = QPushButton(self.tr("optimize_data"))
-        self.optimize_btn.setObjectName("optimize_btn")
-        self.optimize_btn.setMinimumHeight(40)
-        self.optimize_btn.setStyleSheet(neutral_button_style)
-        self.optimize_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.optimize_btn.setToolTip(self.tr("tooltip_optimize_data"))
-        self.optimize_btn.clicked.connect(
-            self.optimize_data
-        )  # Conectado ao seu método existente
-        layout.addWidget(self.optimize_btn)
 
         # (Ajuda rápida removida - agora fica no menu superior "Ajuda")
 
@@ -9042,7 +11804,10 @@ class MainWindow(QMainWindow):
         self.trans_file_label = QLabel(self.tr("no_file"))
         self.trans_file_label.setObjectName("trans_file_label")
         self.trans_file_label.setStyleSheet("color: #b0b0b0;")
-        file_layout.addWidget(self.trans_file_label)
+        self.trans_file_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred
+        )
+        file_layout.addWidget(self.trans_file_label, 1)
 
         self.sel_file_btn = QPushButton(self.tr("select_file"))
         self.sel_file_btn.setMinimumHeight(36)
@@ -9055,7 +11820,7 @@ class MainWindow(QMainWindow):
         self.sel_file_btn.setStyleSheet(neutral_button_style)
         self.sel_file_btn.setToolTip(self.tr("tooltip_select_translation_file"))
         self.sel_file_btn.clicked.connect(self.select_translation_input_file)
-        file_layout.addWidget(self.sel_file_btn)
+        file_layout.addWidget(self.sel_file_btn, 1)
 
         file_group.setLayout(file_layout)
         layout.addWidget(file_group)
@@ -9079,6 +11844,13 @@ class MainWindow(QMainWindow):
         self.target_lang_combo = QComboBox()
         self.target_lang_combo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.target_lang_combo.addItems(ProjectConfig.TARGET_LANGUAGES.keys())
+        initial_target = self._get_target_lang_label_by_code(self.current_ui_lang)
+        if initial_target:
+            self.target_lang_combo.setCurrentText(initial_target)
+            self.target_language_name = initial_target
+            self.target_language_code = ProjectConfig.TARGET_LANGUAGES.get(
+                initial_target, self.target_language_code
+            )
         lang_config_layout.addWidget(self.target_lang_combo, 1, 1)
         self.source_lang_combo.currentTextChanged.connect(
             self.on_source_language_changed
@@ -9096,10 +11868,9 @@ class MainWindow(QMainWindow):
         self.mode_combo.setCursor(Qt.CursorShape.PointingHandCursor)
         self.mode_combo.addItems(
             [
-                "🤖 AUTO (Gemini + Ollama)",
+                "🤖 AUTO (Gemini + NLLB)",
                 "⚡ Gemini (Google AI)",
-                "🦙 Llama (Ollama Local)",
-                "🤖 ChatGPT (OpenAI)",
+                "🔤 NLLB-200 (Offline)",
             ]
         )
         self.mode_combo.setCurrentIndex(0)  # AUTO como padrão
@@ -9112,7 +11883,8 @@ class MainWindow(QMainWindow):
 
         self.api_group = QGroupBox(self.tr("api_config"))
         self.api_group.setObjectName("api_group")
-        self.api_group.setVisible(True)
+        # Chave API agora fica em Configurações; grupo mantido por compatibilidade.
+        self.api_group.setVisible(False)
         self.api_group.setMinimumHeight(140)
         api_layout = QGridLayout()
         api_layout.setSpacing(8)
@@ -9131,6 +11903,7 @@ class MainWindow(QMainWindow):
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setMinimumHeight(28)
         self.api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.api_key_edit.textChanged.connect(self._sync_api_key_to_settings)
         self.eye_btn = QToolButton()
         self.btn_toggle_api = self.eye_btn
         self.btn_toggle_api.setText("👁")
@@ -9258,7 +12031,7 @@ class MainWindow(QMainWindow):
         self.stop_translation_btn.setMinimumHeight(40)  # Ajustado
         self.stop_translation_btn.setStyleSheet(neutral_button_style)
         self.stop_translation_btn.setToolTip(self.tr("tooltip_stop_translation"))
-        _apply_btn_class(self.stop_translation_btn, "dangerOutline")
+        _apply_btn_class(self.stop_translation_btn, "primaryOutline")
         self.stop_translation_btn.clicked.connect(self.stop_translation)
         self.stop_translation_btn.setEnabled(False)
         layout.addWidget(self.stop_translation_btn)
@@ -9341,14 +12114,6 @@ class MainWindow(QMainWindow):
         output_group.setLayout(output_layout)
         layout.addWidget(output_group)
 
-        # Opções avançadas de reinserção
-        self.force_blocked_checkbox = QCheckBox(self.tr("force_blocked_label"))
-        self.force_blocked_checkbox.setObjectName("force_blocked_checkbox")
-        self.force_blocked_checkbox.setToolTip(
-            self.tr("force_blocked_tooltip")
-        )
-        layout.addWidget(self.force_blocked_checkbox)
-
         reinsertion_progress_group = QGroupBox(self.tr("reinsertion_progress"))
         reinsertion_progress_group.setObjectName("reinsertion_progress_group")
         reinsertion_progress_layout = QVBoxLayout()
@@ -9375,16 +12140,29 @@ class MainWindow(QMainWindow):
 
         self.reinsert_btn = QPushButton(self.tr("reinsert"))
         self.reinsert_btn.setObjectName("reinsert_btn")
-        self.reinsert_btn.setMinimumHeight(40)  # Ajustado
+        self.reinsert_btn.setMinimumHeight(40)
         self.reinsert_btn.setStyleSheet(neutral_button_style)
         self.reinsert_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.reinsert_btn.setToolTip(self.tr("tooltip_reinsert"))
-        self.reinsert_btn.setProperty("class", "primary")
-        self.reinsert_btn.style().unpolish(self.reinsert_btn)
-        self.reinsert_btn.style().polish(self.reinsert_btn)
-        self.reinsert_btn.update()
         self.reinsert_btn.clicked.connect(self.reinsert)
         layout.addWidget(self.reinsert_btn)
+
+        self.rom_gerada_label = QLabel(self.tr("rom_generated_none"))
+        self.rom_gerada_label.setObjectName("rom_gerada_label")
+        self.rom_gerada_label.setStyleSheet("color: #888; font-size: 9pt;")
+        layout.addWidget(self.rom_gerada_label)
+
+        self.save_rom_as_btn = QPushButton(self.tr("save_rom_as"))
+        self.save_rom_as_btn.setMinimumHeight(36)
+        self.save_rom_as_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.save_rom_as_btn.clicked.connect(self._save_generated_rom_as)
+        layout.addWidget(self.save_rom_as_btn)
+
+        self.open_folder_btn = QPushButton(self.tr("open_rom_folder"))
+        self.open_folder_btn.setMinimumHeight(36)
+        self.open_folder_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.open_folder_btn.clicked.connect(self._open_generated_rom_folder)
+        layout.addWidget(self.open_folder_btn)
 
         layout.addStretch()
         return widget
@@ -9394,7 +12172,79 @@ class MainWindow(QMainWindow):
             base_name = self.tr("output_placeholder_name")
         return self.tr("output_placeholder").format(name=base_name)
 
+    def _output_language_tag(self) -> str:
+        """Tag curta de idioma para nome de arquivo de saída."""
+        code = str(
+            getattr(self, "target_language_code", None)
+            or getattr(self, "current_ui_lang", None)
+            or "pt"
+        ).strip().lower()
+        tags = {
+            "pt": "PT-BR",
+            "en": "EN-US",
+            "es": "ES-ES",
+            "fr": "FR-FR",
+            "de": "DE-DE",
+            "it": "IT-IT",
+            "ja": "JA-JP",
+            "ko": "KO-KR",
+            "zh": "ZH-CN",
+            "ru": "RU-RU",
+            "ar": "AR-SA",
+            "hi": "HI-IN",
+            "tr": "TR-TR",
+            "pl": "PL-PL",
+            "nl": "NL-NL",
+        }
+        return tags.get(code, code.upper() if code else "PT-BR")
+
+    def _output_action_label(self) -> str:
+        """Rótulo de estado no nome da ROM, respeitando o idioma alvo."""
+        # Se o alvo é PT-BR, mantém rótulo em português conforme padrão solicitado.
+        if self._output_language_tag().upper() == "PT-BR":
+            return "TRADUZINDO"
+        code = str(
+            getattr(self, "target_language_code", None)
+            or getattr(self, "current_ui_lang", None)
+            or "pt"
+        ).strip().lower()
+        labels = {
+            "pt": "TRADUZINDO",
+            "en": "TRANSLATING",
+            "es": "TRADUCIENDO",
+            "fr": "TRADUISANT",
+            "de": "UEBERSETZUNG",
+            "it": "TRADUZIONE",
+            "ja": "HONYAKU",
+            "ko": "BEONYEOK",
+            "zh": "FANYI",
+            "ru": "PEREVOD",
+            "ar": "TARJAMA",
+            "hi": "ANUVAAD",
+            "tr": "CEVIRI",
+            "pl": "TLUMACZENIE",
+            "nl": "VERTALING",
+        }
+        return labels.get(code, "TRADUZINDO")
+
+    def _build_default_output_rom_name(self, rom_path: str, crc32_hint: str | None = None) -> str:
+        """Nome padrão da ROM traduzida usando nome da ROM selecionada."""
+        rom_ext = Path(rom_path).suffix or ".rom"
+        base_name = Path(rom_path).stem.strip()
+        if not base_name:
+            base_name = str(crc32_hint or self.current_rom_crc32 or _crc32_file(rom_path) or "ROM")
+        base_name = re.sub(r'[\\/:*?"<>|]+', "_", base_name)
+        base_name = re.sub(r"\s+", "_", base_name).strip("._ ")
+        if not base_name:
+            base_name = str(crc32_hint or self.current_rom_crc32 or "ROM")
+        return f"{base_name}_{self._output_action_label()}_{self._output_language_tag()}{rom_ext}"
+
     def create_settings_tab(self) -> QWidget:
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
@@ -9415,52 +12265,193 @@ class MainWindow(QMainWindow):
         ui_lang_group.setLayout(ui_lang_layout)
         layout.addWidget(ui_lang_group)
 
-        theme_group = QGroupBox(self.tr("theme"))
-        theme_group.setObjectName("theme_group")
-        theme_layout = QHBoxLayout()
+        ui_mode_group = QGroupBox("Perfil de Usuário")
+        ui_mode_group.setObjectName("ui_mode_group")
+        ui_mode_layout = QHBoxLayout()
+        self.ui_mode_client_rb = QRadioButton("Usuário Básico")
+        self.ui_mode_dev_rb = QRadioButton("Desenvolvedor")
+        self.ui_mode_client_rb.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ui_mode_dev_rb.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.ui_mode_client_rb.setChecked(self._is_basic_ui_mode())
+        self.ui_mode_dev_rb.setChecked(not self._is_basic_ui_mode())
+        self.ui_mode_client_rb.toggled.connect(self._on_ui_mode_radio_changed)
+        self.ui_mode_dev_rb.toggled.connect(self._on_ui_mode_radio_changed)
+        ui_mode_layout.addWidget(self.ui_mode_client_rb)
+        ui_mode_layout.addWidget(self.ui_mode_dev_rb)
+        ui_mode_layout.addStretch()
+        ui_mode_group.setLayout(ui_mode_layout)
+        layout.addWidget(ui_mode_group)
+
+        api_group = QGroupBox(self.tr("api_config"))
+        api_group.setObjectName("settings_api_group")
+        api_layout = QGridLayout()
+        api_layout.setSpacing(8)
+        api_layout.setContentsMargins(10, 15, 10, 10)
+
+        api_key_label = QLabel(self.tr("api_key"))
+        api_key_label.setObjectName("settings_api_key_label")
+        api_layout.addWidget(api_key_label, 0, 0)
+
+        api_container = QWidget()
+        api_container_layout = QHBoxLayout(api_container)
+        api_container_layout.setContentsMargins(0, 0, 0, 0)
+        api_container_layout.setSpacing(5)
+
+        self.settings_api_key_edit = QLineEdit()
+        self.settings_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.settings_api_key_edit.setMinimumHeight(28)
+        self.settings_api_key_edit.setPlaceholderText("AIza...")
+        if hasattr(self, "api_key_edit") and self.api_key_edit:
+            self.settings_api_key_edit.setText(self.api_key_edit.text())
+        self.settings_api_key_edit.textChanged.connect(self._on_settings_api_key_changed)
+        api_container_layout.addWidget(self.settings_api_key_edit)
+
+        self.settings_api_eye_btn = QToolButton()
+        self.settings_api_eye_btn.setText("👁")
+        self.settings_api_eye_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.settings_api_eye_btn.setMinimumSize(28, 28)
+        self.settings_api_eye_btn.setMaximumSize(28, 28)
+        self.settings_api_eye_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.settings_api_eye_btn.pressed.connect(self._settings_eye_show_key)
+        self.settings_api_eye_btn.released.connect(self._settings_eye_hide_key)
+        api_container_layout.addWidget(self.settings_api_eye_btn)
+
+        api_layout.addWidget(api_container, 0, 1)
+
+        self.high_quality_mode_cb = QCheckBox(
+            "🏆 Modo Qualidade Alta (Auto: força Gemini e bloqueia fallback offline)"
+        )
+        self.high_quality_mode_cb.setChecked(bool(getattr(self, "high_quality_mode", True)))
+        self.high_quality_mode_cb.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.high_quality_mode_cb.setToolTip(
+            "Recomendado para melhor qualidade. Requer API Gemini configurada."
+        )
+        self.high_quality_mode_cb.toggled.connect(self._on_high_quality_mode_changed)
+        api_layout.addWidget(self.high_quality_mode_cb, 1, 0, 1, 2)
+
+        api_group.setLayout(api_layout)
+        layout.addWidget(api_group)
+
+        # Tema e Fonte agora são acessíveis pelo menu superior (Fontes / Temas)
+        # Mantemos os combos ocultos apenas para compatibilidade com load/save config
         self.theme_combo = QComboBox()
-        self.theme_combo.setCursor(
-            Qt.CursorShape.PointingHandCursor
-        )  # Cursor de mãozinha
-        # Populate with translated theme names
         self.theme_combo.addItems(self.get_all_translated_theme_names())
-        # Set current theme using translated name
         current_translated = self.get_translated_theme_name(self.current_theme)
         self.theme_combo.setCurrentText(current_translated)
         self.theme_combo.currentTextChanged.connect(self.change_theme)
-        theme_layout.addWidget(self.theme_combo)
-        theme_group.setLayout(theme_layout)
-        layout.addWidget(theme_group)
+        self.theme_combo.hide()
 
-        font_group = QGroupBox(self.tr("font_family"))
-        font_group.setObjectName("font_group")
-        font_layout = QHBoxLayout()
         self.font_combo = QComboBox()
-        self.font_combo.setCursor(
-            Qt.CursorShape.PointingHandCursor
-        )  # Cursor de mãozinha
         self.font_combo.addItems(ProjectConfig.FONT_FAMILIES.keys())
         self.font_combo.setCurrentText(self.current_font_family)
         self.font_combo.currentTextChanged.connect(self.change_font_family)
-        font_layout.addWidget(self.font_combo)
-        font_group.setLayout(font_layout)
-        layout.addWidget(font_group)
+        self.font_combo.hide()
 
-        mode_group = QGroupBox(self.tr("usage_mode"))
-        mode_group.setObjectName("usage_mode_group")
-        mode_layout = QVBoxLayout()
-        self.beginner_mode_cb = QCheckBox(self.tr("beginner_mode_label"))
-        self.beginner_mode_cb.setObjectName("beginner_mode_cb")
-        self.beginner_mode_cb.setChecked(True)
-        self.beginner_mode_cb.setToolTip(self.tr("beginner_mode_tip"))
-        self.beginner_mode_cb.setStyleSheet("QCheckBox { font-size: 9pt; }")
-        self.beginner_mode_cb.setEnabled(False)
-        self.beginner_mode_cb.stateChanged.connect(self._on_beginner_mode_changed)
-        mode_layout.addWidget(self.beginner_mode_cb)
-        mode_group.setLayout(mode_layout)
-        layout.addWidget(mode_group)
+        # Emulador BizHawk
+        hawk_group = QGroupBox("🎮 Emulador BizHawk")
+        hawk_layout = QVBoxLayout()
+        hawk_path_default = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "BizHawk-2.11-win-x64", "EmuHawk.exe"
+        )
+        self.hawk_path_edit = QLineEdit()
+        self.hawk_path_edit.setPlaceholderText("Caminho do EmuHawk.exe")
+        if os.path.isfile(hawk_path_default):
+            self.hawk_path_edit.setText(hawk_path_default)
+        hawk_path_layout = QHBoxLayout()
+        hawk_path_layout.addWidget(self.hawk_path_edit)
+        hawk_browse_btn = QPushButton("📁 Procurar")
+        hawk_browse_btn.setMinimumHeight(32)
+        hawk_browse_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        hawk_browse_btn.clicked.connect(self._browse_hawk_path)
+        hawk_path_layout.addWidget(hawk_browse_btn)
+        hawk_layout.addLayout(hawk_path_layout)
+        hawk_open_btn = QPushButton("▶ Abrir ROM no BizHawk")
+        hawk_open_btn.setMinimumHeight(36)
+        hawk_open_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        hawk_open_btn.clicked.connect(self._open_rom_in_bizhawk)
+        hawk_layout.addWidget(hawk_open_btn)
+        hawk_group.setLayout(hawk_layout)
+        layout.addWidget(hawk_group)
 
-        # PROFESSIONAL: Version label for buyer confidence
+        compact_glossary_group = QGroupBox("📘 Glossário Compacto")
+        compact_glossary_layout = QVBoxLayout()
+        self.edit_compact_glossary_btn = QPushButton("Editar Glossário Compacto")
+        self.edit_compact_glossary_btn.setMinimumHeight(36)
+        self.edit_compact_glossary_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.edit_compact_glossary_btn.clicked.connect(self._open_compact_glossary_file)
+        compact_glossary_layout.addWidget(self.edit_compact_glossary_btn)
+        compact_glossary_group.setLayout(compact_glossary_layout)
+        layout.addWidget(compact_glossary_group)
+
+        # Painel extra para preencher área livre no perfil básico
+        self.basic_info_group = QGroupBox("📌 Resumo da ROM")
+        basic_info_layout = QGridLayout()
+        basic_info_layout.setHorizontalSpacing(10)
+        basic_info_layout.setVerticalSpacing(6)
+        basic_info_layout.setColumnStretch(0, 0)
+        basic_info_layout.setColumnStretch(1, 1)
+        basic_info_layout.addWidget(QLabel("Plataforma:"), 0, 0)
+        self.basic_info_platform_value = QLabel("--")
+        self.basic_info_platform_value.setMinimumHeight(24)
+        basic_info_layout.addWidget(self.basic_info_platform_value, 0, 1)
+        basic_info_layout.addWidget(QLabel("Emulador recomendado:"), 1, 0)
+        self.basic_info_emulator_value = QLabel("--")
+        self.basic_info_emulator_value.setMinimumHeight(24)
+        basic_info_layout.addWidget(self.basic_info_emulator_value, 1, 1)
+        basic_info_layout.addWidget(QLabel("ROM selecionada:"), 2, 0)
+        self.basic_info_rom_value = QLabel("--")
+        self.basic_info_rom_value.setMinimumHeight(24)
+        self.basic_info_rom_value.setWordWrap(True)
+        basic_info_layout.addWidget(self.basic_info_rom_value, 2, 1)
+        basic_info_layout.addWidget(QLabel("CRC32:"), 3, 0)
+        self.basic_info_crc_value = QLabel("--")
+        self.basic_info_crc_value.setMinimumHeight(24)
+        basic_info_layout.addWidget(self.basic_info_crc_value, 3, 1)
+        basic_info_layout.addWidget(QLabel("Tamanho:"), 4, 0)
+        self.basic_info_size_value = QLabel("--")
+        self.basic_info_size_value.setMinimumHeight(24)
+        basic_info_layout.addWidget(self.basic_info_size_value, 4, 1)
+        basic_info_layout.addWidget(QLabel("Status:"), 5, 0)
+        self.basic_info_status_value = QLabel("Aguardando seleção da ROM")
+        self.basic_info_status_value.setMinimumHeight(24)
+        self.basic_info_status_value.setWordWrap(True)
+        basic_info_layout.addWidget(self.basic_info_status_value, 5, 1)
+        for row in range(6):
+            basic_info_layout.setRowMinimumHeight(row, 24)
+        self.basic_info_group.setLayout(basic_info_layout)
+        layout.addWidget(self.basic_info_group)
+
+        self.basic_output_group = QGroupBox("💾 Saída da ROM Traduzida")
+        basic_output_layout = QVBoxLayout()
+        out_name_row = QHBoxLayout()
+        out_name_row.addWidget(QLabel("Nome final:"))
+        self.basic_output_name_value = QLabel("--")
+        self.basic_output_name_value.setWordWrap(True)
+        out_name_row.addWidget(self.basic_output_name_value, 1)
+        basic_output_layout.addLayout(out_name_row)
+        out_dir_row = QHBoxLayout()
+        out_dir_row.addWidget(QLabel("Pasta:"))
+        self.basic_output_path_value = QLabel("--")
+        self.basic_output_path_value.setWordWrap(True)
+        out_dir_row.addWidget(self.basic_output_path_value, 1)
+        basic_output_layout.addLayout(out_dir_row)
+        out_btn_row = QHBoxLayout()
+        self.basic_open_output_btn = QPushButton("📂 Abrir pasta da saída")
+        self.basic_open_output_btn.setMinimumHeight(32)
+        self.basic_open_output_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.basic_open_output_btn.clicked.connect(self._open_basic_output_folder)
+        out_btn_row.addWidget(self.basic_open_output_btn)
+        self.basic_copy_output_btn = QPushButton("📋 Copiar caminho")
+        self.basic_copy_output_btn.setMinimumHeight(32)
+        self.basic_copy_output_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.basic_copy_output_btn.clicked.connect(self._copy_basic_output_path)
+        out_btn_row.addWidget(self.basic_copy_output_btn)
+        basic_output_layout.addLayout(out_btn_row)
+        self.basic_output_group.setLayout(basic_output_layout)
+        layout.addWidget(self.basic_output_group)
+
+
         layout.addStretch()
         self.version_label = QLabel(
             self.tr("version_label").format(version="v5.3 Stable")
@@ -9471,13 +12462,766 @@ class MainWindow(QMainWindow):
         self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.version_label)
 
-        return widget
+        scroll.setWidget(widget)
+        return scroll
+
+    def _browse_hawk_path(self):
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Selecionar EmuHawk.exe", "", "Executável (*.exe)"
+        )
+        if path:
+            self.hawk_path_edit.setText(path)
+
+    def _open_rom_in_bizhawk(self):
+        hawk = self.hawk_path_edit.text().strip()
+        if not hawk or not os.path.isfile(hawk):
+            QMessageBox.warning(self, "BizHawk", "Caminho do EmuHawk.exe não encontrado.")
+            return
+        rom = getattr(self, "original_rom_path", "") or getattr(self, "rom_path", "")
+        if not rom or not os.path.isfile(rom):
+            QMessageBox.warning(self, "BizHawk", "Nenhuma ROM carregada. Selecione uma ROM primeiro.")
+            return
+        import subprocess
+        subprocess.Popen([hawk, rom])
+        self.log(f"[OK] BizHawk aberto com: {os.path.basename(rom)}")
+
+    def _open_compact_glossary_file(self):
+        glossary_path = (
+            Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            / "core"
+            / "compact_glossary.json"
+        )
+        try:
+            if not glossary_path.exists():
+                glossary_path.write_text(
+                    '{\n  "_global": {\n    "comment": "Substituicoes globais"\n  }\n}\n',
+                    encoding="utf-8",
+                )
+            if sys.platform == "win32":
+                os.startfile(str(glossary_path))
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", str(glossary_path)])
+            else:
+                QDesktopServices.openUrl(QUrl.fromLocalFile(str(glossary_path)))
+            self.log(f"[OK] Abrindo glossário compacto: {glossary_path}")
+        except Exception as e:
+            QMessageBox.warning(
+                self,
+                "Glossário Compacto",
+                f"Falha ao abrir o glossário compacto: {_sanitize_error(e)}",
+            )
+
+    def _recommended_emulator_for_platform(self, platform_text: str) -> str:
+        text = str(platform_text or "").lower()
+        if "master system" in text or "game gear" in text:
+            return "BizHawk ou Kega Fusion"
+        if "mega drive" in text or "genesis" in text:
+            return "BizHawk ou BlastEm"
+        if "nes" in text or "famicom" in text:
+            return "Mesen ou FCEUX"
+        if "snes" in text or "super nintendo" in text:
+            return "Snes9x ou bsnes"
+        if "gba" in text:
+            return "mGBA"
+        if "gb" in text:
+            return "SameBoy ou mGBA"
+        if "ps1" in text or "playstation" in text:
+            return "DuckStation"
+        return "BizHawk"
+
+    def _human_rom_size(self, size_bytes: int | None) -> str:
+        try:
+            if not size_bytes:
+                return "--"
+            size = float(size_bytes)
+            if size < 1024:
+                return f"{int(size)} B"
+            if size < 1024 * 1024:
+                return f"{size / 1024.0:.1f} KB"
+            return f"{size / (1024.0 * 1024.0):.2f} MB"
+        except Exception:
+            return "--"
+
+    def _current_output_target(self) -> tuple[str, str]:
+        out_file = ""
+        out_dir = ""
+        patched = str(getattr(self, "_last_output_rom", "") or "")
+        if patched and os.path.exists(patched):
+            out_file = patched
+            out_dir = os.path.dirname(patched)
+            return out_file, out_dir
+
+        if self.original_rom_path and os.path.exists(self.original_rom_path):
+            base_dir = self._get_output_dir_for_current_rom() or os.path.dirname(self.original_rom_path)
+            stage_dir = (
+                os.path.join(base_dir, self._stage_folder_name("reinsert"))
+                if base_dir else os.path.dirname(self.original_rom_path)
+            )
+            default_name = self._build_default_output_rom_name(
+                self.original_rom_path, self.current_rom_crc32
+            )
+            out_file = os.path.join(stage_dir, default_name)
+            out_dir = stage_dir
+        return out_file, out_dir
+
+    def _update_basic_dashboard_panels(self) -> None:
+        has_rom = bool(self.original_rom_path and os.path.exists(self.original_rom_path))
+        platform_text_raw = (
+            self.platform_combo.currentText()
+            if hasattr(self, "platform_combo") and self.platform_combo
+            else "--"
+        )
+        platform_text = platform_text_raw if has_rom else "--"
+        emulator_text = self._recommended_emulator_for_platform(platform_text_raw) if has_rom else "--"
+        rom_name = Path(self.original_rom_path).name if has_rom else "--"
+        crc = str(self.current_rom_crc32 or "--") if has_rom else "--"
+        rom_size = self._human_rom_size(self.current_rom_size) if has_rom else "--"
+        output_file, output_dir = self._current_output_target()
+        output_name = Path(output_file).name if output_file else "--"
+        output_dir_text = output_dir if output_dir else "--"
+
+        status = "Aguardando seleção da ROM"
+        if has_rom:
+            status = "ROM carregada. Pronto para traduzir."
+        if getattr(self, "_auto_pipeline_active", False):
+            status = f"Auto Pipeline em execução (etapa {int(getattr(self, '_auto_pipeline_stage', 0))}/3)"
+        if getattr(self, "_last_output_rom", "") and os.path.exists(str(getattr(self, "_last_output_rom", ""))):
+            status = "ROM traduzida gerada com sucesso."
+
+        if hasattr(self, "basic_info_platform_value"):
+            self.basic_info_platform_value.setText(platform_text or "--")
+        if hasattr(self, "basic_info_emulator_value"):
+            self.basic_info_emulator_value.setText(emulator_text)
+        if hasattr(self, "basic_info_rom_value"):
+            self.basic_info_rom_value.setText(rom_name)
+        if hasattr(self, "basic_info_crc_value"):
+            self.basic_info_crc_value.setText(crc)
+        if hasattr(self, "basic_info_size_value"):
+            self.basic_info_size_value.setText(rom_size)
+        if hasattr(self, "basic_info_status_value"):
+            self.basic_info_status_value.setText(status)
+
+        if hasattr(self, "basic_output_name_value"):
+            self.basic_output_name_value.setText(output_name)
+        if hasattr(self, "basic_output_path_value"):
+            self.basic_output_path_value.setText(output_dir_text)
+        if hasattr(self, "basic_open_output_btn"):
+            self.basic_open_output_btn.setEnabled(bool(output_dir and os.path.isdir(output_dir)))
+        if hasattr(self, "basic_copy_output_btn"):
+            self.basic_copy_output_btn.setEnabled(bool(output_file))
+
+        if hasattr(self, "quick_overview_label"):
+            profile = "Usuário Básico" if self._is_basic_ui_mode() else "Desenvolvedor"
+            api_val = ""
+            if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+                api_val = self.settings_api_key_edit.text().strip()
+            elif hasattr(self, "api_key_edit") and self.api_key_edit:
+                api_val = self.api_key_edit.text().strip()
+            api_status = "Configurada" if api_val else "Não configurada (usa NLLB offline)"
+            quality_mode = "Alta (força Gemini)" if bool(getattr(self, "high_quality_mode", True)) else "Normal (permite fallback offline)"
+            overview = (
+                f"Perfil: {profile}\n"
+                f"Plataforma: {platform_text or '--'}\n"
+                f"Emulador recomendado: {emulator_text}\n"
+                f"API Gemini: {api_status}\n"
+                f"Modo Qualidade: {quality_mode}\n"
+                f"Saída final: {output_name}"
+            )
+            self.quick_overview_label.setText(overview)
+
+    def _open_basic_output_folder(self) -> None:
+        _, out_dir = self._current_output_target()
+        if out_dir and os.path.isdir(out_dir):
+            self._explorer_select("", out_dir)
+        else:
+            QMessageBox.information(self, "Saída", "Pasta de saída ainda não disponível.")
+
+    def _copy_basic_output_path(self) -> None:
+        out_file, _ = self._current_output_target()
+        if out_file:
+            QApplication.clipboard().setText(out_file)
+            self.log("[OK] Caminho da saída copiado.")
+        else:
+            QMessageBox.information(self, "Saída", "Caminho de saída ainda não disponível.")
 
     # NOTE: create_graphics_lab_tab() has been moved to gui_tabs/graphic_lab.py
 
     def on_mode_changed(self, index: int):
-        # Esconde API key apenas para Ollama Local (index 2)
-        self.api_group.setVisible(index != 2)
+        # API key foi movida para Configurações; mantemos o grupo oculto para compatibilidade.
+        if hasattr(self, "api_group") and self.api_group:
+            self.api_group.setVisible(False)
+
+    def _sync_api_key_to_settings(self, value: str) -> None:
+        if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+            self.settings_api_key_edit.blockSignals(True)
+            self.settings_api_key_edit.setText(str(value or ""))
+            self.settings_api_key_edit.blockSignals(False)
+
+    def _on_settings_api_key_changed(self, value: str) -> None:
+        if hasattr(self, "api_key_edit") and self.api_key_edit:
+            self.api_key_edit.blockSignals(True)
+            self.api_key_edit.setText(str(value or ""))
+            self.api_key_edit.blockSignals(False)
+        self.save_config()
+
+    def _on_high_quality_mode_changed(self, checked: bool) -> None:
+        self.high_quality_mode = bool(checked)
+        if self.high_quality_mode:
+            self.log("[QUALIDADE] Modo Qualidade Alta: ATIVO (Auto força Gemini).")
+        else:
+            self.log("[QUALIDADE] Modo Qualidade Alta: DESATIVADO (Auto permite fallback offline).")
+        self.save_config()
+        self._update_basic_dashboard_panels()
+
+    def _settings_eye_show_key(self) -> None:
+        if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+            self.settings_api_key_edit.setEchoMode(QLineEdit.EchoMode.Normal)
+        if hasattr(self, "settings_api_eye_btn") and self.settings_api_eye_btn:
+            self.settings_api_eye_btn.setText("🔒")
+
+    def _settings_eye_hide_key(self) -> None:
+        if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+            self.settings_api_key_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        if hasattr(self, "settings_api_eye_btn") and self.settings_api_eye_btn:
+            self.settings_api_eye_btn.setText("👁")
+
+    def _set_tab_visible_compat(self, index: int, visible: bool) -> None:
+        if not hasattr(self, "tabs") or not self.tabs:
+            return
+        try:
+            self.tabs.setTabVisible(int(index), bool(visible))
+        except Exception:
+            self.tabs.setTabEnabled(int(index), bool(visible))
+
+    def _normalize_ui_mode(self, mode: str) -> str:
+        """Normaliza modo de UI com compatibilidade retroativa (client/developer)."""
+        raw = str(mode or "").strip().lower()
+        if raw in {"basic", "leigo", "cliente", "client"}:
+            return "basic"
+        if raw in {"technical", "tecnico", "técnico", "developer", "dev"}:
+            return "technical"
+        return "technical"
+
+    def _is_basic_ui_mode(self) -> bool:
+        return self._normalize_ui_mode(getattr(self, "ui_mode", "technical")) == "basic"
+
+    def _apply_ui_mode_visibility(self) -> None:
+        """Aplica visibilidade das abas com base no modo de interface."""
+        if not hasattr(self, "tabs") or not self.tabs:
+            return
+
+        mode = self._normalize_ui_mode(getattr(self, "ui_mode", "technical"))
+        self.ui_mode = mode
+
+        # Índices fixos:
+        # 0 Extração | 1 Graphics | 2 Tradução | 3 Reinserção | 4 Configurações
+        if mode == "basic":
+            for idx in (0, 1, 2, 3):
+                self._set_tab_visible_compat(idx, False)
+            self._set_tab_visible_compat(4, True)
+            try:
+                self.tabs.setCurrentIndex(4)
+            except Exception:
+                pass
+        else:
+            self._set_tab_visible_compat(0, True)
+            self._set_tab_visible_compat(2, True)
+            self._set_tab_visible_compat(3, True)
+            self._set_tab_visible_compat(4, True)
+            # Aba gráfica respeita opção legada developer_mode.
+            self._set_tab_visible_compat(1, bool(getattr(self, "developer_mode", False)))
+
+        show_basic_cards = mode == "basic"
+        if hasattr(self, "basic_info_group"):
+            self.basic_info_group.setVisible(show_basic_cards)
+        if hasattr(self, "basic_output_group"):
+            self.basic_output_group.setVisible(show_basic_cards)
+        if hasattr(self, "quick_overview_group"):
+            self.quick_overview_group.setVisible(show_basic_cards)
+
+        self._update_basic_dashboard_panels()
+
+    def _on_ui_mode_radio_changed(self) -> None:
+        if not hasattr(self, "ui_mode_client_rb") or not hasattr(self, "ui_mode_dev_rb"):
+            return
+        self.ui_mode = "basic" if self.ui_mode_client_rb.isChecked() else "technical"
+        self._apply_ui_mode_visibility()
+        self.save_config()
+        self.log(
+            "[UI MODE] Perfil ativo: "
+            + ("USUÁRIO BÁSICO" if self._is_basic_ui_mode() else "DESENVOLVEDOR")
+        )
+
+    def toggle_ui_mode(self) -> None:
+        self.ui_mode = "technical" if self._is_basic_ui_mode() else "basic"
+        if hasattr(self, "ui_mode_client_rb") and hasattr(self, "ui_mode_dev_rb"):
+            self.ui_mode_client_rb.blockSignals(True)
+            self.ui_mode_dev_rb.blockSignals(True)
+            self.ui_mode_client_rb.setChecked(self.ui_mode == "basic")
+            self.ui_mode_dev_rb.setChecked(self.ui_mode == "technical")
+            self.ui_mode_client_rb.blockSignals(False)
+            self.ui_mode_dev_rb.blockSignals(False)
+        self._apply_ui_mode_visibility()
+        self.save_config()
+        self.log(
+            "[UI MODE] Alternado para: "
+            + ("USUÁRIO BÁSICO" if self._is_basic_ui_mode() else "DESENVOLVEDOR")
+        )
+
+    def _focus_failure_tab(self, index: int) -> None:
+        if not hasattr(self, "tabs") or not self.tabs:
+            return
+        self._set_tab_visible_compat(index, True)
+        try:
+            tab_bar = self.tabs.tabBar()
+            for i in range(self.tabs.count()):
+                tab_bar.setTabTextColor(i, QColor("#b0b0b0"))
+            tab_bar.setTabTextColor(index, QColor("#ff6b6b"))
+        except Exception:
+            pass
+        try:
+            self.tabs.setCurrentIndex(index)
+        except Exception:
+            pass
+
+    def _reset_quality_panel(self) -> None:
+        self._qa_panel_stats = {
+            "approved": 0,
+            "alerts": 0,
+            "blocked": 0,
+            "score_sum": 0.0,
+            "processed": 0,
+        }
+        self._update_quality_panel()
+
+    def _update_quality_panel(self) -> None:
+        if not hasattr(self, "quality_status_label"):
+            return
+        processed = int(self._qa_panel_stats.get("processed", 0))
+        avg_score = (
+            float(self._qa_panel_stats.get("score_sum", 0.0)) / processed
+            if processed > 0
+            else None
+        )
+        score_text = f"{avg_score:.2f}" if avg_score is not None else "--"
+        self.quality_status_label.setText(
+            f"✅ Aprovadas: {int(self._qa_panel_stats.get('approved', 0))}  "
+            f"⚠️ Alertas: {int(self._qa_panel_stats.get('alerts', 0))}  "
+            f"❌ Bloqueadas: {int(self._qa_panel_stats.get('blocked', 0))}  "
+            f"📊 Score: {score_text}"
+        )
+        if hasattr(self, "review_blocked_btn") and self.review_blocked_btn:
+            review_path = self._resolve_reviewable_qa_path()
+            blocked = int(self._qa_panel_stats.get("blocked", 0))
+            if blocked <= 0 and review_path:
+                blocked = self._count_blocked_entries_in_jsonl(review_path)
+            self.review_blocked_btn.setEnabled(bool(review_path and blocked > 0))
+
+    def _resolve_reviewable_qa_path(self) -> str:
+        """Retorna o melhor candidato JSONL para revisão das bloqueadas."""
+        candidates = [
+            str(getattr(self, "_auto_pipeline_qa_file", "") or ""),
+            str(getattr(self, "translated_file", "") or ""),
+        ]
+        for c in candidates:
+            if c and os.path.exists(c) and c.lower().endswith(".jsonl"):
+                return c
+        return ""
+
+    def _count_blocked_entries_in_jsonl(self, path: str) -> int:
+        if not path or not os.path.exists(path):
+            return 0
+        blocked = 0
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    raw = line.strip()
+                    if not raw:
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                    except Exception:
+                        continue
+                    status = str(obj.get("qa_status", "")).strip().lower()
+                    if status == "blocked":
+                        blocked += 1
+                        continue
+                    score_raw = obj.get("qa_score", None)
+                    try:
+                        if score_raw is not None and float(score_raw) < 0.5:
+                            blocked += 1
+                    except (TypeError, ValueError):
+                        continue
+        except Exception:
+            return 0
+        return blocked
+
+    def _sync_quality_stats_from_file(self, path: str) -> None:
+        """Reconstrói painel de qualidade a partir de um JSONL com campos QA."""
+        if not path or not os.path.exists(path):
+            return
+        stats = {
+            "approved": 0,
+            "alerts": 0,
+            "blocked": 0,
+            "score_sum": 0.0,
+            "processed": 0,
+        }
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    raw = line.strip()
+                    if not raw:
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                    except Exception:
+                        continue
+                    if not isinstance(obj, dict):
+                        continue
+                    score_raw = obj.get("qa_score", None)
+                    status = str(obj.get("qa_status", "")).strip().lower()
+                    try:
+                        score_val = float(score_raw) if score_raw is not None else None
+                    except (TypeError, ValueError):
+                        score_val = None
+                    if status == "blocked" or (score_val is not None and score_val < 0.5):
+                        stats["blocked"] += 1
+                        stats["processed"] += 1
+                        if score_val is not None:
+                            stats["score_sum"] += score_val
+                        continue
+                    if status == "alert" or (score_val is not None and 0.5 <= score_val < 0.7):
+                        stats["alerts"] += 1
+                        stats["processed"] += 1
+                        if score_val is not None:
+                            stats["score_sum"] += score_val
+                        continue
+                    if status in {"approved", "manual_override"} or score_val is not None:
+                        stats["approved"] += 1
+                        stats["processed"] += 1
+                        stats["score_sum"] += score_val if score_val is not None else 0.71
+            self._qa_panel_stats = stats
+            self._update_quality_panel()
+        except Exception:
+            return
+
+    def review_blocked_and_resume(self) -> None:
+        """Abre revisão das bloqueadas e retoma direto na reinserção."""
+        qa_path = self._resolve_reviewable_qa_path()
+        if not qa_path:
+            QMessageBox.information(
+                self,
+                "Revisão QA",
+                "Nenhum arquivo QA encontrado para revisão.",
+            )
+            return
+
+        blocked_before = self._count_blocked_entries_in_jsonl(qa_path)
+        if blocked_before <= 0:
+            QMessageBox.information(
+                self,
+                "Revisão QA",
+                "Não há linhas bloqueadas para revisar.",
+            )
+            return
+
+        dlg = BlockedQAReviewDialog(qa_path, parent=self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+        if not dlg.saved_output_file or not os.path.exists(dlg.saved_output_file):
+            return
+
+        self.translated_file = dlg.saved_output_file
+        self._auto_pipeline_qa_file = dlg.saved_output_file
+        self._sync_quality_stats_from_file(dlg.saved_output_file)
+        self.log(
+            f"[QA] Revisão manual aplicada. Arquivo: {os.path.basename(dlg.saved_output_file)}"
+        )
+
+        if bool(getattr(self, "high_quality_mode", True)) and int(dlg.remaining_blocked) > 0:
+            msg = (
+                f"Ainda existem {int(dlg.remaining_blocked)} bloqueadas. "
+                "No Modo Qualidade Alta, finalize a revisão antes de reinserir."
+            )
+            self.log(f"❌ {msg}")
+            QMessageBox.warning(self, "Revisão QA", msg)
+            return
+
+        if not self.original_rom_path or not os.path.exists(self.original_rom_path):
+            QMessageBox.warning(
+                self,
+                "Reinserção",
+                "ROM original não encontrada. Selecione a ROM antes de retomar.",
+            )
+            return
+
+        self._auto_pipeline_active = True
+        self._auto_pipeline_failed = False
+        self._auto_pipeline_stage = 3
+        self._set_auto_pipeline_button_state(True)
+        self.log("[AUTO 3/3] Retomando reinserção após revisão manual...")
+        self._update_action_states()
+        if not self._is_basic_ui_mode():
+            self._set_tab_visible_compat(3, True)
+            self.tabs.setCurrentIndex(3)
+        self.reinsert()
+
+    def _set_auto_pipeline_button_state(self, running: bool) -> None:
+        if hasattr(self, "auto_pipeline_btn") and self.auto_pipeline_btn:
+            self.auto_pipeline_btn.setEnabled(not running)
+
+    def start_auto_pipeline(self) -> None:
+        if self._auto_pipeline_active:
+            self.log("[WARN] Auto Pipeline já está em execução.")
+            return
+        if not getattr(self, "original_rom_path", None):
+            QMessageBox.warning(
+                self,
+                self.tr("dialog_title_warning"),
+                self.tr("warn_select_rom_first"),
+            )
+            return
+        if bool(getattr(self, "high_quality_mode", True)):
+            api_key = ""
+            if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+                api_key = self.settings_api_key_edit.text().strip()
+            elif hasattr(self, "api_key_edit") and self.api_key_edit:
+                api_key = self.api_key_edit.text().strip()
+            if not api_key:
+                detail = (
+                    "Modo Qualidade Alta exige API Gemini. "
+                    "Configure a chave na aba Configurações ou desative o modo."
+                )
+                self.log(f"❌ {detail}")
+                QMessageBox.warning(self, "Auto Pipeline", detail)
+                return
+            if not gemini_api or not getattr(gemini_api, "GENAI_AVAILABLE", False):
+                detail = "Modo Qualidade Alta requer Gemini disponível."
+                self.log(f"❌ {detail}")
+                QMessageBox.warning(self, "Auto Pipeline", detail)
+                return
+        self._auto_pipeline_active = True
+        self._auto_pipeline_failed = False
+        self._auto_pipeline_stage = 1
+        self._auto_pipeline_qa_file = ""
+        self._set_auto_pipeline_button_state(True)
+        self._reset_quality_panel()
+        self.log("[AUTO 1/3] Extraindo...")
+        self.extract_texts()
+
+    def _auto_pipeline_fail(self, stage_label: str, tab_name: str, tab_index: int, detail: str = "") -> None:
+        self._auto_pipeline_active = False
+        self._auto_pipeline_failed = True
+        self._auto_pipeline_stage = 0
+        self._set_auto_pipeline_button_state(False)
+
+        if self._is_basic_ui_mode():
+            self.ui_mode = "technical"
+            if hasattr(self, "ui_mode_dev_rb") and hasattr(self, "ui_mode_client_rb"):
+                self.ui_mode_dev_rb.blockSignals(True)
+                self.ui_mode_client_rb.blockSignals(True)
+                self.ui_mode_dev_rb.setChecked(True)
+                self.ui_mode_client_rb.setChecked(False)
+                self.ui_mode_dev_rb.blockSignals(False)
+                self.ui_mode_client_rb.blockSignals(False)
+            self._apply_ui_mode_visibility()
+
+        self._focus_failure_tab(tab_index)
+        if detail:
+            self.log(f"❌ Falhou na etapa {stage_label}. Veja a aba {tab_name}. Detalhe: {detail}")
+        else:
+            self.log(f"❌ Falhou na etapa {stage_label}. Veja a aba {tab_name}.")
+        QMessageBox.warning(
+            self,
+            "Auto Pipeline",
+            f"❌ Falhou na etapa {stage_label}. Veja a aba {tab_name}.",
+        )
+
+    def _auto_pipeline_on_extraction_done(self, success: bool, detail: str = "") -> None:
+        if not self._auto_pipeline_active:
+            return
+        if not success:
+            self._auto_pipeline_fail("1", "Extração", 0, detail=detail)
+            return
+        self._auto_pipeline_stage = 2
+        self.log("[AUTO 2/3] Traduzindo...")
+        if not self._is_basic_ui_mode():
+            self._set_tab_visible_compat(2, True)
+            self.tabs.setCurrentIndex(2)
+        self.translate_texts()
+
+    def _run_auto_pipeline_qa(self, translated_path: str) -> str:
+        """
+        Executa QA linguístico string a string antes da reinserção no Auto Pipeline.
+        Retorna caminho do arquivo ajustado para reinserção.
+        """
+        if not translated_path or not os.path.exists(translated_path):
+            return translated_path
+        if LinguisticQA is None:
+            self.log("[WARN] LinguisticQA indisponível; seguindo sem bloqueio por score.")
+            return translated_path
+
+        qa = LinguisticQA(min_quality=0.7)
+        self._reset_quality_panel()
+
+        ext = Path(translated_path).suffix.lower()
+        source_path = self.optimized_file if self.optimized_file and os.path.exists(self.optimized_file) else self.extracted_file
+        processed = 0
+
+        if ext == ".jsonl":
+            out_path = str(Path(translated_path).with_name(Path(translated_path).stem + "_qa.jsonl"))
+            with open(translated_path, "r", encoding="utf-8", errors="ignore") as fin, open(
+                out_path, "w", encoding="utf-8", newline="\n"
+            ) as fout:
+                for idx, line in enumerate(fin, start=1):
+                    raw = line.strip()
+                    if not raw:
+                        fout.write("\n")
+                        continue
+                    try:
+                        obj = json.loads(raw)
+                    except Exception:
+                        fout.write(line if line.endswith("\n") else line + "\n")
+                        continue
+
+                    original = str(obj.get("text_src") or obj.get("text") or obj.get("original_text") or "")
+                    translated = str(obj.get("translated_text") or obj.get("text_dst") or obj.get("translated") or original)
+                    result = qa.assess_with_retry(str(idx), original, translated, max_retries=1)
+                    score = float(result.quality_score)
+
+                    processed += 1
+                    self._qa_panel_stats["processed"] += 1
+                    self._qa_panel_stats["score_sum"] += score
+
+                    if score >= 0.7:
+                        self._qa_panel_stats["approved"] += 1
+                        final_text = str(result.final_translation or translated)
+                    elif score >= 0.5:
+                        self._qa_panel_stats["alerts"] += 1
+                        final_text = str(result.final_translation or translated)
+                        self.log(f"[QA ALERTA] idx={idx} score={score:.2f}")
+                    else:
+                        self._qa_panel_stats["blocked"] += 1
+                        final_text = original
+                        self.log(f"[QA BLOQUEADA] idx={idx} score={score:.2f}")
+
+                    obj["text_dst"] = final_text
+                    obj["translated_text"] = final_text
+                    obj["qa_score"] = round(score, 4)
+                    obj["qa_status"] = (
+                        "approved" if score >= 0.7 else "alert" if score >= 0.5 else "blocked"
+                    )
+                    fout.write(json.dumps(obj, ensure_ascii=False) + "\n")
+
+                    if processed % 25 == 0:
+                        self._update_quality_panel()
+
+            self._update_quality_panel()
+            return out_path
+
+        # TXT padrão
+        out_path = str(Path(translated_path).with_name(Path(translated_path).stem + "_qa.txt"))
+        try:
+            with open(translated_path, "r", encoding="utf-8", errors="ignore") as f:
+                translated_lines = f.readlines()
+        except Exception:
+            return translated_path
+
+        original_lines: list[str] = []
+        if source_path and os.path.exists(source_path):
+            try:
+                with open(source_path, "r", encoding="utf-8", errors="ignore") as f:
+                    original_lines = f.readlines()
+            except Exception:
+                original_lines = []
+
+        adjusted: list[str] = []
+        for idx, tline in enumerate(translated_lines, start=1):
+            translated = tline.rstrip("\n")
+            original = original_lines[idx - 1].rstrip("\n") if idx - 1 < len(original_lines) else ""
+            if not translated.strip():
+                adjusted.append(tline if tline.endswith("\n") else tline + "\n")
+                continue
+
+            result = qa.assess_with_retry(str(idx), original, translated, max_retries=1)
+            score = float(result.quality_score)
+            processed += 1
+            self._qa_panel_stats["processed"] += 1
+            self._qa_panel_stats["score_sum"] += score
+
+            if score >= 0.7:
+                self._qa_panel_stats["approved"] += 1
+                final_text = str(result.final_translation or translated)
+            elif score >= 0.5:
+                self._qa_panel_stats["alerts"] += 1
+                final_text = str(result.final_translation or translated)
+                self.log(f"[QA ALERTA] idx={idx} score={score:.2f}")
+            else:
+                self._qa_panel_stats["blocked"] += 1
+                final_text = original
+                self.log(f"[QA BLOQUEADA] idx={idx} score={score:.2f}")
+
+            adjusted.append(final_text + "\n")
+            if processed % 25 == 0:
+                self._update_quality_panel()
+
+        with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+            f.writelines(adjusted)
+        self._update_quality_panel()
+        return out_path
+
+    def _auto_pipeline_on_translation_done(self, success: bool, translated_path: str = "", detail: str = "") -> None:
+        if not self._auto_pipeline_active:
+            return
+        if not success:
+            self._auto_pipeline_fail("2", "Tradução", 2, detail=detail)
+            return
+
+        qa_ready_path = translated_path
+        try:
+            qa_ready_path = self._run_auto_pipeline_qa(translated_path)
+        except Exception as e:
+            self.log(f"[WARN] QA do Auto Pipeline falhou: {_sanitize_error(e)}")
+
+        if qa_ready_path and os.path.exists(qa_ready_path):
+            self.translated_file = qa_ready_path
+            self._auto_pipeline_qa_file = qa_ready_path
+        else:
+            self.translated_file = translated_path
+
+        if bool(getattr(self, "high_quality_mode", True)):
+            blocked = int(self._qa_panel_stats.get("blocked", 0))
+            if blocked > 0:
+                self._auto_pipeline_fail(
+                    "2",
+                    "Tradução",
+                    2,
+                    detail=(
+                        f"QA bloqueou {blocked} linha(s). "
+                        "Modo Qualidade Alta impediu reinserção automática."
+                    ),
+                )
+                return
+
+        self._auto_pipeline_stage = 3
+        self.log("[AUTO 3/3] Reinserindo...")
+        if not self._is_basic_ui_mode():
+            self._set_tab_visible_compat(3, True)
+            self.tabs.setCurrentIndex(3)
+        self.reinsert()
+
+    def _auto_pipeline_on_reinsertion_done(self, success: bool, detail: str = "") -> None:
+        if not self._auto_pipeline_active:
+            return
+        if not success:
+            self._auto_pipeline_fail("3", "Reinserção", 3, detail=detail)
+            return
+        self._auto_pipeline_active = False
+        self._auto_pipeline_stage = 0
+        self._set_auto_pipeline_button_state(False)
+        self.log("✅ ROM traduzida gerada com sucesso!")
+        QMessageBox.information(self, "Auto Pipeline", "✅ ROM traduzida gerada com sucesso!")
 
     def keyPressEvent(self, event):
         """
@@ -9557,8 +13301,8 @@ class MainWindow(QMainWindow):
                 self.extract_btn.setEnabled(True)
                 self.extract_btn.setText(self.tr("extract_texts"))
                 self.extract_btn.setToolTip("")
-                if hasattr(self, "optimize_btn"):
-                    self.optimize_btn.setEnabled(True)
+                if self.optimize_btn:
+                    if self.optimize_btn: self.optimize_btn.setEnabled(True)
                 if hasattr(self, "select_rom_btn"):
                     self.select_rom_btn.setEnabled(True)
                 if hasattr(self, "forensic_analysis_btn"):
@@ -9574,8 +13318,8 @@ class MainWindow(QMainWindow):
                 # Tooltip ao passar o mouse (Usa tradução)
                 self.extract_btn.setToolTip(self.tr("platform_tooltip"))
 
-                if hasattr(self, "optimize_btn"):
-                    self.optimize_btn.setEnabled(False)
+                if self.optimize_btn:
+                    if self.optimize_btn: self.optimize_btn.setEnabled(False)
                     self.optimize_btn.setToolTip(self.tr("platform_tooltip"))
 
                 if hasattr(self, "select_rom_btn"):
@@ -9621,6 +13365,11 @@ class MainWindow(QMainWindow):
         """Mostra o painel de tradução em tempo real somente na aba de Tradução."""
         if hasattr(self, "realtime_group"):
             self.realtime_group.setVisible(index == 2)
+        if hasattr(self, "quick_overview_group"):
+            if self._is_basic_ui_mode():
+                self.quick_overview_group.setVisible(True)
+            else:
+                self.quick_overview_group.setVisible(index != 2)
         if (
             hasattr(self, "graphics_lab_tab")
             and self.graphics_lab_tab
@@ -9655,11 +13404,47 @@ class MainWindow(QMainWindow):
                 return
 
             self.current_ui_lang = code
+            # Persiste imediatamente — gravação cirúrgica só de ui_lang,
+            # independente do estado dos outros widgets.
+            self._persist_ui_lang(code)
             self.apply_layout_direction()
             self.refresh_ui_labels()
+            self._sync_target_language_with_ui(force=True)
             self.save_config()
             if not getattr(self, "_startup", False):
                 self.log(f"[LANG] UI language: {self._format_lang_for_log()}")
+
+            # Atualiza traduções do Qt (menus de contexto, botões padrão)
+            try:
+                app = QApplication.instance()
+                _translations_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+                # Remove translator anterior se existir
+                if hasattr(self, "_qt_translator") and self._qt_translator:
+                    app.removeTranslator(self._qt_translator)
+                self._qt_translator = QTranslator(app)
+                # Mapeia código de idioma para arquivo qtbase
+                _qt_lang_map = {
+                    "pt": "qtbase_pt_BR",
+                    "en": "qtbase_en",
+                    "es": "qtbase_es",
+                    "fr": "qtbase_fr",
+                    "de": "qtbase_de",
+                    "it": "qtbase_it",
+                    "ja": "qtbase_ja",
+                    "ko": "qtbase_ko",
+                    "zh": "qtbase_zh_TW",
+                    "ru": "qtbase_ru",
+                    "ar": "qtbase_ar",
+                    "nl": "qtbase_nl",
+                    "pl": "qtbase_pl",
+                    "tr": "qtbase_tr",
+                    "hi": "qtbase_hi",
+                }
+                qt_file = _qt_lang_map.get(code, "qtbase_pt_BR")
+                self._qt_translator.load(qt_file, _translations_path)
+                app.installTranslator(self._qt_translator)
+            except Exception:
+                pass
         except Exception as e:
             self.log(f"[ERROR] Falha ao trocar idioma: {_sanitize_error(e)}")
 
@@ -9668,7 +13453,7 @@ class MainWindow(QMainWindow):
         self.update_window_title()
         if hasattr(self, "statusBar"):
             try:
-                self.statusBar().showMessage(self.tr("status_ready"))
+                pass  # status bar hidden
             except Exception:
                 pass
         self.setup_menu()
@@ -9742,12 +13527,23 @@ class MainWindow(QMainWindow):
         if hasattr(self, "target_lang_combo"):
             self._suppress_lang_logs = True
             self.target_lang_combo.blockSignals(True)
-            current_index = self.target_lang_combo.currentIndex()
+            current_label = self.target_lang_combo.currentText()
+            current_code = ProjectConfig.TARGET_LANGUAGES.get(current_label)
             self.target_lang_combo.clear()
             self.target_lang_combo.addItems(ProjectConfig.TARGET_LANGUAGES.keys())
-            self.target_lang_combo.setCurrentIndex(current_index)
+            if current_code:
+                restored_label = self._get_target_lang_label_by_code(current_code)
+                if restored_label:
+                    self.target_lang_combo.setCurrentText(restored_label)
+            if self.target_lang_combo.currentIndex() < 0 and self.target_lang_combo.count() > 0:
+                self.target_lang_combo.setCurrentIndex(0)
             self.target_lang_combo.blockSignals(False)
             self._suppress_lang_logs = False
+            selected_label = self.target_lang_combo.currentText()
+            selected_code = ProjectConfig.TARGET_LANGUAGES.get(selected_label)
+            if selected_code:
+                self.target_language_name = selected_label
+                self.target_language_code = selected_code
 
         # Atualiza o título do grupo de Ajuda
         if hasattr(self, "help_group"):
@@ -9961,6 +13757,11 @@ class MainWindow(QMainWindow):
         # Button icons
         if self.select_rom_btn:
             self.select_rom_btn.setText(self.tr("select_rom"))
+        if hasattr(self, "select_rom_auto_btn") and self.select_rom_auto_btn:
+            self.select_rom_auto_btn.setText("Arquivo ROM/Jogo")
+            self.select_rom_auto_btn.setIcon(
+                self.style().standardIcon(QStyle.StandardPixmap.SP_FileIcon)
+            )
         if self.sel_file_btn:
             self.sel_file_btn.setText(self.tr("select_file"))
 
@@ -10063,7 +13864,7 @@ class MainWindow(QMainWindow):
             self.beginner_mode_cb.setToolTip(self.tr("beginner_mode_tip"))
         if hasattr(self, "load_txt_btn"):
             self.load_txt_btn.setToolTip(self.tr("tooltip_load_extracted_txt"))
-        if hasattr(self, "optimize_btn"):
+        if self.optimize_btn:
             self.optimize_btn.setToolTip(self.tr("tooltip_optimize_data"))
         if hasattr(self, "sel_file_btn"):
             self.sel_file_btn.setToolTip(self.tr("tooltip_select_translation_file"))
@@ -10110,7 +13911,7 @@ class MainWindow(QMainWindow):
             # If button is disabled and has a tooltip, update it
             if not self.extract_btn.isEnabled() and current_tooltip:
                 self.extract_btn.setToolTip(self.tr("platform_tooltip"))
-        if hasattr(self, "optimize_btn"):
+        if self.optimize_btn:
             current_tooltip = self.optimize_btn.toolTip()
             if not self.optimize_btn.isEnabled() and current_tooltip:
                 self.optimize_btn.setToolTip(self.tr("platform_tooltip"))
@@ -10194,10 +13995,11 @@ class MainWindow(QMainWindow):
             )
 
     def _clean_tab_label(self, label: str) -> str:
-        """Remove numeração dos títulos das abas para evitar gaps."""
+        """Remove numeração e emojis dos títulos das abas."""
         if not label:
             return label
-        cleaned = re.sub(r"\s\d+\.\s*", " ", label)
+        # Remove apenas a numeração (ex: "1. "), mantém emojis
+        cleaned = re.sub(r"\s*\d+\.\s*", " ", label)
         return cleaned.strip()
 
     def _is_supported_platform(self, text: str) -> bool:
@@ -10248,8 +14050,9 @@ class MainWindow(QMainWindow):
             )
 
         if hasattr(self, "engine_detection_label"):
+            theme_text = theme.get("text", "#cfcfcf")
             self.engine_detection_label.setStyleSheet(
-                f"color: {text_muted}; background: {panel_bg}; padding: 10px; border-radius: 5px;"
+                f"color: {theme_text}; background: {panel_bg}; padding: 10px; border-radius: 5px;"
             )
 
         if hasattr(self, "graphics_tech_note") and self.graphics_tech_note:
@@ -10288,6 +14091,8 @@ class MainWindow(QMainWindow):
         neutral_button_style = self._get_neutral_button_style()
         if hasattr(self, "log_toggle_btn") and self.log_toggle_btn:
             self.log_toggle_btn.setStyleSheet(self._get_unified_button_style())
+        if hasattr(self, "log_copy_btn") and self.log_copy_btn:
+            self.log_copy_btn.setStyleSheet(self._get_unified_button_style())
 
         for attr_name in [
             "forensic_analysis_btn",
@@ -10304,10 +14109,18 @@ class MainWindow(QMainWindow):
             "select_reinsert_rom_btn",
             "select_translated_btn",
             "reinsert_btn",
+            "basic_open_output_btn",
+            "basic_copy_output_btn",
         ]:
             btn = getattr(self, attr_name, None)
             if isinstance(btn, QAbstractButton):
                 btn.setStyleSheet(neutral_button_style)
+
+        top_action_style = self._get_top_action_gray_style()
+        for attr_name in ["select_rom_auto_btn", "auto_pipeline_btn", "review_blocked_btn"]:
+            btn = getattr(self, attr_name, None)
+            if isinstance(btn, QAbstractButton):
+                btn.setStyleSheet(top_action_style)
 
         if hasattr(self, "eye_btn") and self.eye_btn:
             theme = self._get_theme_colors()
@@ -10372,11 +14185,11 @@ class MainWindow(QMainWindow):
         font.setFamily(primary_font)
         font.setPointSize(10)
         app = QApplication.instance()
-        app.setFont(font)
-        self._apply_font_to_widgets(font)
-        # Força repintura para widgets com stylesheet
+        # Aplica o tema primeiro (stylesheet), depois sobrescreve a fonte
         ThemeManager.apply(app, self.current_theme)
         self._refresh_theme_styles()
+        app.setFont(font)
+        self._apply_font_to_widgets(font)
         applied_family = QFontInfo(font).family()
         if applied_family != primary_font:
             self.log(
@@ -10617,7 +14430,9 @@ class MainWindow(QMainWindow):
             # Atualiza o campo de saída da ROM traduzida (usa nome do arquivo)
             ext = Path(file_path).suffix
             out_ext = ext if ext else ".rom"
-            self.output_rom_edit.setText(f"{crc32_full}_TRANSLATED{out_ext}")
+            self.output_rom_edit.setText(
+                self._build_default_output_rom_name(file_path, crc32_full)
+            )
 
             # [OK] Busca automática de arquivo extraído (usa nomes atuais e a pasta correta)
             rom_filename = crc32_full
@@ -11019,11 +14834,14 @@ class MainWindow(QMainWindow):
             # OVERRIDE VIA CRC32/ROM_SIZE (BASE LOCAL, SEM NOMES)
             # ================================================================
             crc_entry = self._get_crc_forensic_entry()
+            game_name = None
             if crc_entry:
                 if crc_entry.get("engine"):
                     engine = crc_entry.get("engine")
                 if crc_entry.get("year"):
                     year_estimate = crc_entry.get("year")
+                if crc_entry.get("game"):
+                    game_name = crc_entry.get("game")
 
             # EXTRAÇÃO ANTECIPADA DO ANO DO JOGO (PRIORIDADE SOBRE INSTALADOR)
             game_year_from_deep = None
@@ -11055,6 +14873,8 @@ class MainWindow(QMainWindow):
             # MONTAGEM DA MENSAGEM EXPANDIDA (TIER 1)
             # ================================================================
             detection_text = f"{type_emoji} <b>Detectado:</b> {type_text}<br>"
+            if game_name:
+                detection_text += f"<b>🎮 Jogo:</b> {game_name}<br>"
             detection_text += f"<b>📍 Plataforma:</b> {platform}<br>"
             detection_text += f"<b>⚙️ Engine:</b> {engine}<br>"
 
@@ -11176,6 +14996,8 @@ class MainWindow(QMainWindow):
             # LOG EXPANDIDO (TIER 1)
             # ================================================================
             self.log(f"🎯 Detectado: {type_text} | {platform}")
+            if game_name:
+                self.log(f"🎮 Jogo: {game_name}")
             self.log(f"📋 Engine: {engine}")
 
             if year_estimate:
@@ -11403,6 +15225,11 @@ class MainWindow(QMainWindow):
         ):
             initial_dir = os.path.dirname(self.original_rom_path)
 
+        # Nunca abre dentro de _interno (pode estar salvo de sessão anterior)
+        if "_interno" in initial_dir.replace("\\", "/"):
+            from pathlib import Path as _Path
+            initial_dir = str(_Path(initial_dir).parent)
+
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             self.tr("select_file"),
@@ -11431,12 +15258,12 @@ class MainWindow(QMainWindow):
             try:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as _f:
                     _line_count = sum(1 for _ in _f)
-                if _line_count > 2000:
+                if _line_count > 15000:
                     resp = QMessageBox.question(
                         self,
                         self.tr("dialog_title_warning"),
-                        f"Arquivo tem {_line_count} linhas (> 2000).\n"
-                        "Pode ser um arquivo de diagnóstico (Cobertura Total).\n\n"
+                        f"Arquivo tem {_line_count} linhas (> 15.000).\n"
+                        "Pode ser um arquivo de cobertura total (all_text).\n\n"
                         "Deseja usar mesmo assim?",
                         QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                         QMessageBox.StandardButton.No,
@@ -11603,13 +15430,28 @@ class MainWindow(QMainWindow):
             # ================================================================
             file_ext = os.path.splitext(file_path)[1].lower()
             out_ext = file_ext if file_ext else ".rom"
-            self.output_rom_edit.setText(f"{crc32_full}_TRANSLATED{out_ext}")
+            self.output_rom_edit.setText(
+                self._build_default_output_rom_name(file_path, crc32_full)
+            )
             self._update_action_states()
 
     def select_translated_file(self):
         initial_dir = str(ProjectConfig.ROMS_DIR)
-        if hasattr(self, "last_text_dir") and self.last_text_dir:
+        # Prioriza pasta CRC32 (raiz), não _interno
+        output_dir = self._get_output_dir_for_current_rom()
+        if output_dir and os.path.isdir(output_dir):
+            stage_translate_dir = os.path.join(output_dir, self._stage_folder_name("translate"))
+            initial_dir = stage_translate_dir if os.path.isdir(stage_translate_dir) else output_dir
+        elif hasattr(self, "last_text_dir") and self.last_text_dir:
             initial_dir = self.last_text_dir
+        elif self.original_rom_path and os.path.exists(
+            os.path.dirname(self.original_rom_path)
+        ):
+            initial_dir = os.path.dirname(self.original_rom_path)
+
+        if "_interno" in initial_dir.replace("\\", "/"):
+            initial_dir = str(Path(initial_dir).parent)
+
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             self.tr("select_file"),
@@ -11633,6 +15475,32 @@ class MainWindow(QMainWindow):
             )
             return
 
+        fname_lower = os.path.basename(file_path).lower()
+        path_normalized = file_path.replace("\\", "/").lower()
+        internal_selected = (
+            "_interno" in path_normalized
+            or "_all_text" in fname_lower
+            or "_suspect" in fname_lower
+            or "overlap_resolution" in fname_lower
+            or fname_lower.endswith("_pure_text.jsonl")
+        )
+        if internal_selected:
+            # Tenta resolver automaticamente para o translated correto na pasta CRC32
+            resolved = self._resolve_translated_jsonl(os.path.dirname(file_path))
+            if resolved and os.path.isfile(resolved):
+                file_path = resolved
+                self.log(
+                    f"ℹ️ Arquivo interno ignorado; usando traduzido da pasta CRC32: {os.path.basename(file_path)}"
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    self.tr("dialog_title_warning"),
+                    "Arquivo interno/diagnóstico bloqueado.\n"
+                    "Use {CRC32}_translated.jsonl para reinserção.",
+                )
+                return
+
         self._set_output_dir_from_file(file_path)
         self.last_text_dir = os.path.dirname(file_path)
         self.save_config()
@@ -11652,7 +15520,19 @@ class MainWindow(QMainWindow):
         search_dir = path if os.path.isdir(path) else os.path.dirname(path)
         crc = getattr(self, "current_rom_crc32", None) or ""
         candidates = []
-        for d in (search_dir, os.path.join(search_dir, "_interno")):
+        dirs: list[str] = []
+        if search_dir:
+            dirs.append(search_dir)
+            dirs.append(os.path.join(search_dir, self._stage_folder_name("translate")))
+            if os.path.basename(search_dir).lower() == "_interno":
+                dirs.append(os.path.dirname(search_dir))
+            else:
+                dirs.append(os.path.join(search_dir, "_interno"))
+        seen_dirs = set()
+        for d in dirs:
+            if not d or d in seen_dirs:
+                continue
+            seen_dirs.add(d)
             if not os.path.isdir(d):
                 continue
             for fn in os.listdir(d):
@@ -11697,6 +15577,16 @@ class MainWindow(QMainWindow):
         # Usa pasta do arquivo TRADUZIDO em vez da pasta do jogo original
         # Isso evita erro de permissão em C:\Program Files
         safe_output_directory = os.path.dirname(translated_path)
+        base_output_dir = self._get_output_dir_for_current_rom()
+        if not base_output_dir and safe_output_directory:
+            p = Path(safe_output_directory)
+            if p.name in {"1_extracao", "2_traducao", "3_reinsercao"}:
+                base_output_dir = str(p.parent)
+        if base_output_dir and os.path.isdir(base_output_dir):
+            safe_output_directory = os.path.join(
+                base_output_dir, self._stage_folder_name("reinsert")
+            )
+            os.makedirs(safe_output_directory, exist_ok=True)
 
         if output_name:
             output_rom_path = os.path.join(safe_output_directory, output_name)
@@ -11704,7 +15594,8 @@ class MainWindow(QMainWindow):
             rom_ext = Path(rom_path).suffix
             crc32_out = self.current_rom_crc32 or _crc32_file(rom_path)
             output_rom_path = os.path.join(
-                safe_output_directory, f"{crc32_out}_TRANSLATED{rom_ext or '.rom'}"
+                safe_output_directory,
+                self._build_default_output_rom_name(rom_path, crc32_out),
             )
 
         self.log("📁 Pasta de saída segura definida.")
@@ -11777,21 +15668,88 @@ class MainWindow(QMainWindow):
     def on_reinsertion_finished(self):
         self.reinsertion_progress_bar.setValue(100)
         self.reinsert_btn.setEnabled(True)
+        patched = getattr(self, "_last_output_rom", "")
+        crc32_full = self.current_rom_crc32 or (
+            _crc32_file(self.original_rom_path)
+            if self.original_rom_path and os.path.exists(self.original_rom_path)
+            else ""
+        )
+        output_dir = self._get_output_dir_for_current_rom()
+        if not output_dir and patched:
+            p = Path(patched).parent
+            if p.name in {"1_extracao", "2_traducao", "3_reinsercao"}:
+                p = p.parent
+            output_dir = str(p)
+        if output_dir and os.path.isdir(output_dir):
+            stage_dir = self._snapshot_stage_files(
+                "reinsert",
+                output_dir,
+                crc32_full,
+                explicit_files=[patched] if patched else None,
+            )
+            if stage_dir and patched and os.path.isfile(patched):
+                stage_patched = os.path.join(stage_dir, os.path.basename(patched))
+                if os.path.isfile(stage_patched):
+                    patched = stage_patched
+                    self._last_output_rom = stage_patched
+        if patched and hasattr(self, "rom_gerada_label"):
+            name = os.path.basename(patched)
+            self.rom_gerada_label.setText(
+                self.tr("rom_generated_label").format(name=name)
+            )
+            self.rom_gerada_label.setStyleSheet("color: #cfcfcf; font-size: 9pt; font-weight: bold;")
+        if patched and os.path.isfile(patched):
+            try:
+                patched_crc = _crc32_file(patched)
+                patched_size = os.path.getsize(patched)
+                self.log(f"[OK] ROM gerada: {patched}")
+                self.log(f"[ROM] CRC32={patched_crc} | ROM_SIZE={patched_size}")
+                if hasattr(self, "output_rom_edit"):
+                    self.output_rom_edit.setText(os.path.basename(patched))
+            except Exception as e:
+                self.log(f"[WARN] Nao foi possivel ler metadados da ROM gerada: {_sanitize_error(e)}")
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_reinsertion_done(True)
+            return
         QMessageBox.information(
             self,
             self.tr("congratulations_title"),
             self.tr("reinsertion_completed_next_message"),
         )
         self.log(self.tr("next_step_test"))
-        # Abre Explorer selecionando a ROM patcheada
-        patched = getattr(self, "_last_output_rom", "")
         if patched:
             self._explorer_select(patched, os.path.dirname(patched))
+
+    def _save_generated_rom_as(self):
+        patched = getattr(self, "_last_output_rom", "")
+        if not patched or not os.path.isfile(patched):
+            QMessageBox.warning(self, "Aviso", "Nenhuma ROM gerada ainda.")
+            return
+        ext = os.path.splitext(patched)[1]
+        dest, _ = QFileDialog.getSaveFileName(
+            self, "Salvar ROM Gerada Como...", os.path.basename(patched),
+            f"ROM (*{ext});;Todos os arquivos (*.*)"
+        )
+        if dest:
+            import shutil
+            shutil.copy2(patched, dest)
+            self.log(f"[OK] ROM salva em: {dest}")
+
+    def _open_generated_rom_folder(self):
+        patched = getattr(self, "_last_output_rom", "")
+        folder = os.path.dirname(patched) if patched else ""
+        if folder and os.path.isdir(folder):
+            self._explorer_select(patched, folder)
+        else:
+            QMessageBox.warning(self, "Aviso", "Nenhuma ROM gerada ainda.")
 
     def on_reinsertion_error(self, error_msg):
         self.reinsertion_status_label.setText(self.tr("status_error"))
         self.reinsert_btn.setEnabled(True)
         self.log(f"[ERROR] Erro fatal na reinserção: {error_msg}")
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_reinsertion_done(False, detail=str(error_msg))
+            return
         QMessageBox.critical(
             self,
             self.tr("dialog_title_error"),
@@ -11921,6 +15879,64 @@ class MainWindow(QMainWindow):
             msg = self.tr("ascii_probe_done_message_none").format(report=report_path)
         QMessageBox.information(self, self.tr("ascii_probe_done_title"), msg)
 
+    def _start_extraction_worker(self):
+        """Inicia ExtractionWorker em thread separada para não travar a UI."""
+        self._extraction_worker = ExtractionWorker(
+            rom_path=self.original_rom_path,
+            extraction_crc32=self._extraction_crc32,
+            max_extraction_mode=self.max_extraction_mode,
+        )
+        self._extraction_worker.progress_signal.connect(self.extract_progress_bar.setValue)
+        self._extraction_worker.status_signal.connect(
+            lambda t: self._set_status_label(self.extract_status_label, t)
+        )
+        self._extraction_worker.log_signal.connect(self.log)
+        self._extraction_worker.finished_signal.connect(self._on_extraction_finished)
+        self._extraction_worker.error_signal.connect(self._on_extraction_error)
+        self._extraction_worker.start()
+
+    def _on_extraction_finished(self, output_file: str, out_dir: str, crc32: str, total: int):
+        """Callback quando ExtractionWorker termina com sucesso."""
+        if total > 0 and output_file:
+            self.extracted_file = output_file
+            self.optimized_file = output_file   # habilita botão Traduzir diretamente
+            self.last_clean_blocks = output_file
+            self.current_rom_crc32 = crc32
+            output_dir = self._organize_crc32_outputs(out_dir, crc32)
+            if output_dir:
+                self.log(self.tr("outputs_organized_message").format(folder=output_dir))
+                self._set_extracted_from_output_dir(output_dir, crc32)
+                self._apply_max_extraction(self.original_rom_path, output_dir, crc32)
+                self._stash_auxiliary_outputs(output_dir, crc32)
+                self._snapshot_stage_files("extract", output_dir, crc32)
+                self._generate_auto_diff_ranges_from_mapping(output_dir, crc32)
+            self.trans_file_label.setText(self._rom_identity_text())
+            self.trans_file_label.setStyleSheet("color: #cfcfcf; font-weight: bold;")
+            if self.optimize_btn:
+                self.optimize_btn.setEnabled(True)
+            self.log(self.tr("next_step_optimize"))
+            self._update_action_states()
+            # Não abre Explorer automaticamente — arquivo já está selecionado no GUI
+        self.extract_progress_bar.setValue(100)
+        self.extract_status_label.setText(
+            self.tr("status_done") if total > 0 else self.tr("status_done_no_texts")
+        )
+        self.extract_btn.setEnabled(True)
+        if self._auto_pipeline_active:
+            # Evita falso negativo: arquivos podem ser movidos/organizados durante a etapa.
+            ok = bool(total > 0)
+            detail = "" if ok else "Nenhum texto extraído."
+            self._auto_pipeline_on_extraction_done(ok, detail=detail)
+
+    def _on_extraction_error(self, error_msg: str):
+        """Callback de erro do ExtractionWorker."""
+        self.log(f"[ERROR] Extração falhou: {error_msg}")
+        self.extract_progress_bar.setValue(100)
+        self.extract_status_label.setText(self.tr("status_error"))
+        self.extract_btn.setEnabled(True)
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_extraction_done(False, detail=str(error_msg))
+
     def start_extraction_process(self):
         """Inicia o extrator apropriado baseado na plataforma selecionada."""
         # Calcula CRC32 para naming neutro
@@ -11977,194 +15993,12 @@ class MainWindow(QMainWindow):
 
         # 2. Executa o comando
         cmd = f'python "{script_path}" "{self.original_rom_path}"'
-        # =========================
-        # V6 PRO: SMS/GG/SG usa UniversalMasterSystemExtractor (pipeline principal)
-        # =========================
         ext = os.path.splitext(self.original_rom_path)[1].lower()
 
-        # Roteamento SMS/GG/SG para pipeline principal (NUNCA abre janela externa)
+        # SMS/GG/SG: roda em thread separada para não travar a UI
         if ext in [".sms", ".gg", ".sg"]:
-            """
-            Quando a ROM é Master System (.sms), tenta usar o UniversalMasterSystemExtractor
-            (que utiliza o banco de dados completo e heurísticas) para extrair todos os textos.
-            Caso não esteja disponível ou ocorra um erro, faz fallback para o SegaExtractor
-            padrão de ponteiros para manter compatibilidade.
-            """
-            # Tenta usar o extrator universal se disponível
-            if UniversalMasterSystemExtractor:
-                self.log(f"🧠 Extração Universal ({ext.upper()}) ativada - CRC32={self._extraction_crc32}")
-                try:
-                    uni_extractor = UniversalMasterSystemExtractor(
-                        self.original_rom_path
-                    )
-                    total = uni_extractor.extract_all()
-                    if total > 0:
-                        # Salva resultados na mesma pasta da ROM (gera 4 exports obrigatórios)
-                        output_file = uni_extractor.save_results()
-                        out_dir = os.path.dirname(output_file)
-                        crc32 = uni_extractor.crc32_full
-                        self.log(f"[OK] SUCESSO: {total} textos extraídos.")
-                        self.log("📁 4 EXPORTS GERADOS:")
-                        self.log(f"   • {crc32}_pure_text.jsonl")
-                        self.log(f"   • {crc32}_reinsertion_mapping.json")
-                        self.log(f"   • {crc32}_report.txt")
-                        self.log(f"   • {crc32}_proof.json")
-                        self.log(f"📂 Pasta: {out_dir}")
-                        # [OK] Guarda o caminho real do arquivo gerado
-                        self.extracted_file = output_file
-                        self.last_clean_blocks = output_file
-                        self.current_rom_crc32 = crc32
-
-                        # Organiza saídas por CRC32 e prepara otimização
-                        output_dir = self._organize_crc32_outputs(out_dir, crc32)
-                        if output_dir:
-                            self.log(
-                                self.tr("outputs_organized_message").format(
-                                    folder=output_dir
-                                )
-                            )
-                            self._set_extracted_from_output_dir(output_dir, crc32)
-                            self._apply_max_extraction(
-                                self.original_rom_path, output_dir, crc32
-                            )
-                            # Limpa arquivos auxiliares gerados após max extraction
-                            self._stash_auxiliary_outputs(output_dir, crc32)
-                        self.trans_file_label.setText(self._rom_identity_text())
-                        self.trans_file_label.setStyleSheet(
-                            "color: #cfcfcf; font-weight: bold;"
-                        )
-                        self.optimize_btn.setEnabled(True)
-                        self.log(self.tr("next_step_optimize"))
-                        self._update_action_states()
-
-                        self._open_output_select_main(output_dir or out_dir, crc32)
-                    else:
-                        self.log("[WARN] Universal: Nenhum texto encontrado.")
-                    # CORREÇÃO: Finaliza a UI corretamente
-                    self.extract_progress_bar.setValue(100)
-                    self.extract_status_label.setText(self.tr("status_done"))
-                    self.extract_btn.setEnabled(True)
-                    return
-                except Exception as ex:
-                    self.log(
-                        f"[ERROR] Erro ao usar UniversalMasterSystemExtractor: {ex}"
-                    )
-                    # Em caso de erro, continua para fallback abaixo
-            # Fallback: usa SegaExtractor e gera os 4 exports obrigatórios
-            self.log("🧠 Extração PRO baseada em ponteiros ativada (fallback)")
-            try:
-                from core.sega_extractor import SegaExtractor
-                import json
-
-                sega_extractor = SegaExtractor(self.original_rom_path)
-                texts = sega_extractor.extract_texts(min_length=4)
-                if not texts:
-                    self.log("[WARN] SMS PRO: Nenhum texto confiável encontrado.")
-                    self.extract_progress_bar.setValue(100)
-                    self.extract_status_label.setText(self.tr("status_done_no_texts"))
-                    self.extract_btn.setEnabled(True)
-                    return
-                self.log(f"[OK] SUCESSO: {len(texts)} strings reais extraídas.")
-
-                # Gera os 4 exports obrigatórios (CRC32 neutro)
-                crc32 = self._extraction_crc32
-                out_dir = os.path.dirname(self.original_rom_path)
-
-                # 1. pure_text.jsonl
-                jsonl_path = os.path.join(out_dir, f"{crc32}_pure_text.jsonl")
-                with open(jsonl_path, "w", encoding="utf-8") as f:
-                    for i, item in enumerate(texts):
-                        entry = {
-                            "id": i,
-                            "offset": item.get("offset_hex", hex(item.get("offset", 0))),
-                            "text_src": item.get("text", ""),
-                            "max_len_bytes": len(item.get("text", "")) + 1,
-                            "encoding": "ascii",
-                            "source": "SEGA_POINTER",
-                            "reinsertion_safe": item.get("confidence", 0) > 0.6,
-                        }
-                        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-
-                # 2. reinsertion_mapping.json
-                mapping_path = os.path.join(out_dir, f"{crc32}_reinsertion_mapping.json")
-                mapping_entries = []
-                for i, item in enumerate(texts):
-                    mapping_entries.append({
-                        "id": i,
-                        "offset": item.get("offset", 0),
-                        "max_length": len(item.get("text", "")) + 1,
-                        "terminator": 0x00,
-                        "source": "SEGA_POINTER",
-                        "encoding": "ascii",
-                        "reinsertion_safe": item.get("confidence", 0) > 0.6,
-                    })
-                with open(mapping_path, "w", encoding="utf-8") as f:
-                    json.dump({"entries": mapping_entries, "crc32": crc32}, f, indent=2)
-
-                # 3. report.txt
-                report_path = os.path.join(out_dir, f"{crc32}_report.txt")
-                with open(report_path, "w", encoding="utf-8") as f:
-                    f.write(f"CRC32: {crc32}\n")
-                    f.write(f"ROM_SIZE: {os.path.getsize(self.original_rom_path)}\n")
-                    f.write(f"Total Strings: {len(texts)}\n")
-                    f.write(f"Extractor: SegaExtractor (fallback)\n")
-
-                # 4. proof.json
-                proof_path = os.path.join(out_dir, f"{crc32}_proof.json")
-                with open(proof_path, "w", encoding="utf-8") as f:
-                    json.dump({
-                        "crc32": crc32,
-                        "total_strings": len(texts),
-                        "extractor": "SegaExtractor",
-                        "outputs": [jsonl_path, mapping_path, report_path]
-                    }, f, indent=2)
-
-                self.log("📁 4 EXPORTS GERADOS:")
-                self.log(f"   • {crc32}_pure_text.jsonl")
-                self.log(f"   • {crc32}_reinsertion_mapping.json")
-                self.log(f"   • {crc32}_report.txt")
-                self.log(f"   • {crc32}_proof.json")
-                self.log(f"📂 Pasta: {out_dir}")
-
-                self.extracted_file = jsonl_path
-                self.last_clean_blocks = jsonl_path
-                self.current_rom_crc32 = crc32
-
-                # Organiza saídas por CRC32 e prepara otimização
-                output_dir = self._organize_crc32_outputs(out_dir, crc32)
-                if output_dir:
-                    self.log(
-                        self.tr("outputs_organized_message").format(
-                            folder=output_dir
-                        )
-                    )
-                    self._set_extracted_from_output_dir(output_dir, crc32)
-                    self._apply_max_extraction(
-                        self.original_rom_path, output_dir, crc32
-                    )
-                    # Limpa arquivos auxiliares gerados após max extraction
-                    self._stash_auxiliary_outputs(output_dir, crc32)
-                self.trans_file_label.setText(self._rom_identity_text())
-                self.trans_file_label.setStyleSheet(
-                    "color: #cfcfcf; font-weight: bold;"
-                )
-                self.optimize_btn.setEnabled(True)
-                self.log(self.tr("next_step_optimize"))
-                self._update_action_states()
-
-                self._open_output_select_main(output_dir or out_dir, crc32)
-
-                # CORREÇÃO: Finaliza a UI corretamente
-                self.extract_progress_bar.setValue(100)
-                self.extract_status_label.setText(self.tr("status_done"))
-                self.extract_btn.setEnabled(True)
-                return
-            except Exception as ex2:
-                self.log(f"[ERROR] Erro ao usar SegaExtractor: {ex2}")
-                self.extract_progress_bar.setValue(100)
-                self.extract_status_label.setText(self.tr("status_error"))
-                self.extract_btn.setEnabled(True)
-                return
+            self._start_extraction_worker()
+            return
 
         try:
             self.log(
@@ -12242,6 +16076,7 @@ class MainWindow(QMainWindow):
                     self._apply_max_extraction(
                         self.original_rom_path, output_dir, crc32_id
                     )
+                    self._snapshot_stage_files("extract", output_dir, crc32_id)
                     extracted_file = self.extracted_file or extracted_file
                 file_size = os.path.getsize(extracted_file)
                 self.trans_file_label.setText(f"TXT ({file_size} bytes)")
@@ -12274,18 +16109,25 @@ class MainWindow(QMainWindow):
                 except (OSError, UnicodeError):
                     pass
 
-                self.optimize_btn.setEnabled(True)
+                if self.optimize_btn: self.optimize_btn.setEnabled(True)
                 self.log(self.tr("next_step_optimize"))
                 platform_name = "Sega" if extractor_type == "sega" else "ROM"
-                QMessageBox.information(
-                    self,
-                    self.tr("extraction_finished_title"),
-                    self.tr("extraction_finished_message").format(
-                        platform=platform_name, crc=crc32_id, total=total
-                    ),
-                )
+                if not self._auto_pipeline_active:
+                    QMessageBox.information(
+                        self,
+                        self.tr("extraction_finished_title"),
+                        self.tr("extraction_finished_message").format(
+                            platform=platform_name, crc=crc32_id, total=total
+                        ),
+                    )
+                if self._auto_pipeline_active:
+                    self._auto_pipeline_on_extraction_done(True)
             else:
                 self.log("[ERROR] ERRO: O arquivo extraído não foi gerado.")
+                if self._auto_pipeline_active:
+                    self._auto_pipeline_on_extraction_done(
+                        False, detail="Arquivo extraído não foi gerado."
+                    )
 
     def run_batch_test(self):
         """Executa teste comparativo V 9.5 em múltiplas ROMs"""
@@ -12308,7 +16150,7 @@ class MainWindow(QMainWindow):
         # Desabilita botões durante o processo
         self.batch_test_btn.setEnabled(False)
         self.extract_btn.setEnabled(False)
-        self.optimize_btn.setEnabled(False)
+        if self.optimize_btn: self.optimize_btn.setEnabled(False)
 
         self.extract_status_label.setText(self.tr("status_batch_running"))
         self.extract_progress_bar.setValue(10)
@@ -12329,7 +16171,7 @@ class MainWindow(QMainWindow):
             )
             self.batch_test_btn.setEnabled(True)
             self.extract_btn.setEnabled(True)
-            self.optimize_btn.setEnabled(True)
+            if self.optimize_btn: self.optimize_btn.setEnabled(True)
             return
 
         try:
@@ -12362,7 +16204,7 @@ class MainWindow(QMainWindow):
             )
             self.batch_test_btn.setEnabled(True)
             self.extract_btn.setEnabled(True)
-            self.optimize_btn.setEnabled(True)
+            if self.optimize_btn: self.optimize_btn.setEnabled(True)
 
     def check_batch_status(self):
         """Monitora o progresso do teste em lote"""
@@ -12445,7 +16287,7 @@ class MainWindow(QMainWindow):
             # Reabilita botões
             self.batch_test_btn.setEnabled(True)
             self.extract_btn.setEnabled(True)
-            self.optimize_btn.setEnabled(True)
+            if self.optimize_btn: self.optimize_btn.setEnabled(True)
 
     def optimize_data(self):
         if not self.original_rom_path:
@@ -12519,7 +16361,7 @@ class MainWindow(QMainWindow):
         self.extracted_file = input_file  # Atualiza para as próximas etapas
         self.optimize_status_label.setText(self.tr("status_analyzing"))
         self.optimize_progress_bar.setValue(0)
-        self.optimize_btn.setEnabled(False)
+        if self.optimize_btn: self.optimize_btn.setEnabled(False)
 
         # [OK] PASSA AS CONFIGURAÇÕES DO OTIMIZADOR V 9.5
         self.optimize_thread = OptimizationWorker(
@@ -12542,7 +16384,7 @@ class MainWindow(QMainWindow):
         self._organize_crc32_outputs(os.path.dirname(output_file), crc32_full)
         self.trans_file_label.setText(self._rom_identity_text())
         self.trans_file_label.setStyleSheet("color: #cfcfcf; font-weight: bold;")
-        self.optimize_btn.setEnabled(True)
+        if self.optimize_btn: self.optimize_btn.setEnabled(True)
         self.tabs.setTabEnabled(2, True)
         self._update_action_states()
 
@@ -12573,7 +16415,7 @@ class MainWindow(QMainWindow):
 
     def on_optimization_error(self, error_msg: str):
         self.optimize_status_label.setText(self.tr("status_error"))
-        self.optimize_btn.setEnabled(True)
+        if self.optimize_btn: self.optimize_btn.setEnabled(True)
         self.log(f"[ERROR] Erro na otimização: {error_msg}")
         QMessageBox.critical(
             self,
@@ -12582,6 +16424,7 @@ class MainWindow(QMainWindow):
         )
 
     def on_extract_finished(self, success: bool, message: str):
+        auto_success = False
         if success:
             self.extract_status_label.setText(self.tr("status_done"))
             self.extract_progress_bar.setValue(100)
@@ -12617,6 +16460,7 @@ class MainWindow(QMainWindow):
                         self._apply_max_extraction(
                             self.original_rom_path, output_dir, crc32_full
                         )
+                        self._generate_auto_diff_ranges_from_mapping(output_dir, crc32_full)
                     self.trans_file_label.setText(self._rom_identity_text())
                     self.trans_file_label.setStyleSheet(
                         "color: #cfcfcf; font-weight: bold;"
@@ -12624,7 +16468,7 @@ class MainWindow(QMainWindow):
                     self.log(
                         "[OK] Extraction completed successfully. Ready for Optimization."
                     )
-                    self.optimize_btn.setEnabled(True)
+                    if self.optimize_btn: self.optimize_btn.setEnabled(True)
                     self.log(self.tr("next_step_optimize"))
                 else:
                     # Fallback para saída padrão CRC32_pure_text.jsonl
@@ -12639,6 +16483,7 @@ class MainWindow(QMainWindow):
                         self._apply_max_extraction(
                             self.original_rom_path, output_dir, crc32_full
                         )
+                        self._generate_auto_diff_ranges_from_mapping(output_dir, crc32_full)
                     if self.extracted_file and os.path.exists(self.extracted_file):
                         self.trans_file_label.setText(self._rom_identity_text())
                         self.trans_file_label.setStyleSheet(
@@ -12650,23 +16495,30 @@ class MainWindow(QMainWindow):
                                     folder=output_dir
                                 )
                             )
-                        self.optimize_btn.setEnabled(True)
+                        if self.optimize_btn: self.optimize_btn.setEnabled(True)
                         self.log(self.tr("next_step_optimize"))
                     else:
                         self.log("[ERROR] Arquivo extraído não encontrado.")
-                        self.optimize_btn.setEnabled(False)
+                        if self.optimize_btn: self.optimize_btn.setEnabled(False)
 
             except Exception as e:
                 self.log(f"[ERROR] Error loading file: {_sanitize_error(e)}")
-                self.optimize_btn.setEnabled(False)
+                if self.optimize_btn: self.optimize_btn.setEnabled(False)
         else:
             self.extract_status_label.setText(self.tr("status_error"))
             self.log(f"[ERROR] Extraction failed: {message}")
-            self.optimize_btn.setEnabled(False)
+            if self.optimize_btn: self.optimize_btn.setEnabled(False)
             QMessageBox.critical(
                 self,
                 self.tr("dialog_title_error"),
                 self.tr("extraction_failed_message").format(message=message),
+            )
+        # Evita falso negativo quando o arquivo é reorganizado em pasta de estágio.
+        auto_success = bool(success)
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_extraction_done(
+                auto_success,
+                detail="" if auto_success else str(message or "Falha na extração."),
             )
         self._update_action_states()
 
@@ -12675,6 +16527,7 @@ class MainWindow(QMainWindow):
         self.extract_status_label.setText(self.tr("status_done"))
         self.extract_progress_bar.setValue(100)
 
+        auto_success = False
         try:
             # Pega caminho do arquivo gerado
             output_file = results.get("output_file")
@@ -12700,6 +16553,7 @@ class MainWindow(QMainWindow):
                     self._apply_max_extraction(
                         self.original_rom_path, output_dir, crc32_full
                     )
+                    self._generate_auto_diff_ranges_from_mapping(output_dir, crc32_full)
                 self.trans_file_label.setText(self._rom_identity_text())
                 self.trans_file_label.setStyleSheet(
                     "color: #cfcfcf; font-weight: bold;"
@@ -12725,7 +16579,7 @@ class MainWindow(QMainWindow):
                 self.log("📂 Arquivo salvo.")
 
                 # Habilita otimização (opcional neste caso, pois já está filtrado)
-                self.optimize_btn.setEnabled(True)
+                if self.optimize_btn: self.optimize_btn.setEnabled(True)
 
                 # Mostra mensagem de sucesso
                 msg = self.tr("fast_extract_success_message").format(
@@ -12736,24 +16590,35 @@ class MainWindow(QMainWindow):
                     file=self._rom_identity_text(),
                 )
 
-                QMessageBox.information(
-                    self, self.tr("dialog_title_success"), msg
-                )
+                if not self._auto_pipeline_active:
+                    QMessageBox.information(
+                        self, self.tr("dialog_title_success"), msg
+                    )
                 self.log(self.tr("next_step_optimize"))
+                auto_success = True
             else:
                 self.log("[ERROR] Arquivo não encontrado.")
-                self.optimize_btn.setEnabled(False)
+                if self.optimize_btn: self.optimize_btn.setEnabled(False)
 
         except Exception as e:
             self.log(f"[ERROR] Erro ao processar resultado: {_sanitize_error(e)}")
-            self.optimize_btn.setEnabled(False)
+            if self.optimize_btn: self.optimize_btn.setEnabled(False)
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_extraction_done(
+                bool(auto_success),
+                detail="" if auto_success else "Falha na extração rápida.",
+            )
         self._update_action_states()
 
     def on_fast_extract_error(self, error_msg: str):
         """Callback quando ocorre erro na extração."""
         self.extract_status_label.setText(self.tr("status_error"))
         self.log(f"[ERROR] Erro na extração: {error_msg}")
-        self.optimize_btn.setEnabled(False)
+        if self.optimize_btn: self.optimize_btn.setEnabled(False)
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_extraction_done(False, detail=str(error_msg))
+            self._update_action_states()
+            return
         QMessageBox.critical(
             self,
             self.tr("dialog_title_error"),
@@ -12763,8 +16628,15 @@ class MainWindow(QMainWindow):
 
     def translate_texts(self):
         input_file = self.optimized_file
-        tilemap_jsonl = self._resolve_tilemap_jsonl_for_translation(input_file)
-        tilemap_mode = bool(tilemap_jsonl)
+        self._translation_stop_requested = False
+
+        # Arquivo JSONL selecionado diretamente → sempre usa TilemapWorker
+        if input_file and input_file.lower().endswith(".jsonl") and os.path.exists(input_file):
+            tilemap_jsonl = input_file
+            tilemap_mode = True
+        else:
+            tilemap_jsonl = self._resolve_tilemap_jsonl_for_translation(input_file)
+            tilemap_mode = bool(tilemap_jsonl)
 
         if (not input_file or not os.path.exists(input_file)) and not tilemap_mode:
             QMessageBox.warning(
@@ -12777,21 +16649,44 @@ class MainWindow(QMainWindow):
         if tilemap_mode:
             input_file = tilemap_jsonl
             self.log(
-                "🧩 Tilemap detectado: tradução será feita direto do JSONL (sem Otimizar Dados)."
+                "🧩 JSONL detectado: tradução direta de todos os textos."
             )
 
         mode_index = self.mode_combo.currentIndex()
         mode_text = self.mode_combo.currentText()
+        enforce_gemini_auto = bool(
+            self._auto_pipeline_active and bool(getattr(self, "high_quality_mode", True))
+        )
 
-        # Verifica se modo requer API key (AUTO, Gemini e ChatGPT precisam)
-        needs_api_key = mode_index in [0, 1, 3]  # AUTO, Gemini ou ChatGPT
+        if enforce_gemini_auto:
+            if mode_index != 1:
+                self.log("🏆 Modo Qualidade Alta: forçando Gemini no Auto Pipeline.")
+            mode_index = 1
+            mode_text = "⚡ Gemini (Google AI)"
+
+        # Verifica se modo requer API key (AUTO e Gemini precisam)
+        needs_api_key = mode_index in [0, 1]
 
         if needs_api_key:
             api_key = self.api_key_edit.text().strip()
             if not api_key:
+                if enforce_gemini_auto:
+                    detail = (
+                        "Modo Qualidade Alta exige API Gemini. "
+                        "Configure a chave na aba Configurações ou desative o modo."
+                    )
+                    self.log(f"❌ {detail}")
+                    if self._auto_pipeline_active:
+                        self._auto_pipeline_on_translation_done(
+                            False, translated_path="", detail=detail
+                        )
+                    else:
+                        QMessageBox.warning(self, self.tr("dialog_title_warning"), detail)
+                    return
                 if tilemap_mode:
-                    # Tilemap: fallback automático para Ollama
-                    self.log("⚠️ API key ausente. Tilemap será traduzido com Ollama local.")
+                    # Tilemap: fallback automático para NLLB offline
+                    self.log("⚠️ API key ausente. Tilemap será traduzido com NLLB offline.")
+                    self.log("⚠️ Qualidade pode ficar inferior no offline para frases curtas/ambíguas.")
                     mode_index = 2
                     api_key = ""
                 elif mode_index in [0, 1]:  # AUTO ou Gemini
@@ -12801,15 +16696,19 @@ class MainWindow(QMainWindow):
                         self.tr("api_key_gemini_required"),
                     )
                     return
-                else:
-                    QMessageBox.warning(
-                        self,
-                        self.tr("dialog_title_warning"),
-                        self.tr("api_key_openai_required"),
-                    )
-                    return
         else:
             api_key = ""
+
+        if mode_index == 1 and (not gemini_api or not getattr(gemini_api, "GENAI_AVAILABLE", False)):
+            detail = "Gemini indisponível neste ambiente."
+            self.log(f"❌ {detail}")
+            if self._auto_pipeline_active:
+                self._auto_pipeline_on_translation_done(
+                    False, translated_path="", detail=detail
+                )
+            else:
+                QMessageBox.warning(self, self.tr("dialog_title_warning"), detail)
+            return
 
         self.translate_btn.setEnabled(False)
         self.stop_translation_btn.setEnabled(True)  # Habilita botão PARAR
@@ -12823,12 +16722,23 @@ class MainWindow(QMainWindow):
         # Escolhe Worker baseado no modo (tilemap tem pipeline próprio)
         if tilemap_mode:
             use_gemini = mode_index in [0, 1] and api_key and gemini_api and gemini_api.GENAI_AVAILABLE
+            if enforce_gemini_auto and not use_gemini:
+                detail = "Modo Qualidade Alta bloqueou fallback offline (Gemini não disponível)."
+                self.log(f"❌ {detail}")
+                self.translate_btn.setEnabled(True)
+                self.stop_translation_btn.setEnabled(False)
+                self.translation_status_label.setText("Falha no Modo Qualidade Alta.")
+                if self._auto_pipeline_active:
+                    self._auto_pipeline_on_translation_done(
+                        False, translated_path="", detail=detail
+                    )
+                else:
+                    QMessageBox.warning(self, self.tr("dialog_title_warning"), detail)
+                return
             if use_gemini:
                 self.log("🧩 Tilemap: Gemini (JSONL direto) iniciado.")
             else:
-                if mode_index == 3:
-                    self.log("⚠️ Tilemap: ChatGPT não suportado. Usando Ollama local.")
-                self.log("🧩 Tilemap: Ollama (JSONL direto) iniciado.")
+                self.log("🧩 Tilemap: NLLB offline (JSONL direto) iniciado.")
             self.translate_thread = TilemapWorker(
                 input_file,
                 target_lang_name,
@@ -12836,18 +16746,15 @@ class MainWindow(QMainWindow):
                 prefer_gemini=use_gemini,
             )
         else:
-            if mode_index == 0:  # AUTO (Gemini + Ollama)
-                self.log("🤖 AUTO: Gemini primeiro, Ollama se quota esgotar.")
+            if mode_index == 0:  # AUTO (Gemini + NLLB)
+                self.log("🤖 AUTO: Gemini primeiro, NLLB offline no fallback.")
                 self.translate_thread = HybridWorker(api_key, input_file, target_lang_name)
             elif mode_index == 1:  # Gemini (Google AI)
                 self.log("⚡ Gemini (Google AI): iniciado.")
                 self.translate_thread = GeminiWorker(api_key, input_file, target_lang_name)
-            elif mode_index == 2:  # Llama (Ollama Local)
-                self.log("🦙 Llama (Ollama Local): iniciado.")
-                self.translate_thread = OllamaWorker(input_file, target_lang_name)
-            elif mode_index == 3:  # ChatGPT (OpenAI)
-                self.log("🤖 ChatGPT (OpenAI): iniciado.")
-                self.translate_thread = ChatGPTWorker(api_key, input_file, target_lang_name)
+            elif mode_index == 2:  # NLLB (Offline)
+                self.log("🔤 NLLB-200 (Offline): iniciado.")
+                self.translate_thread = NLLBWorker(input_file, target_lang_name)
             else:
                 QMessageBox.information(
                     self,
@@ -12886,6 +16793,7 @@ class MainWindow(QMainWindow):
             )
 
             if reply == QMessageBox.StandardButton.Yes:
+                self._translation_stop_requested = True
                 self.log("🛑 Parando tradução...")
                 self.translate_thread.stop()  # Chama método stop() do worker
                 self.translate_thread.wait()  # Aguarda thread terminar
@@ -12897,13 +16805,37 @@ class MainWindow(QMainWindow):
                 self.log("[OK] Tradução parada. Progresso parcial foi salvo.")
 
     def on_gemini_finished(self, output_file: str):
+        if self._translation_stop_requested:
+            self._translation_stop_requested = False
+            if output_file and os.path.exists(output_file):
+                self.translated_file = output_file
+                crc32_full = self.current_rom_crc32 or Path(output_file).name.split("_", 1)[0]
+                output_dir = self._organize_crc32_outputs(os.path.dirname(output_file), crc32_full)
+                if output_dir:
+                    self._snapshot_stage_files("translate", output_dir, crc32_full)
+                self.translated_file_label.setText(self._rom_identity_text())
+                self.translated_file_label.setStyleSheet("color:#cfcfcf;font-weight:bold;")
+            self.translate_btn.setEnabled(True)
+            self.stop_translation_btn.setEnabled(False)
+            self._update_action_states()
+            if self._auto_pipeline_active:
+                self._auto_pipeline_on_translation_done(
+                    False,
+                    translated_path=output_file or "",
+                    detail="Tradução interrompida.",
+                )
+            return
+
+        self._translation_stop_requested = False
         self.translation_progress_bar.setValue(100)
         self.translation_status_label.setText(self.tr("status_translation_done"))
         self.log("Translation saved.")
 
         self.translated_file = output_file
         crc32_full = self.current_rom_crc32 or Path(output_file).name.split("_", 1)[0]
-        self._organize_crc32_outputs(os.path.dirname(output_file), crc32_full)
+        output_dir = self._organize_crc32_outputs(os.path.dirname(output_file), crc32_full)
+        if output_dir:
+            self._snapshot_stage_files("translate", output_dir, crc32_full)
         self.translated_file_label.setText(self._rom_identity_text())
         self.translated_file_label.setStyleSheet("color:#cfcfcf;font-weight:bold;")
 
@@ -12912,6 +16844,29 @@ class MainWindow(QMainWindow):
         self.tabs.setTabEnabled(3, True)  # Reinserção agora no índice 3
         self._update_action_states()
         self.run_auto_graphics_pipeline()
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_translation_done(True, translated_path=output_file)
+            return
+
+        # --- Diálogo de Revisão da Tradução ---
+        try:
+            src_lang = (
+                self.source_lang_combo.currentText()
+                if hasattr(self, "source_lang_combo")
+                else "AUTO-DETECTAR"
+            )
+            tgt_lang = (
+                self.target_lang_combo.currentText()
+                if hasattr(self, "target_lang_combo")
+                else "Português (PT-BR)"
+            )
+            review_dlg = TranslationReviewDialog(
+                output_file, source_lang=src_lang, target_lang=tgt_lang, parent=self
+            )
+            review_dlg.exec()
+        except Exception as _rev_err:
+            self.log(f"[WARN] Review dialog error: {_rev_err}")
+
         QMessageBox.information(
             self,
             self.tr("congratulations_title"),
@@ -12922,10 +16877,16 @@ class MainWindow(QMainWindow):
         self._explorer_select(output_file, os.path.dirname(output_file))
 
     def on_gemini_error(self, error_msg: str):
+        self._translation_stop_requested = False
         self.translation_status_label.setText(self.tr("status_translation_fatal"))
         self.log(f"Translation error: {error_msg}")
         self.translate_btn.setEnabled(True)
         self.stop_translation_btn.setEnabled(False)  # Desabilita botão PARAR
+        if self._auto_pipeline_active:
+            self._auto_pipeline_on_translation_done(
+                False, translated_path="", detail=str(error_msg)
+            )
+            return
         QMessageBox.critical(
             self,
             self.tr("dialog_title_error"),
@@ -13218,6 +17179,66 @@ class MainWindow(QMainWindow):
     def show_quick_help(self):
         """Ajuda rápida: mostra apenas a tela de boas-vindas."""
         self.show_quick_help_dialog()
+
+    def show_terms_glossary_dialog(self):
+        """Exibe glossário dos termos principais da interface."""
+        is_pt = str(getattr(self, "current_ui_lang", "pt")).lower().startswith("pt")
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Glossário de Termos" if is_pt else "Terms Glossary")
+        dialog.setMinimumSize(820, 620)
+        layout = QVBoxLayout(dialog)
+
+        text = QTextEdit()
+        text.setReadOnly(True)
+        text.setFont(QFont("Segoe UI", 10))
+        if is_pt:
+            html = (
+                "<h3>📚 Glossário (QA / ROM / Pipeline)</h3>"
+                "<ul>"
+                "<li><b>Aprovadas</b>: traduções com score >= 0.70.</li>"
+                "<li><b>Alertas</b>: traduções com score entre 0.50 e 0.69 (revisão recomendada).</li>"
+                "<li><b>Bloqueadas</b>: traduções com score < 0.50 (mantém texto original).</li>"
+                "<li><b>Score</b>: média de qualidade calculada pelo QA linguístico.</li>"
+                "<li><b>AUTO Pipeline</b>: fluxo em 3 etapas: Extração -> Tradução -> Reinserção.</li>"
+                "<li><b>CRC32</b>: assinatura da ROM para identificar versão do arquivo.</li>"
+                "<li><b>ROM_SIZE</b>: tamanho da ROM em bytes.</li>"
+                "<li><b>Gemini</b>: tradutor online (Google AI), maior fluidez.</li>"
+                "<li><b>NLLB-200 (Offline)</b>: tradutor local, sem internet.</li>"
+                "<li><b>Reinserção</b>: grava o texto traduzido de volta na ROM.</li>"
+                "<li><b>JSONL</b>: arquivo de textos extraídos/ traduzidos com metadados.</li>"
+                "<li><b>Emulador recomendado</b>: sugestão de emulador por plataforma detectada.</li>"
+                "</ul>"
+            )
+        else:
+            html = (
+                "<h3>📚 Glossary (QA / ROM / Pipeline)</h3>"
+                "<ul>"
+                "<li><b>Approved</b>: translations with score >= 0.70.</li>"
+                "<li><b>Alerts</b>: translations with score between 0.50 and 0.69.</li>"
+                "<li><b>Blocked</b>: translations with score < 0.50 (keeps source text).</li>"
+                "<li><b>Score</b>: average quality score from linguistic QA.</li>"
+                "<li><b>AUTO Pipeline</b>: 3 stages: Extraction -> Translation -> Reinsertion.</li>"
+                "<li><b>CRC32</b>: ROM signature used to identify file version.</li>"
+                "<li><b>ROM_SIZE</b>: ROM size in bytes.</li>"
+                "<li><b>Gemini</b>: online translator (Google AI).</li>"
+                "<li><b>NLLB-200 (Offline)</b>: local translator, no internet required.</li>"
+                "<li><b>Reinsertion</b>: writes translated text back into the ROM.</li>"
+                "<li><b>JSONL</b>: extracted/translated text file with metadata.</li>"
+                "<li><b>Recommended emulator</b>: emulator suggestion by detected platform.</li>"
+                "</ul>"
+            )
+        text.setHtml(html)
+        layout.addWidget(text)
+
+        close_btn = QPushButton(self.tr("btn_close"))
+        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.clicked.connect(dialog.accept)
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+
+        dialog.exec()
 
     def start_guided_tour(self):
         """Tour guiado completo (5 passos)."""
@@ -13774,6 +17795,35 @@ class MainWindow(QMainWindow):
             with open(ProjectConfig.CONFIG_FILE, "r") as f:
                 config = json.load(f)
 
+            saved_api_key = _deobfuscate_key(str(config.get("api_key_obfuscated", "") or ""))
+            if hasattr(self, "api_key_edit") and self.api_key_edit:
+                self.api_key_edit.blockSignals(True)
+                self.api_key_edit.setText(saved_api_key)
+                self.api_key_edit.blockSignals(False)
+            if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+                self.settings_api_key_edit.blockSignals(True)
+                self.settings_api_key_edit.setText(saved_api_key)
+                self.settings_api_key_edit.blockSignals(False)
+
+            self.high_quality_mode = bool(config.get("high_quality_mode", True))
+            if hasattr(self, "high_quality_mode_cb") and self.high_quality_mode_cb:
+                self.high_quality_mode_cb.blockSignals(True)
+                self.high_quality_mode_cb.setChecked(bool(self.high_quality_mode))
+                self.high_quality_mode_cb.blockSignals(False)
+
+            saved_ui_mode = str(config.get("ui_mode", self.ui_mode) or "basic").strip().lower()
+            self.ui_mode = self._normalize_ui_mode(saved_ui_mode)
+            if getattr(self, "_startup", False):
+                # Na inicialização, abre sempre no painel simplificado.
+                self.ui_mode = "basic"
+            if hasattr(self, "ui_mode_client_rb") and hasattr(self, "ui_mode_dev_rb"):
+                self.ui_mode_client_rb.blockSignals(True)
+                self.ui_mode_dev_rb.blockSignals(True)
+                self.ui_mode_client_rb.setChecked(self.ui_mode == "basic")
+                self.ui_mode_dev_rb.setChecked(self.ui_mode == "technical")
+                self.ui_mode_client_rb.blockSignals(False)
+                self.ui_mode_dev_rb.blockSignals(False)
+
             # Restore theme
             theme_name = config.get("theme", "Preto (Black)")
             if theme_name in ProjectConfig.THEMES:
@@ -13871,12 +17921,18 @@ class MainWindow(QMainWindow):
 
             # CRITICAL FIX: Refresh UI labels after restoring language
             self.refresh_ui_labels()
+            self._sync_target_language_with_ui(force=True)
 
-            # Restore last tab
+            # Restore last tab (exceto na abertura inicial, que fixa Configurações)
             if hasattr(self, "tabs"):
-                last_tab = config.get("last_tab_index")
-                if isinstance(last_tab, int) and 0 <= last_tab < self.tabs.count():
-                    self.tabs.setCurrentIndex(last_tab)
+                if getattr(self, "_startup", False):
+                    self.tabs.setCurrentIndex(4)
+                else:
+                    last_tab = config.get("last_tab_index")
+                    if isinstance(last_tab, int) and 0 <= last_tab < self.tabs.count():
+                        self.tabs.setCurrentIndex(last_tab)
+
+            self._apply_ui_mode_visibility()
 
             self._apply_beginner_mode()
             self._update_action_states()
@@ -13895,22 +17951,67 @@ class MainWindow(QMainWindow):
                 return ""
             return base64.b64encode(key.encode("utf-8")).decode("utf-8")
 
-        config = {
-            "theme": self.current_theme,
-            "ui_lang": self.current_ui_lang,
-            "font_family": self.current_font_family,
-            "api_key_obfuscated": _obfuscate_key(self.api_key_edit.text()),
-            "workers": self.workers_spin.value(),
-            "timeout": self.timeout_spin.value(),
-            "last_saved": datetime.now().isoformat(),
-            "onboarding_shown": bool(getattr(self, "onboarding_shown", False)),
-            "last_rom_dir": getattr(self, "last_rom_dir", ""),
-            "last_text_dir": getattr(self, "last_text_dir", ""),
-            "max_extraction_mode": bool(getattr(self, "max_extraction_mode", False)),
-            "beginner_mode": bool(getattr(self, "beginner_mode", False)),
-            "developer_mode": bool(getattr(self, "developer_mode", False)),
-            "auto_graphics_pipeline": bool(getattr(self, "auto_graphics_pipeline", False)),
-        }
+        # Lê o config existente para preservar chaves extras (ex: runtime_scenarios)
+        try:
+            if ProjectConfig.CONFIG_FILE.exists():
+                with open(ProjectConfig.CONFIG_FILE, "r", encoding="utf-8") as _f:
+                    config: Dict = json.load(_f)
+            else:
+                config = {}
+        except Exception:
+            config = {}
+
+        # Atualiza (ou cria) as chaves gerenciadas pelo app
+        try:
+            api_key_value = ""
+            if hasattr(self, "settings_api_key_edit") and self.settings_api_key_edit:
+                api_key_value = self.settings_api_key_edit.text()
+            elif hasattr(self, "api_key_edit") and self.api_key_edit:
+                api_key_value = self.api_key_edit.text()
+            config.update({
+                "theme": self.current_theme,
+                "ui_lang": self.current_ui_lang,
+                "ui_mode": self._normalize_ui_mode(getattr(self, "ui_mode", "basic")),
+                "font_family": self.current_font_family,
+                "api_key_obfuscated": _obfuscate_key(api_key_value),
+                "high_quality_mode": bool(getattr(self, "high_quality_mode", True)),
+                "workers": self.workers_spin.value(),
+                "timeout": self.timeout_spin.value(),
+                "last_saved": datetime.now().isoformat(),
+                "onboarding_shown": bool(getattr(self, "onboarding_shown", False)),
+                "last_rom_dir": getattr(self, "last_rom_dir", ""),
+                "last_text_dir": getattr(self, "last_text_dir", ""),
+                "max_extraction_mode": bool(getattr(self, "max_extraction_mode", False)),
+                "beginner_mode": bool(getattr(self, "beginner_mode", False)),
+                "developer_mode": bool(getattr(self, "developer_mode", False)),
+                "auto_graphics_pipeline": bool(getattr(self, "auto_graphics_pipeline", False)),
+            })
+            # Defaults obrigatórios do pipeline (mantém valor explícito se já existir).
+            pipeline_defaults = {
+                "normalize_nfc": True,
+                "auto_generate_diff_ranges": True,
+                "auto_generate_diff_ranges_overwrite": False,
+                "diff_ranges_margin_start": 2,
+                "diff_ranges_margin_end": 16,
+                "diff_ranges_merge_gap": 16,
+                "tilemap_require_tbl": True,
+                "tilemap_fail_fast_without_tbl": True,
+                "require_tilemap": True,
+                "custom_dictionary": "custom_dict.json",
+                "apply_custom_dict_first": True,
+                "translation_api_fallback": True,
+                "translation_service": "google",
+                "deterministic_lock_mode": True,
+                "high_quality_mode": True,
+                "glyph_injection_enabled": True,
+                "glyph_font": "Verdana.ttf",
+            }
+            for key, default_value in pipeline_defaults.items():
+                if key not in config:
+                    config[key] = default_value
+        except Exception:
+            # Se algum widget não existir ainda, ao menos preserva ui_lang
+            config["ui_lang"] = self.current_ui_lang
         try:
             config["window_geometry"] = (
                 self.saveGeometry().toBase64().data().decode("utf-8")
@@ -13978,6 +18079,107 @@ class MainWindow(QMainWindow):
         self.engine_detection_thread = None
 
 
+class _ContextMenuPTBR(QObject):
+    """
+    Event filter instalado na aplicação.
+    Intercepta o evento ContextMenu de qualquer widget de texto e
+    substitui o menu padrão (em inglês) por um com nomes em PT-BR.
+    Funciona em PyQt6 porque app.installEventFilter() recebe eventos de TODOS os objetos.
+    """
+    _MAP = {
+        "Undo": "Desfazer",
+        "Redo": "Refazer",
+        "Cut": "Recortar",
+        "Copy": "Copiar",
+        "Paste": "Colar",
+        "Delete": "Excluir",
+        "Select All": "Selecionar Tudo",
+        "Select all": "Selecionar Tudo",
+        "Bold": "Negrito",
+        "Italic": "Itálico",
+        "Underline": "Sublinhado",
+        "Step up": "Aumentar",
+        "Step Up": "Aumentar",
+        "Step down": "Diminuir",
+        "Step Down": "Diminuir",
+    }
+
+    @staticmethod
+    def _menu_pos(event):
+        """Posição para exibir o menu — usa QCursor como fallback seguro no PyQt6."""
+        from PyQt6.QtGui import QCursor
+        try:
+            pos = event.globalPos()
+            if pos is not None:
+                return pos
+        except Exception:
+            pass
+        return QCursor.pos()
+
+    def _spinbox_menu(self, spinbox, event) -> bool:
+        """Menu PT-BR para QAbstractSpinBox (que não tem createStandardContextMenu)."""
+        try:
+            from PyQt6.QtWidgets import QMenu
+            menu = QMenu(spinbox)
+            le = spinbox.lineEdit()
+            if le:
+                act = menu.addAction("Desfazer")
+                act.setEnabled(le.isUndoAvailable())
+                act.triggered.connect(le.undo)
+                act = menu.addAction("Refazer")
+                act.setEnabled(le.isRedoAvailable())
+                act.triggered.connect(le.redo)
+                menu.addSeparator()
+                act = menu.addAction("Recortar")
+                act.setEnabled(le.hasSelectedText())
+                act.triggered.connect(le.cut)
+                act = menu.addAction("Copiar")
+                act.setEnabled(le.hasSelectedText())
+                act.triggered.connect(le.copy)
+                act = menu.addAction("Colar")
+                act.triggered.connect(le.paste)
+                act = menu.addAction("Excluir")
+                act.setEnabled(le.hasSelectedText())
+                act.triggered.connect(lambda: le.insert(""))
+                menu.addSeparator()
+                act = menu.addAction("Selecionar Tudo")
+                act.triggered.connect(le.selectAll)
+                menu.addSeparator()
+            act = menu.addAction("Aumentar")
+            act.triggered.connect(spinbox.stepUp)
+            act = menu.addAction("Diminuir")
+            act.triggered.connect(spinbox.stepDown)
+            menu.exec(self._menu_pos(event))
+            return True
+        except Exception:
+            return False
+
+    def eventFilter(self, watched, event):
+        if event.type() == QEvent.Type.ContextMenu:
+            # QAbstractSpinBox não tem createStandardContextMenu — trata separado
+            try:
+                from PyQt6.QtWidgets import QAbstractSpinBox
+                if isinstance(watched, QAbstractSpinBox):
+                    return self._spinbox_menu(watched, event)
+            except Exception:
+                pass
+            # Widgets de texto (QLineEdit, QTextEdit, QPlainTextEdit, etc.)
+            if hasattr(watched, "createStandardContextMenu"):
+                try:
+                    menu = watched.createStandardContextMenu()
+                    for action in menu.actions():
+                        raw = action.text()
+                        clean = raw.replace("&", "")
+                        mapped = self._MAP.get(clean) or self._MAP.get(raw)
+                        if mapped:
+                            action.setText(mapped)
+                    menu.exec(self._menu_pos(event))
+                    return True
+                except Exception:
+                    pass
+        return False
+
+
 def main():
     # Silenciar avisos de fonte Qt (não críticos)
     os.environ["QT_LOGGING_RULES"] = "qt.text.font.db=false"
@@ -13990,6 +18192,19 @@ def main():
     font.setFamily("Segoe UI")
     font.setPointSize(10)
     app.setFont(font)
+
+    # Tenta carregar arquivo .qm de traduções Qt (botões de diálogo padrão)
+    _qt_translator = QTranslator(app)
+    _translations_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+    _loaded = _qt_translator.load("qtbase_pt_BR", _translations_path)
+    if not _loaded:
+        _loaded = _qt_translator.load("qtbase_pt", _translations_path)
+    if _loaded:
+        app.installTranslator(_qt_translator)
+
+    # Instala filtro PT-BR em TODA a aplicação (intercepta ContextMenu de qualquer widget)
+    _ctx_filter = _ContextMenuPTBR(app)  # parent=app evita garbage collection
+    app.installEventFilter(_ctx_filter)
 
     # Aplica o tema inicial
     ThemeManager.apply(app, "Preto (Black)")

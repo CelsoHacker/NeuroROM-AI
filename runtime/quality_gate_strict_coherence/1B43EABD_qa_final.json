@@ -1,0 +1,102 @@
+{
+  "created_at": "2026-02-28T15:28:14.326492Z",
+  "console": "SMS",
+  "rom_crc32": "1B43EABD",
+  "rom_size": 32768,
+  "translation_input": {
+    "path": "runtime\\quality_gate_strict_coherence\\strict_case_out.sms"
+  },
+  "gates": [
+    {
+      "name": "no_truncation",
+      "status": "pass",
+      "required": true,
+      "detail": "truncated_total=0"
+    },
+    {
+      "name": "no_blocked_items",
+      "status": "pass",
+      "required": true,
+      "detail": "blocked_total=0"
+    },
+    {
+      "name": "critical_issues_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "critical_total=0"
+    },
+    {
+      "name": "english_likely_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "english_likely_count=0"
+    },
+    {
+      "name": "same_as_source_phrase_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "same_as_source_phrase_count=0"
+    },
+    {
+      "name": "displayed_trace_skip_displayed_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "displayed_trace_skip_displayed_count=0"
+    },
+    {
+      "name": "displayed_trace_english_residual_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "displayed_trace_english_residual_count=0"
+    },
+    {
+      "name": "runtime_missing_displayed_zero",
+      "status": "pass",
+      "required": true,
+      "detail": "runtime_missing_displayed_text_count=0"
+    },
+    {
+      "name": "input_match",
+      "status": "unknown",
+      "required": true,
+      "detail": "CRC/size de entrada e ROM selecionada"
+    },
+    {
+      "name": "ordering_consistent",
+      "status": "unknown",
+      "required": true,
+      "detail": "ordem deterministica por seq/offset"
+    },
+    {
+      "name": "proprietary_codec_case",
+      "status": "pass",
+      "required": true,
+      "detail": "sem indicios"
+    },
+    {
+      "name": "emulator_smoke_test",
+      "status": "unknown",
+      "required": true,
+      "detail": "inicio/menu/dialogo validado no emulador"
+    }
+  ],
+  "required_failed": [],
+  "required_unknown": [
+    "input_match",
+    "ordering_consistent",
+    "emulator_smoke_test"
+  ],
+  "overall_pass": false,
+  "quality_score_percent": 100.0,
+  "proprietary_codec_risk": {
+    "requires_special_engineering": false,
+    "reasons": [],
+    "hints": []
+  },
+  "limitations": [
+    "Input match e ordering não disponíveis neste fluxo universal."
+  ],
+  "next_actions": [
+    "Executar smoke test no emulador (inicio/menu/dialogo) e registrar resultado."
+  ]
+}

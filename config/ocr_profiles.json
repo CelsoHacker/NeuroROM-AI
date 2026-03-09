@@ -1,0 +1,114 @@
+{
+  "schema": "neurorom.ocr_profiles.v1",
+  "default": {
+    "scale": 2.0,
+    "threshold_mode": "adaptive",
+    "threshold_value": 128,
+    "adaptive_block_size": 31,
+    "adaptive_c": 8,
+    "otsu_blur_kernel": 3,
+    "morphology_open": 0,
+    "morphology_close": 1,
+    "sharpen": true,
+    "invert": false,
+    "glyph_scale": 1.0,
+    "glyph_threshold": 128,
+    "glyph_auto_invert": true,
+    "glyph_similarity_threshold": 0.9,
+    "glyph_similarity_max_shift": 1,
+    "tile_pattern_bytes": 32,
+    "tesseract_lang": "por",
+    "tesseract_psm": 6,
+    "tesseract_oem": 3,
+    "tesseract_extra_config": "",
+    "easyocr_fallback": false,
+    "easyocr_langs": [
+      "pt",
+      "en"
+    ],
+    "fallback_conf_threshold": 0.55
+  },
+  "profiles": {
+    "master_system": {
+      "scale": 3.0,
+      "threshold_mode": "adaptive",
+      "adaptive_block_size": 35,
+      "adaptive_c": 7,
+      "morphology_close": 1,
+      "glyph_similarity_threshold": 0.9,
+      "glyph_similarity_max_shift": 2,
+      "tile_pattern_bytes": 32,
+      "tesseract_psm": 6
+    },
+    "nes": {
+      "scale": 3.0,
+      "threshold_mode": "adaptive",
+      "adaptive_block_size": 35,
+      "adaptive_c": 7,
+      "morphology_close": 1,
+      "glyph_similarity_threshold": 0.9,
+      "glyph_similarity_max_shift": 2,
+      "tile_pattern_bytes": 16,
+      "tesseract_psm": 6
+    },
+    "snes": {
+      "scale": 2.5,
+      "threshold_mode": "adaptive",
+      "adaptive_block_size": 31,
+      "adaptive_c": 8,
+      "morphology_close": 1,
+      "glyph_similarity_threshold": 0.9,
+      "glyph_similarity_max_shift": 2,
+      "tile_pattern_bytes": 32,
+      "tesseract_psm": 6
+    },
+    "megadrive": {
+      "scale": 2.5,
+      "threshold_mode": "adaptive",
+      "adaptive_block_size": 31,
+      "adaptive_c": 8,
+      "morphology_close": 1,
+      "glyph_similarity_threshold": 0.9,
+      "glyph_similarity_max_shift": 2,
+      "tile_pattern_bytes": 32,
+      "tesseract_psm": 6
+    },
+    "gba": {
+      "scale": 2.0,
+      "threshold_mode": "adaptive",
+      "adaptive_block_size": 29,
+      "adaptive_c": 6,
+      "morphology_close": 1,
+      "glyph_similarity_threshold": 0.88,
+      "glyph_similarity_max_shift": 2,
+      "tile_pattern_bytes": 32,
+      "tesseract_psm": 6
+    },
+    "ps1": {
+      "scale": 1.0,
+      "threshold_mode": "otsu",
+      "otsu_blur_kernel": 3,
+      "morphology_open": 1,
+      "morphology_close": 1,
+      "sharpen": true,
+      "glyph_similarity_threshold": 0.85,
+      "glyph_similarity_max_shift": 1,
+      "tile_pattern_bytes": 32,
+      "easyocr_fallback": true,
+      "tesseract_psm": 6
+    },
+    "n64": {
+      "scale": 1.0,
+      "threshold_mode": "otsu",
+      "otsu_blur_kernel": 3,
+      "morphology_open": 1,
+      "morphology_close": 1,
+      "sharpen": true,
+      "glyph_similarity_threshold": 0.85,
+      "glyph_similarity_max_shift": 1,
+      "tile_pattern_bytes": 32,
+      "easyocr_fallback": true,
+      "tesseract_psm": 6
+    }
+  }
+}

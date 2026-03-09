@@ -1,0 +1,2613 @@
+{
+  "schema": "neurorom.sms.post_reinsertion_crc_profiles.v1",
+  "profiles": [
+    {
+      "id": "DE9F8517_runtime_hotfix_v1",
+      "source_crc32": "DE9F8517",
+      "source_rom_size": 524288,
+      "description": "Pós-patch automático por CRC para estabilizar intro/título e evitar resíduos em inglês após reinserção.",
+      "ptbr_auto_accents_default": true,
+      "ptbr_auto_accents_exclude_ranges": [
+        {
+          "offset": "0x566D4",
+          "length": 4608
+        }
+      ],
+      "operations": [
+        {
+          "kind": "write_text",
+          "offset": "0x00403B",
+          "max_len": 9,
+          "text": "Travado!{01}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00B334",
+          "max_len": 15,
+          "text": "Avanco lento!{01}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x001182",
+          "max_len": 5,
+          "text": "{0A}q,w-"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0015AE",
+          "max_len": 4,
+          "text": "({0D}G*"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00C660",
+          "max_len": 20,
+          "text": "Voltar a vista"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F872",
+          "max_len": 12,
+          "text": "Equipamento{00}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F87E",
+          "max_len": 9,
+          "text": "Procurar{00}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F887",
+          "max_len": 12,
+          "text": "Acampamento{00}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x009560",
+          "max_len": 2,
+          "text": "{72}{F8}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x009562",
+          "max_len": 2,
+          "text": "{7E}{F8}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x009564",
+          "max_len": 2,
+          "text": "{86}{F8}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00CA53",
+          "max_len": 17,
+          "text": "Em outro mundo,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00CA67",
+          "max_len": 18,
+          "text": "num tempo futuro."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0068DA",
+          "max_len": 7,
+          "text": "Honrade"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0068E2",
+          "max_len": 10,
+          "text": "Compaixao"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0068ED",
+          "max_len": 5,
+          "text": "Valor"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0068F3",
+          "max_len": 7,
+          "text": "Justica"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0068FB",
+          "max_len": 9,
+          "text": "Sacrifico"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x006905",
+          "max_len": 5,
+          "text": "Honra"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00690B",
+          "max_len": 12,
+          "text": "Espiritualid"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x006918",
+          "max_len": 8,
+          "text": "Humildad"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00D140",
+          "max_len": 52,
+          "text": "{08}Q{08}u{0B}a{08}l{08} {08}n{0B}o{08}m{08}e{08} {0B}t{08}e{08}r{07}a{06}s{0B} {08}a{08}q{08}u{0B}i{08} {0B}a{08}g{08}o{08}r{08}a"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00D178",
+          "max_len": 36,
+          "text": "{06}n{0C}e{08}s{07}t{06}e{0C} {08}m{08}u{06}n{07}d{0C}o{08} {08}a{0C}g{06}o{07}r{08}a{0C}?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00D19D",
+          "max_len": 41,
+          "text": "{19}{0C}E{08}s{08} {0E}t{08}u{08} {08}M{0E}A{08}S{07}C{06} {0E}o{08}u{0E} {08}F{08}E{08}M{07}I{06}N{0C}?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00D1C7",
+          "max_len": 4,
+          "text": "MASC"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00D1CC",
+          "max_len": 6,
+          "text": "FEMIN"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x04579",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0DBB3",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0621D9",
+          "max_len": 34,
+          "text": "Deixa o amigo com{01}o maior premio?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062669",
+          "max_len": 67,
+          "text": "Sacrifica-te para atrasar{01}o inimigo e permitir{01}fuga dos demais?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063154",
+          "max_len": 35,
+          "text": "recusa e segue o{01}chamado interior?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06333B",
+          "max_len": 74,
+          "text": "Escolhe a vida honrada{01}de um Paladino, lutando por{01}Verdade e Coragem, ou"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69806",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x007397",
+          "max_len": 12,
+          "text": "ESPIRITUAL."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05B543",
+          "max_len": 23,
+          "text": "FORTE DA SERPENTE"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x005535",
+          "max_len": 12,
+          "text": "Vento:Oest"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x005542",
+          "max_len": 5,
+          "text": "Norte"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x005548",
+          "max_len": 4,
+          "text": "Este"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00554D",
+          "max_len": 5,
+          "text": "Sul"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x006A60",
+          "max_len": 6,
+          "text": "TBaixo"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00EC64",
+          "max_len": 5,
+          "text": "Norte"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00EC6A",
+          "max_len": 5,
+          "text": "Sul"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00EC70",
+          "max_len": 4,
+          "text": "Oest"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00EC75",
+          "max_len": 4,
+          "text": "Este"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0407F7",
+          "max_len": 8,
+          "text": "Luarluz"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05B07B",
+          "max_len": 16,
+          "text": "IH OI  LUARLUZ"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05B302",
+          "max_len": 23,
+          "text": "MP FB  HONRA      SUMM"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05B3BA",
+          "max_len": 15,
+          "text": "6 MC GI  HONRA"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05B9C6",
+          "max_len": 23,
+          "text": "BN AC HONRA       SUMM"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05BA9F",
+          "max_len": 5,
+          "text": "HONRA"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x05BAA9",
+          "max_len": 20,
+          "text": "CASTELO ESPIRITUAL"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69A5E",
+          "max_len": 80,
+          "text": "Lorde Britan diz: Ser Avatar e personificar as Oito Virtudes."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69B1B",
+          "max_len": 113,
+          "text": "Lorde Britan diz: A Missao do Avatar e conhecer e viver as Oito Virtudes da Bondade!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AC29",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AC90",
+          "max_len": 146,
+          "text": "Lorde Britan senta e diz: Uma nova era chega a Britannia. Os grandes senhores do mal cairam, mas nosso povo ainda carece de rumo e proposito..."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6ADD1",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AE28",
+          "max_len": 43,
+          "text": "Lorde Britan diz: Vai em paz, meu amigo"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C37D",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C876",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x7206D",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x78619",
+          "max_len": 12,
+          "text": "Lorde Britan"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x566D4",
+          "max_len": 160,
+          "text": "O dia esta quente, mas ha{01}uma brisa refrescante. A{01}mais recente crise pessoal{01}parece intransponivel.{01}Voce esta sendo puxado em{01}todas as direcoes."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56775",
+          "max_len": 232,
+          "text": "Mas esta caminhada da tarde{01}pelo campo traz aos poucos{01}calma a sua mente cansada.{01}O peso da vida moderna{01}comeca a se desfazer.{01}Aquele salgueiro junto ao{01}riacho parece bem confortavel{01}e convidativo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5685E",
+          "max_len": 162,
+          "text": "O zumbido das libelulas e{01}o sussurro dos galhos{01}do salgueiro trazem uma{01}paz profunda. Voltando-se{01}para dentro em busca de{01}calma e felicidade, voce{01}fecha os olhos."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56901",
+          "max_len": 226,
+          "text": "Um som agudo em cascata,{01}como sinos de vento,{01}atinge sua consciencia{01}flutuante. Ao abrir os{01}olhos, voce ve um brilho{01}azulado surgindo do chao.{01}O som parece vir deste{01}portal brilhante."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x569E4",
+          "max_len": 155,
+          "text": "E dificil olhar para o{01}azulado. A luz parece{01}curvar e distorcer ao{01}redor, enquanto as ondas{01}sonoras ficam tao intensas{01}que parecem visiveis."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56A80",
+          "max_len": 201,
+          "text": "O portal paira por um{01}instante; entao, com o{01}estrondo de um vacuo, ele{01}afunda no chao. Algo{01}fica suspenso no ar por{01}um momento, antes de cair{01}no solo com forte impacto."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56B4A",
+          "max_len": 183,
+          "text": "Ainda abalado com a{01}visao, voce se levanta{01}para investigar. Um{01}circulo de pedras cerca{01}o local onde o portal{01}apareceu. Ha algo{01}brilhando no capim."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56C02",
+          "max_len": 224,
+          "text": "Voce pega um amuleto em{01}forma de cruz com um aro{01}na ponta. E um Ankh,{01}simbolo sagrado da vida{01}e do renascimento. Mas{01}isso nao fez o impacto,{01}entao voce olha de novo{01}e encontra um grande livro."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56CE3",
+          "max_len": 191,
+          "text": "Com maos tremulas, voce{01}desembrulha o livro. O{01}tecido e um mapa, e{01}dentro nao ha um, mas{01}dois livros. O mapa{01}mostra uma terra estranha{01}a voce, em cartografia{01}antiga."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56DA3",
+          "max_len": 154,
+          "text": "A escrita da capa do{01}primeiro livro e arcana,{01}mas legivel. O titulo e:{01}{01}   Historia de Britannia{01}       narrada por{01}   Kyle o Jovem"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56E3E",
+          "max_len": 230,
+          "text": "O outro livro causa{01}desconforto ao olhar.{01}A pequena capa parece{01}feita de um couro{01}estranho, de origem{01}incerta. A pele rubra{01}irradia uma aura intensa,{01}sugestiva de poder antigo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56F25",
+          "max_len": 198,
+          "text": "A lingua do titulo vai{01}alem do seu conhecimento.{01}Voce nao ousa abrir o{01}livro e despertar o que{01}dorme ali. Voce decide{01}ler a Historia. Sentando{01}sob o salgueiro,{01}voce abre o livro."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x56FEE",
+          "max_len": 30,
+          "text": "(Voce le o Livro da Historia)"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5700F",
+          "max_len": 40,
+          "text": "(Nao, serio!{01} Leia o Livro da Historia!)"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x57038",
+          "max_len": 226,
+          "text": "Fechando o livro, voce{01}pega o Ankh outra vez.{01}Ao segura-lo, comeca a{01}ouvir um som familiar,{01}como de alaude, vindo{01}de uma colina proxima.{01}Ainda com os artefatos,{01}voce sobe a encosta."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5711B",
+          "max_len": 191,
+          "text": "No vale abaixo voce ve{01}o que parece uma feira.{01}E estranho: antes voce{01}passou por ali e nao viu{01}nada. Enquanto pensa{01}nisso, seus pes o levam{01}ladeira abaixo ate o local."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x571DB",
+          "max_len": 138,
+          "text": "Esta nao e uma feira comum,{01}mas um festival renascentista.{01}As bandeiras no topo das{01}tendas tremulam no vento{01}do fim da tarde."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x57266",
+          "max_len": 156,
+          "text": "O cobrador da entrada da{01}feira vai pedir dinheiro,{01}mas ao ver seu Ankh diz:{01}\"Bem-vindo, amigo. Entre{01}em paz e siga seu caminho.\""
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x57303",
+          "max_len": 148,
+          "text": "A musica continua te{01}puxando entre mercadores{01}e vendedores. Tesouros{01}fabulosos surgem em algumas{01}barracas sombrias."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x57398",
+          "max_len": 182,
+          "text": "Essas pessoas parecem{01}muito felizes. Algumas{01}te olham e sorriem ao{01}passar, mas voce nao para:{01}a musica te obriga a{01}seguir adiante pela multidao."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5744F",
+          "max_len": 223,
+          "text": "No crepusculo, voce ve{01}uma carroca cigana isolada{01}na mata. A musica parece{01}vir dela. Quando voce se{01}aproxima, a voz de uma{01}mulher se mistura ao som:{01}\"Pode se aproximar,{01}buscador.\""
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5752F",
+          "max_len": 224,
+          "text": "Voce entra e encontra{01}uma velha cigana sentada{01}em um pequeno aposento{01}com cortinas. Ela usa um{01}Ankh no pescoco. A sua{01}frente ha uma mesa redonda{01}coberta por veludo verde.{01}O incenso te deixa tonto."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x57610",
+          "max_len": 198,
+          "text": "Ao ver o Ankh, a antiga{01}cigana sorri e avisa para{01}nunca se separar dele.{01}\"Esperamos por voce ha{01}muito tempo. Sente-se,{01}e eu lerei o caminho{01}do seu futuro.\""
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61EB6",
+          "max_len": 23,
+          "text": "Incumbido de levar um"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61ECE",
+          "max_len": 29,
+          "text": "bolsa de ouro sem conta, tu"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61EEC",
+          "max_len": 24,
+          "text": "encontras um mendigo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F05",
+          "max_len": 24,
+          "text": "entrega o ouro sabendo"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F1E",
+          "max_len": 26,
+          "text": "a Confianca em ti era boa"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F39",
+          "max_len": 10,
+          "text": "certa, ou"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F44",
+          "max_len": 23,
+          "text": "mostra Compaixao, dando"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F5C",
+          "max_len": 26,
+          "text": "dar uma moeda ao mendigo"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F77",
+          "max_len": 9,
+          "text": "nao vai"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x629EC",
+          "max_len": 8,
+          "text": "perdao?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x629F5",
+          "max_len": 28,
+          "text": "Um cavaleiro te aborda"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62A12",
+          "max_len": 21,
+          "text": "e exige tua comida."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62A28",
+          "max_len": 20,
+          "text": "Recusa e luta, ou"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62A3D",
+          "max_len": 21,
+          "text": "enfrenta o cavaleiro,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62A53",
+          "max_len": 23,
+          "text": "Sacrifica tua comida a"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62A6B",
+          "max_len": 18,
+          "text": "ao cavaleiro?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63240",
+          "max_len": 3,
+          "text": "teu"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63244",
+          "max_len": 6,
+          "text": "herda?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06324B",
+          "max_len": 143,
+          "text": "Na juventude juraste casar com tua amada. Agora estas em missao sagrada em terras distantes. Teu amor pede que mantenhas teu voto."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x632DB",
+          "max_len": 24,
+          "text": "Honra tua promessa, ou"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0632F4",
+          "max_len": 2,
+          "text": ""
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x632F7",
+          "max_len": 20,
+          "text": "segue tua jornada"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6330C",
+          "max_len": 8,
+          "text": "sagrada?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69635",
+          "max_len": 56,
+          "text": "Entras no santuario antigo e sentas diante do altar..."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6966E",
+          "max_len": 37,
+          "text": "Sobre qual virtude vais meditar? "
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69694",
+          "max_len": 27,
+          "text": "Por quantos ciclos (0-3)? "
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63470",
+          "max_len": 9,
+          "text": ""
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6347B",
+          "max_len": 27,
+          "text": "Sobre a mesa ela coloca um"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63497",
+          "max_len": 29,
+          "text": "curioso objeto de madeira"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x634B5",
+          "max_len": 29,
+          "text": "abaco sem contas. Em suas"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x634D3",
+          "max_len": 25,
+          "text": "maos ela segura oito"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x634ED",
+          "max_len": 14,
+          "text": "cartas raras."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0634FC",
+          "max_len": 27,
+          "text": "vamos comecar a selecao",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63518",
+          "max_len": 9,
+          "text": "Desejas?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06352B",
+          "max_len": 30,
+          "text": "A cigana poe as duas primeiras",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06354A",
+          "max_len": 6,
+          "text": "cartas",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63550",
+          "max_len": 28,
+          "text": " A cigana poe mais duas."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06356D",
+          "max_len": 10,
+          "text": "As cartas ",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63577",
+          "max_len": 29,
+          "text": "A cigana poe as ultimas."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063595",
+          "max_len": 6,
+          "text": "cartas",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06359B",
+          "max_len": 16,
+          "text": " sobre a mesa.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635AC",
+          "max_len": 21,
+          "text": "Sao as cartas de",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635C3",
+          "max_len": 7,
+          "text": "Honra{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635CB",
+          "max_len": 10,
+          "text": "Compaixao",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635DC",
+          "max_len": 7,
+          "text": "Justic{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635E4",
+          "max_len": 10,
+          "text": "Sacrifico{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635EE",
+          "max_len": 6,
+          "text": "Honra{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0635F4",
+          "max_len": 13,
+          "text": "Espiritualid{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063601",
+          "max_len": 9,
+          "text": "Humildez{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06360A",
+          "max_len": 5,
+          "text": " e {00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6362C",
+          "max_len": 26,
+          "text": "Com a escolha final, o"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63647",
+          "max_len": 29,
+          "text": "incenso cresce ao seu redor."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63665",
+          "max_len": 29,
+          "text": "A cigana fala como de longe"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63683",
+          "max_len": 25,
+          "text": "muito longe, e sua voz"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6369D",
+          "max_len": 25,
+          "text": "fica mais fraca a cada"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x636B7",
+          "max_len": 5,
+          "text": "fala:"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x636BD",
+          "max_len": 31,
+          "text": "\"Assim sera! Teu caminho!\""
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x636DE",
+          "max_len": 29,
+          "text": "Ha um momento de intensa,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x636FC",
+          "max_len": 26,
+          "text": "vertigem. Quando voce"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63717",
+          "max_len": 23,
+          "text": "abre os olhos, a voz"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6372F",
+          "max_len": 26,
+          "text": "sussurra em tua mente,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6374A",
+          "max_len": 24,
+          "text": "\"Busca o conselho de teu"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63763",
+          "max_len": 28,
+          "text": "soberano.\"  Apos um momento,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69880",
+          "max_len": 29,
+          "text": "Farei meu melhor p/ ajudar-te"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6989F",
+          "max_len": 131,
+          "text": "Ele diz: O Ankh e o simbolo de quem busca a Virtude. Leve-o sempre contigo, pois por esta marca voce sera reconhecido!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69924",
+          "max_len": 89,
+          "text": "Ele diz: Com os Grandes Senhores do Mal derrotados, o mal ainda vive em Britannia."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6997E",
+          "max_len": 66,
+          "text": "Se ao menos uma alma cumprir a Missao do Avatar, nosso povo..."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AF10",
+          "max_len": 88,
+          "text": "Ele diz: Tornaste-te um Avatar parcial nesse atributo. Nao precisas de meus conselhos."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x697F2",
+          "max_len": 61,
+          "text": "Ele diz: Sou Lorde Britan, soberano de toda Britannia!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69C50",
+          "max_len": 128,
+          "text": "Ele diz: As 8 Virtudes do Avatar sao: Honestidade, Compaixao, Valor, Justica, Sacrificio, Honra, Espiritualidade e Humildade!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69CD2",
+          "max_len": 86,
+          "text": "Ele diz: O Grande Abismo Stygian e o foco mais sombrio do mal restante em Britannia!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69DF8",
+          "max_len": 23,
+          "text": "Ele diz: Minax morreu!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69E11",
+          "max_len": 24,
+          "text": "Ele diz: Exodus morreu!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69E2B",
+          "max_len": 90,
+          "text": "Ele diz: Moonglow, na ilha Verity, e onde floresce a virtude da Honestidade!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69E87",
+          "max_len": 87,
+          "text": "Ele diz: Os bardos de Britain conhecem bem a virtude da Compaixao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69EE0",
+          "max_len": 70,
+          "text": "Ele diz: Muitos guerreiros vem de Jhelom, nas ilhas Valarian!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69F28",
+          "max_len": 67,
+          "text": "Ele diz: Em Yew, na Floresta Profunda, busca-se a Justica."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69F6D",
+          "max_len": 85,
+          "text": "Ele diz: Minoc, cidade do sacrificio, fica na costa leste da baia Lost Hope!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69FC4",
+          "max_len": 96,
+          "text": "Ele diz: Paladinos que buscam Honra sao vistos em Trinsic, ao norte do Cabo dos Herois!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A026",
+          "max_len": 88,
+          "text": "Ele diz: Em Skara Brae, o caminho espiritual e ensinado, perto de Spiritwood!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A080",
+          "max_len": 119,
+          "text": "Ele diz: Humildade e a base da Virtude! As ruinas da orgulhosa Magincia testemunham a virtude da Humildade!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A158",
+          "max_len": 124,
+          "text": "Ele diz: Das oito combinacoes de Verdade, Amor e Coragem, sem as tres ha Orgulho. E orgulho nao e virtude."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A242",
+          "max_len": 58,
+          "text": "Ele diz: Os Tres Principios sao Verdade, Amor e Coragem!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A27E",
+          "max_len": 101,
+          "text": "Ele diz: Muitas verdades podem ser aprendidas no Lycaeum, na costa noroeste da ilha Verity!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A2E5",
+          "max_len": 109,
+          "text": "Ele diz: Busca o sentido do Amor na Abadia Empath, na borda oeste da Floresta Profunda!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A354",
+          "max_len": 81,
+          "text": "Ele diz: O Castelo da Serpente, na Ilha de Deeds, e onde se busca Coragem!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A3A7",
+          "max_len": 9,
+          "text": "Ele diz: "
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AB83",
+          "max_len": 55,
+          "text": "Ele diz: Estou bem.{01}Ele pergunta: Vais bem?{01}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6ABBB",
+          "max_len": 23,
+          "text": "Ele diz: Otimo.{01}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6ABD4",
+          "max_len": 33,
+          "text": "Ele diz: Deixa eu curar-te!{01}"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AD23",
+          "max_len": 124,
+          "text": "Um campeao da virtude e necessario. Tu podes ser esse campeao, mas so o tempo dira. Eu te ajudarei como puder!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A700",
+          "max_len": 79,
+          "text": "Visite o vidente Hawkwind e use sua sabedoria para provar tua virtude."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A750",
+          "max_len": 105,
+          "text": "Quando estiveres pronto, Hawkwind dira para buscar a Elevacao a Avatar parcial em uma virtude."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A7BA",
+          "max_len": 109,
+          "text": "Busca tornar-te Avatar parcial nas oito virtudes; so entao estaras pronto para buscar o Codex!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A968",
+          "max_len": 99,
+          "text": "Encontre Sino, Livro e Vela! Com estes tres itens, pode-se entrar no Grande Abismo Stygian!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A9CD",
+          "max_len": 97,
+          "text": "Antes de entrar no Abismo, precisaras da Chave de Tres Partes e da Palavra de Passagem."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AA73",
+          "max_len": 102,
+          "text": "Agora pareces pronto para a jornada final ao Abismo escuro! Va apenas com um grupo de oito!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AADA",
+          "max_len": 89,
+          "text": "Boa sorte, e que as forcas do bem te guardem neste teu desafio mais perigoso!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6AB34",
+          "max_len": 77,
+          "text": "Os coracoes e almas de Britannia vao contigo agora. Cuida-te, amigo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x58C89",
+          "max_len": 66,
+          "text": "Eu te curo de graca, mas ajuda os outros sempre que puderes!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A178",
+          "max_len": 35,
+          "text": "Tu nao tens nada para vender."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A43F",
+          "max_len": 67,
+          "text": "Teu espirito e fraco. Tu ainda nao buscas a Perfeicao."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A483",
+          "max_len": 60,
+          "text": "Tu es orgulhoso e vaidoso. A virtude em ti se perde."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A4C0",
+          "max_len": 79,
+          "text": "Tu nao es honesto. Vive com mais honestidade para seres Avatar!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A557",
+          "max_len": 76,
+          "text": "Falta-te Valor. Tu foges quando a necessidade chama."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A5E8",
+          "max_len": 71,
+          "text": "Pensa mais na vida dos outros e menos apenas na tua."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A630",
+          "max_len": 58,
+          "text": "Tu nao lutas com honra, mas com malicia e engano."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A66B",
+          "max_len": 78,
+          "text": "Cuida mais do teu interior; isso e essencial para ser Avatar."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A6BA",
+          "max_len": 75,
+          "text": "Es orgulhoso demais de teus feitos. Humildade e raiz da Virtude."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A881",
+          "max_len": 79,
+          "text": "Mostra-te mais honrado. O caminho esta diante de ti."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A970",
+          "max_len": 72,
+          "text": "Pareces honesto. Mantem essa honestidade e seras recompensado."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A9B9",
+          "max_len": 75,
+          "text": "Mostras compaixao. Mantem a boa vontade como teu guia."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AA51",
+          "max_len": 73,
+          "text": "Pareces justo e correto. Sustenta a Justica com firmeza."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AAE2",
+          "max_len": 82,
+          "text": "Pareces honrado por natureza. Leva Honra tambem aos outros."
+        },
+        {
+          "kind": "fill",
+          "offset": "0x56E2C",
+          "length": 17,
+          "value": "0x20"
+        },
+        {
+          "kind": "fill",
+          "offset": "0x56F08",
+          "length": 28,
+          "value": "0x20"
+        },
+        {
+          "kind": "fill",
+          "offset": "0x56FD8",
+          "length": 19,
+          "value": "0x20"
+        },
+        {
+          "kind": "fill",
+          "offset": "0x57007",
+          "length": 5,
+          "value": "0x20"
+        },
+        {
+          "kind": "fill",
+          "offset": "0x57021",
+          "length": 22,
+          "value": "0x20"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A299",
+          "max_len": 69,
+          "text": "Tu es um ladrao desonrado. Nunca poderas tornar-te Avatar!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AB86",
+          "max_len": 83,
+          "text": "Pareces uma alma humilde. Estas firmando bases fortes para a virtude."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5ABDA",
+          "max_len": 62,
+          "text": "Tu es realmente honesto. Busca agora alcancar a Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AC19",
+          "max_len": 72,
+          "text": "Compaixao e uma virtude que mostraste bem. Busca agora a Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AC62",
+          "max_len": 79,
+          "text": "Tu es um guerreiro valente. Busca a Elevacao na virtude do Valor!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5ACB2",
+          "max_len": 50,
+          "text": "Tu es justo e correto. Busca agora a Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AD30",
+          "max_len": 72,
+          "text": "Provaste ser honrado. Busca agora a Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AE46",
+          "max_len": 105,
+          "text": "Sou Hawkwind, Vidente das Almas. Vejo o que ha em ti e te move ao bem ou ao mal..."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AEB0",
+          "max_len": 44,
+          "text": "Que caminho buscas para a iluminacao?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AF99",
+          "max_len": 76,
+          "text": "Hawkwind diz: Adeus, e que completes a Missao do Avatar!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6205E",
+          "max_len": 104,
+          "text": "Um mercador deve dinheiro ao teu amigo ha muito tempo. Tu ves o mesmo mercador."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62122",
+          "max_len": 182,
+          "text": "Tu e teu amigo vao caçar um dragao. Teu amigo acha que o matou. Quando perguntarem, diras a verdade ou tomara o ouro?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0621FC",
+          "max_len": 125,
+          "text": "Juraste proteger teu lorde a qualquer custo, mas sabes de seu crime. As autoridades perguntam.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6245F",
+          "max_len": 74,
+          "text": "Em duelo, desarmas teu inimigo mortal. Ele esta a tua merce."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62A7E",
+          "max_len": 131,
+          "text": "Em batalha, ordenam guardar a tenda vazia do comandante. A luta piora e queres ajudar teus aliados."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0626AD",
+          "max_len": 131,
+          "text": "Tu juraste defender teu lorde no caso.{01}na tortura proibida de{01}prisioneiros. Toda noite os{01}gritos de dor te alcancam.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6275C",
+          "max_len": 35,
+          "text": "Honra teu juramento e ignora isso?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062781",
+          "max_len": 132,
+          "text": "Foste ensinado a preservar toda vida como sagrada.{01}Um homem foi picado por{01}serpente venenosa e pede{01}morte por misericordia.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62808",
+          "max_len": 35,
+          "text": "Mostra compaixao e encerra isso."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x628E3",
+          "max_len": 42,
+          "text": "Mostra compaixao e poupa o fanfarrao."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62E1C",
+          "max_len": 37,
+          "text": "Honra teu juramento e nao expulses o"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62F07",
+          "max_len": 59,
+          "text": "Sem testemunhas, mataste um dragao em legitima defesa."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63315",
+          "max_len": 37,
+          "text": "Estas numa encruzilhada da tua vida."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063386",
+          "max_len": 74,
+          "text": "Escolhe vida humilde de pastor, em mundo de paz.{00}",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62BD7",
+          "max_len": 28,
+          "text": "Embora mestre da musica,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62BF4",
+          "max_len": 29,
+          "text": "tu es lutador habilidoso."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62C12",
+          "max_len": 29,
+          "text": "Tu foste chamado p/ lutar"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62C49",
+          "max_len": 25,
+          "text": "aceita o convite e"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62C7E",
+          "max_len": 176,
+          "text": "Na batalha, ves um aliado desertar e por muitos em risco. Ao fugir, ele e cercado por inimigos."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62E4F",
+          "max_len": 94,
+          "text": "Crendo que a virtude vive em todos, tu ves um ladrao roubando teu senhor."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x682E7",
+          "max_len": 69,
+          "text": "Ao te aproximares, uma voz ecoa: De que virtude nasce"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x684BC",
+          "max_len": 60,
+          "text": "O que possuis se todos podem confiar em tua palavra?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68784",
+          "max_len": 85,
+          "text": "Saibas que a jornada para ser Avatar e uma busca para toda a vida."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6882B",
+          "max_len": 77,
+          "text": "Se te desviares das virtudes, teu caminho pode perder-se para sempre."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68C22",
+          "max_len": 57,
+          "text": "Ainda nao provaste tua lideranca nas oito virtudes."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68CB3",
+          "max_len": 50,
+          "text": "Tu conheces bem as virtudes do Avatar."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68D2A",
+          "max_len": 119,
+          "text": "Se as oito virtudes do Avatar se unem e derivam dos Tres Principios: Verdade, Amor e Coragem..."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68E58",
+          "max_len": 51,
+          "text": "Ainda nao conheces a natureza real do Universo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x693AC",
+          "max_len": 74,
+          "text": "Busca resolver as muitas missoes diante de ti, e a honra sera recompensa!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6948E",
+          "max_len": 90,
+          "text": "Se buscas a Pedra Branca, nao procures no subsolo, mas em Serpent's Spine!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x694E9",
+          "max_len": 75,
+          "text": "Nao afirmes ser o que nao es. Acoes humildes falam bem de ti!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69583",
+          "max_len": 108,
+          "text": "Se buscas a Pedra Negra, procura no Tempo e Lugar do Portal na noite mais escura!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x695F0",
+          "max_len": 68,
+          "text": "Nao trazes a runa de entrada! Uma forca estranha te impede."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6979F",
+          "max_len": 55,
+          "text": "Alcancaste Avatar parcial na Virtude de"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69D7B",
+          "max_len": 96,
+          "text": "Dizem tambem que so alguem de altissima Virtude pode entrar nesta Camara, como um Avatar!!!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A3B1",
+          "max_len": 116,
+          "text": "Para sobreviver nesta terra hostil, conhece a ti mesmo! Domina armas e magia!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A45F",
+          "max_len": 80,
+          "text": "Ate conheceres bem a ti mesmo, nao te afastes da seguranca das cidades."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A641",
+          "max_len": 85,
+          "text": "Nos Santuarios aprenderas quais atos revelam tua virtude ou teu vicio."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A8F3",
+          "max_len": 115,
+          "text": "Vais muito bem no caminho do Avatar! Esforca-te para a Elevacao nas oito virtudes!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6ADB7",
+          "max_len": 24,
+          "text": ", Tu viveras novamente!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C15B",
+          "max_len": 69,
+          "text": "Busca entender como as oito virtudes formam os tres principios."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C1A1",
+          "max_len": 75,
+          "text": "Busca saber qual unidade surge dos tres principios da virtude!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C298",
+          "max_len": 25,
+          "text": "Gostas da musica?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C747",
+          "max_len": 48,
+          "text": "Busca: Lycaeum, Abadia Empath, Castelo Serpente"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6CE41",
+          "max_len": 25,
+          "text": "Conheces os mantras?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6CF2F",
+          "max_len": 54,
+          "text": "Ao entrar, nao poderas retornar de onde vieste!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D056",
+          "max_len": 30,
+          "text": "Queres saber agora?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D189",
+          "max_len": 28,
+          "text": "Entao tu nao o encontraras!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D334",
+          "max_len": 48,
+          "text": "Procura no fim dali, e acharas um botao."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D37A",
+          "max_len": 32,
+          "text": "Ajusta o disco e tu veras!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D649",
+          "max_len": 26,
+          "text": "Es um avatar parcial?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D664",
+          "max_len": 70,
+          "text": "Com 8 partes de Avatar, busca Zircon em Minoc e pergunta dos misticos!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6D948",
+          "max_len": 90,
+          "text": "Medita em cada santuario por 1, 2 e 3 minutos; assim conhecera os caminhos da bondade!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6DC29",
+          "max_len": 24,
+          "text": "Conheces Chuckles?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6DC42",
+          "max_len": 39,
+          "text": "Por que nao pedes a ele sua pista?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6DD2C",
+          "max_len": 26,
+          "text": "Pretendes roubar?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6DE3C",
+          "max_len": 26,
+          "text": "Sabes o que isto e?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E032",
+          "max_len": 30,
+          "text": "Queres saber agora?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E160",
+          "max_len": 28,
+          "text": "Entao tu nao o encontraras!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E2D9",
+          "max_len": 91,
+          "text": "Busca a vela do amor; so com ela e outras duas partes podera entrar no abismo!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E628",
+          "max_len": 24,
+          "text": "Gostas deste?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E9FE",
+          "max_len": 75,
+          "text": "Justica e uma das oito virtudes do Avatar, derivada de Verdade e Amor."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6EEC6",
+          "max_len": 25,
+          "text": "O que perguntas a mim?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6EEE0",
+          "max_len": 52,
+          "text": "Tu precisas da vela do amor para entrar no abismo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6EF15",
+          "max_len": 32,
+          "text": "Sabes onde encontra-la?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6F021",
+          "max_len": 42,
+          "text": "Conheces as quatro cidades da coragem?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6F057",
+          "max_len": 46,
+          "text": "Sao Jhelom, Minoc, Trinsic e Skara Brae."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6F62F",
+          "max_len": 39,
+          "text": "Desejas audiencia com Sentri?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6F72F",
+          "max_len": 46,
+          "text": "Pretendes roubar o tesouro do nosso lorde?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x58C56",
+          "max_len": 50,
+          "text": "Vejo por tua bolsa que nao tens ouro suficiente."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x58CCC",
+          "max_len": 31,
+          "text": "Tu ja estas bem saudavel!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A706",
+          "max_len": 82,
+          "text": "Tiveste pouco progresso na Honestidade. Esforca-te para provar teu valor!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A79C",
+          "max_len": 75,
+          "text": "Ainda nao es um guerreiro valente. Derrota o mal e prova teu valor!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A7E8",
+          "max_len": 78,
+          "text": "Ainda nao provaste ser justo. Esforca-te para fazer justica a todos!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5A922",
+          "max_len": 77,
+          "text": "Teu progresso e incerto. Sem Humildade, tu ficas vazio!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5ACE5",
+          "max_len": 74,
+          "text": "Tu es generoso e bom. Teu sacrificio e grande. Busca agora Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5AD79",
+          "max_len": 57,
+          "text": "Espiritualidade esta em ti. Busca agora a Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x5ADB3",
+          "max_len": 69,
+          "text": "Tua Humildade brilha em teu ser. Busca agora Elevacao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x61F8B",
+          "max_len": 95,
+          "text": "Teu lorde ausente proibiu-te de juntar-te aos amigos na batalha."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6201C",
+          "max_len": 64,
+          "text": "Mostra Valor e ajuda teus companheiros, mesmo com risco."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x622D1",
+          "max_len": 127,
+          "text": "Teu amigo quer entrar em tua ordem espiritual. Pedem teu aval, mas tens duvidas da pureza dele."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x623A4",
+          "max_len": 109,
+          "text": "Teu lorde acha que matou o dragao. Tu tens prova de que tua lanca derrotou a fera. Quando perguntarem,"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x625DE",
+          "max_len": 88,
+          "text": "Tu e teus amigos recuaram por ordem. Vais desafiar essa ordem?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x62928",
+          "max_len": 135,
+          "text": "Foste enviado para fechar tratado com lorde distante. Ele aceita, mas insulta teu pais no jantar."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062D7A",
+          "max_len": 154,
+          "text": "Juraste cumprir ordens do lorde. Ele cobica uma terra e quer expulsar o dono.{01}Aceita remover o{01}proprietario, ou",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062FCB",
+          "max_len": 58,
+          "text": "Tu es cacador jurado{01}para trazer suposto assassino.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6303C",
+          "max_len": 21,
+          "text": "Sacrifica tua grande"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06306C",
+          "max_len": 51,
+          "text": "Honra teu juramento{01}como tu prometeste?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x630A0",
+          "max_len": 159,
+          "text": "Viveste em caridade e retidao. Teu tio taberneiro adoeceu e pede que assumas a taberna."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x63178",
+          "max_len": 56,
+          "text": "Tu es idoso e rico; o fim parece proximo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x633D1",
+          "max_len": 75,
+          "text": "Teus pais querem que sejas aprendiz. Ha duas vagas disponiveis."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68B12",
+          "max_len": 30,
+          "text": "Pensamentos nao estao puros."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x68E30",
+          "max_len": 39,
+          "text": "Pensamentos impuros. Pergunto de novo."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69281",
+          "max_len": 81,
+          "text": "Fugir e deixar teus companheiros e egoismo e deve ser evitado!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x693F7",
+          "max_len": 82,
+          "text": "Busca conhecer a ti mesmo. Visita o vidente; ele ve teu interior!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x696B0",
+          "max_len": 54,
+          "text": "Tu nao consegues focar teus pensamentos neste assunto!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x69733",
+          "max_len": 57,
+          "text": "Tu nao consegues focar teus pensamentos com esse Mantra!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6976D",
+          "max_len": 49,
+          "text": "Teus pensamentos estao puros. Recebes uma visao!"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A4B1",
+          "max_len": 126,
+          "text": "Nao viajes sozinho. Ha pessoas valiosas nas cidades que podem juntar-se a ti."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6A697",
+          "max_len": 103,
+          "text": "Escolhe teu caminho com sabedoria; teus atos podem voltar e te impedir."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6C38B",
+          "max_len": 34,
+          "text": "Es o guerreiro mais valente?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6CE61",
+          "max_len": 68,
+          "text": "Mantras sao cantos para focar teus pensamentos ao meditar."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6DB55",
+          "max_len": 39,
+          "text": "Procuras um livro em especial?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E22F",
+          "max_len": 31,
+          "text": "Tens permissao para estar aqui?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E50B",
+          "max_len": 29,
+          "text": "Estas cheio de amor?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E718",
+          "max_len": 32,
+          "text": "Vieste aqui em busca de amor?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E7C4",
+          "max_len": 87,
+          "text": "Aqui podes achar visoes sobre amor, em ti mesmo ou nos outros do bosque."
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6E82C",
+          "max_len": 32,
+          "text": "Es a pessoa mais amorosa?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6F124",
+          "max_len": 30,
+          "text": "Vieste buscar coragem?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6F9DA",
+          "max_len": 29,
+          "text": "Procuras alguem?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x6FA9C",
+          "max_len": 29,
+          "text": "Procuras alguem?"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0620EE",
+          "max_len": 50,
+          "text": "Da ao amigo tua parte,{01}ou fica com o ouro?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062351",
+          "max_len": 81,
+          "text": "Expressa tua duvida,{01}ou avaliza torcendo por{01}melhora espiritual?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06243C",
+          "max_len": 34,
+          "text": "Com humildade aceitas{01}a crenca?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0624AB",
+          "max_len": 46,
+          "text": "Mostra compaixao{01}e permite que ele recue,{01}ou",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062505",
+          "max_len": 138,
+          "text": "Apos 20 anos, encontras{01}o assassino de teus amigos.{01}O vilao sustenta jovens{01}carentes em abrigo local.{01}Poupa-o mesmo assim?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062594",
+          "max_len": 38,
+          "text": "Poupa-o por compaixao{01}pela menina.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062637",
+          "max_len": 48,
+          "text": "Para por compaixao{01}e ajuda o ferido.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062731",
+          "max_len": 38,
+          "text": "Mostra compaixao{01}denunciando os atos.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06282D",
+          "max_len": 37,
+          "text": "Segue tua fe espiritual{01}e recusa?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062854",
+          "max_len": 140,
+          "text": "Como guarda do rei,{01}teu capitao pede que visites{01}um hospital e alegres{01}as criancas com historias{01}de teus feitos valorosos.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062B37",
+          "max_len": 24,
+          "text": "Honra teu posto?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062B72",
+          "max_len": 93,
+          "text": "Derrota o ladrao,{01}ou recusa por saber{01}no teu espirito{01}que nada dura?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062EC8",
+          "max_len": 58,
+          "text": "Tenta convence-lo{01}a voltar ao caminho{01}espiritual?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0631B1",
+          "max_len": 90,
+          "text": "Doa tua riqueza{01}para alimentar criancas{01}famintas e recebe{01}aclamacao publica.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06320F",
+          "max_len": 59,
+          "text": "Vive com humildade,{01}e deixa tua fortuna{01}ao teu herdeiro?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06341D",
+          "max_len": 42,
+          "text": "Torna-te acolito{01}na ordem espiritual.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06EB09",
+          "max_len": 70,
+          "text": "Sacrificio nasce do amor e da coragem para agir pelo bem comum.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x06227A",
+          "max_len": 39,
+          "text": "Quebra teu juramento{01}e fala a verdade.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0622A4",
+          "max_len": 28,
+          "text": "Honra o lorde{01}e cala-te.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062412",
+          "max_len": 38,
+          "text": "Reivindica a morte{01}e o premio, ou",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0624DA",
+          "max_len": 39,
+          "text": "mata-o como esperam{01}de um bravo?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0625BD",
+          "max_len": 32,
+          "text": "Mata-o em nome da{01}Justica?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062B50",
+          "max_len": 33,
+          "text": "Valentao provoca{01}luta.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062D2F",
+          "max_len": 63,
+          "text": "Deixa-o lutar{01}sozinho, ou arrisca{01}teu sacrificio?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062E43",
+          "max_len": 11,
+          "text": "{01}colono?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062EB0",
+          "max_len": 23,
+          "text": "chama-o a Justica, ou",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062F43",
+          "max_len": 24,
+          "text": "{01}Um pobre guerreiro diz",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062F6E",
+          "max_len": 41,
+          "text": "Da um passo justo{01}e pede o premio.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062F9A",
+          "max_len": 27,
+          "text": "Vive humilde,{01}sem glorias.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063006",
+          "max_len": 21,
+          "text": "{01}Apos captura-lo tu",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0620C9",
+          "max_len": 34,
+          "text": "Devolve a bolsa{01}intacta.",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062F5D",
+          "max_len": 14,
+          "text": "{01}recompensa?",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F610",
+          "max_len": 9,
+          "text": "Sacrifico"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F620",
+          "max_len": 12,
+          "text": "Espiritualid"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408C4",
+          "max_len": 9,
+          "text": "Sacrifico"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408D4",
+          "max_len": 12,
+          "text": "Espiritualid"
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x062E14",
+          "max_len": 7,
+          "text": "",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F5EF",
+          "max_len": 7,
+          "text": "Honrade",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F5F7",
+          "max_len": 10,
+          "text": "Compaixao",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F608",
+          "max_len": 7,
+          "text": "Justica",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F61A",
+          "max_len": 5,
+          "text": "Honra",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F62D",
+          "max_len": 8,
+          "text": "Humildad",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F636",
+          "max_len": 5,
+          "text": "Veraz",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F63C",
+          "max_len": 4,
+          "text": "Amor",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x00F641",
+          "max_len": 7,
+          "text": "Coragem",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408A3",
+          "max_len": 7,
+          "text": "Honrade",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408AB",
+          "max_len": 10,
+          "text": "Compaixao",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408BC",
+          "max_len": 7,
+          "text": "Justica",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408CE",
+          "max_len": 5,
+          "text": "Honra",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0408E1",
+          "max_len": 8,
+          "text": "Humildad",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063612",
+          "max_len": 25,
+          "text": "Ela diz: \"Veja isto:\"",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x063780",
+          "max_len": 51,
+          "text": "a vertigem passa, e você{01}abre os olhos para...",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x0732C3",
+          "max_len": 27,
+          "text": "Justiça é verdade em ação!",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x073A91",
+          "max_len": 110,
+          "text": "Justiça é difícil na ponta da espada; o aço é agente da justiça, o humano é o perpetrador!",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x073BD2",
+          "max_len": 69,
+          "text": "Justiça não é só punir o mal, mas também recompensar o bem!",
+          "pad_byte": 0
+        },
+        {
+          "kind": "write_text",
+          "offset": "0x076A37",
+          "max_len": 12,
+          "text": "Espiritualid",
+          "pad_byte": 0
+        }
+      ],
+      "validations": {
+        "required_ascii": [
+          {
+            "offset": "0x00C660",
+            "text": "Voltar a vista"
+          },
+          {
+            "offset": "0x00F872",
+            "text": "Equipamento"
+          },
+          {
+            "offset": "0x00F87E",
+            "text": "Procurar"
+          },
+          {
+            "offset": "0x00F887",
+            "text": "Acampamento"
+          },
+          {
+            "offset": "0x00CA53",
+            "text": "Em outro mundo,"
+          },
+          {
+            "offset": "0x00CA67",
+            "text": "num tempo futuro."
+          },
+          {
+            "offset": "0x00D1C7",
+            "text": "MASC"
+          },
+          {
+            "offset": "0x00D1CC",
+            "text": "FEMIN"
+          },
+          {
+            "offset": "0x0068DA",
+            "text": "Honrade"
+          },
+          {
+            "offset": "0x0068E2",
+            "text": "Compaixão"
+          },
+          {
+            "offset": "0x0068F3",
+            "text": "Justiça"
+          },
+          {
+            "offset": "0x0068FB",
+            "text": "Sacrifico"
+          },
+          {
+            "offset": "0x00690B",
+            "text": "Espiritualid"
+          },
+          {
+            "offset": "0x00EC64",
+            "text": "Norte"
+          },
+          {
+            "offset": "0x00EC70",
+            "text": "Oest"
+          },
+          {
+            "offset": "0x0407F7",
+            "text": "Luarluz"
+          },
+          {
+            "offset": "0x05BA9F",
+            "text": "HONRA"
+          },
+          {
+            "offset": "0x04579",
+            "text": "Lorde Britan"
+          },
+          {
+            "offset": "0x063612",
+            "text": "Ela diz: \"Veja isto:\""
+          },
+          {
+            "offset": "0x063780",
+            "text": "a vertigem passa, e você{01}abre os olhos para..."
+          },
+          {
+            "offset": "0x0732C3",
+            "text": "Justiça é verdade em ação!"
+          },
+          {
+            "offset": "0x073A91",
+            "text": "Justiça é difícil na ponta da espada; o aço é agente da justiça, o humano é o perpetrador!"
+          },
+          {
+            "offset": "0x073BD2",
+            "text": "Justiça não é só punir o mal, mas também recompensar o bem!"
+          },
+          {
+            "offset": "0x076A37",
+            "text": "Espiritualid"
+          }
+        ],
+        "forbidden_ascii": [
+          {
+            "offset": "0x00CA40",
+            "length": 96,
+            "needles": [
+              "In another world",
+              "in a time to come"
+            ]
+          },
+          {
+            "offset": "0x566D4",
+            "length": 4608,
+            "needles": [
+              "The day is warm",
+              "Yet this afternoon walk",
+              "The ticket taker at the",
+              "Seeing the Ankh, the ancient",
+              "By what name shalt thou"
+            ]
+          },
+          {
+            "offset": "0x63470",
+            "length": 896,
+            "needles": [
+              "Upon the table she places",
+              "curious wooden object like an",
+              "abacus but without beads",
+              "unusual cards.",
+              "The gypsy places the first two",
+              "The gypsy speaks as if from a",
+              "\"So be it! Thy path is chosen!\"",
+              "wrenching vertigo.",
+              "She says \"Consider this:\"",
+              "the spinning subsides, and you",
+              "Honesty",
+              "Compassion",
+              "Spirituality",
+              "our mind,",
+              "Seek the counsel of thy",
+              "sovereign.\"  After a moment,"
+            ]
+          },
+          {
+            "offset": "0x073200",
+            "length": 1024,
+            "needles": [
+              "Justice"
+            ]
+          },
+          {
+            "offset": "0x076A00",
+            "length": 128,
+            "needles": [
+              "Spirituality"
+            ]
+          },
+          {
+            "offset": "0x69880",
+            "length": 256,
+            "needles": [
+              "He says:",
+              "If but one soul could complete",
+              "by this mark thou shalt be known",
+              "shalt be known!"
+            ]
+          }
+        ]
+      },
+      "residual_english_audit": {
+        "enabled": true,
+        "fail_on_hits": true,
+        "max_allowed_hits": 180,
+        "zero_en_required": false,
+        "scan_mode": "safe_spans",
+        "min_len": 4,
+        "min_marker_hits": 1,
+        "max_report_items": 600,
+        "scan_ranges": [
+          {
+            "offset": "0x54000",
+            "length": 114688
+          }
+        ],
+        "english_markers": [
+          "thou ",
+          "thee ",
+          "dost ",
+          "shalt ",
+          "he says:",
+          "he asks:",
+          "seek ye",
+          "art thou",
+          "thy ",
+          "what dost",
+          "where dost",
+          "fare thee",
+          "good luck",
+          "serpent's",
+          "lycaeum",
+          "enterthe",
+          "male",
+          "female",
+          "sacrifice",
+          "spirituality",
+          "honor",
+          "moonglow",
+          "wind:",
+          "winds",
+          "west",
+          "east",
+          "north",
+          "south",
+          "command-q",
+          "initiate new game",
+          "return to the view",
+          "in another world",
+          "in this world and time",
+          "attack",
+          "search",
+          "camp",
+          "board"
+        ],
+        "portuguese_markers": [
+          "ele diz:",
+          "ele pergunta:",
+          "voce ",
+          "tu ",
+          " nao ",
+          " virtude",
+          " coragem",
+          " justica",
+          " compaix",
+          " humildad",
+          " busca",
+          " conhec"
+        ]
+      }
+    }
+  ]
+}

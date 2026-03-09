@@ -1,0 +1,75 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:19:51",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "8A2CC850",
+  "rom_size": 1049088,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\8A2CC850\\1_extracao\\8A2CC850_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\bstone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 16
+    },
+    {
+      "mode": "regex",
+      "src": "\\bpoisoned\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 6
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcourse\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 6
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcannot\\b",
+      "dst": "not",
+      "ignore_case": true,
+      "hits": 6
+    },
+    {
+      "mode": "regex",
+      "src": "\\bsaved\\b",
+      "dst": "save",
+      "ignore_case": true,
+      "hits": 5
+    },
+    {
+      "mode": "regex",
+      "src": "\\bmagical\\b",
+      "dst": "magic",
+      "ignore_case": true,
+      "hits": 4
+    }
+  ],
+  "drop_words": [
+    "spells"
+  ],
+  "extra_fragments": [
+    "one",
+    "are",
+    "our",
+    "not",
+    "power",
+    "magic",
+    "save",
+    "come"
+  ],
+  "stats": {
+    "items_total": 2578,
+    "rows_with_text": 2578,
+    "unique_tokens": 1859,
+    "replace_rules_total": 6,
+    "drop_words_total": 1,
+    "extra_fragments_total": 8
+  }
+}

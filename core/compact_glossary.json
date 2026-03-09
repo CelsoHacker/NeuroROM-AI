@@ -1,0 +1,42 @@
+{
+  "_global": {
+    "comment": "Substituições aplicadas em TODOS os jogos",
+    "masculino": "macho",
+    "feminino": "femea",
+    "experiência": "exp",
+    "inventário": "inv",
+    "equipamento": "equip",
+    "personagem": "person",
+    "aventureiro": "aventur",
+    "hit points": "PV",
+    "magic points": "PM",
+    "attack": "ataque",
+    "defense": "defesa",
+    "weapon": "arma",
+    "armor": "armadura",
+    "shield": "escudo",
+    "potion": "pocao",
+    "sword": "espada",
+    "castle": "castelo",
+    "dungeon": "masmorra",
+    "village": "aldeia",
+    "tavern": "taverna",
+    "enter": "entrar",
+    "leave": "sair",
+    "north": "norte",
+    "south": "sul",
+    "east": "leste",
+    "west": "oeste"
+  },
+  "DE9F8517": {
+    "comment": "Glossário específico para Ultima IV SMS",
+    "thy": "teu",
+    "thou": "tu",
+    "kin": "parentes",
+    "towne": "vila",
+    "virtue": "virtude",
+    "avatar": "avatar",
+    "moongate": "portal lunar",
+    "moonlight": "luar"
+  }
+}

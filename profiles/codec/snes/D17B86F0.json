@@ -1,0 +1,32 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:20:04",
+  "enabled": true,
+  "console_hint": "snes",
+  "rom_crc32": "D17B86F0",
+  "rom_size": 2621952,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Super Nintedo\\D17B86F0\\1_extracao\\D17B86F0_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [],
+  "drop_words": [
+    "jjjj"
+  ],
+  "extra_fragments": [
+    "one",
+    "shield",
+    "sword",
+    "are",
+    "our",
+    "right",
+    "power",
+    "who"
+  ],
+  "stats": {
+    "items_total": 6134,
+    "rows_with_text": 6134,
+    "unique_tokens": 3658,
+    "replace_rules_total": 0,
+    "drop_words_total": 1,
+    "extra_fragments_total": 8
+  }
+}

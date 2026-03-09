@@ -1,0 +1,88 @@
+{
+  "schema": "neurorom.codec_profile.v1",
+  "generated_at": "2026-02-12T18:11:54",
+  "enabled": true,
+  "console_hint": "generic",
+  "rom_crc32": "DE9F8517",
+  "rom_size": 524288,
+  "source_pure_jsonl": "C:\\Users\\celso\\OneDrive\\Área de Trabalho\\PROJETO_V5_OFICIAL\\rom-translation-framework\\ROMs\\Master System\\DE9F8517\\1_extracao\\DE9F8517_pure_text.jsonl",
+  "min_score": null,
+  "replace_rules": [
+    {
+      "mode": "regex",
+      "src": "\\barmour\\b",
+      "dst": "our",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bstone\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 11
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhast\\b",
+      "dst": "has",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bwelcome\\b",
+      "dst": "come",
+      "ignore_case": true,
+      "hits": 7
+    },
+    {
+      "mode": "regex",
+      "src": "\\bstones\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bcannot\\b",
+      "dst": "not",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bmagical\\b",
+      "dst": "magic",
+      "ignore_case": true,
+      "hits": 4
+    },
+    {
+      "mode": "regex",
+      "src": "\\bhonest\\b",
+      "dst": "one",
+      "ignore_case": true,
+      "hits": 4
+    }
+  ],
+  "drop_words": [],
+  "extra_fragments": [
+    "one",
+    "our",
+    "come",
+    "has",
+    "not",
+    "can",
+    "magic",
+    "will",
+    "are"
+  ],
+  "stats": {
+    "items_total": 1447,
+    "rows_with_text": 1447,
+    "unique_tokens": 1406,
+    "replace_rules_total": 8,
+    "drop_words_total": 0,
+    "extra_fragments_total": 9
+  }
+}
